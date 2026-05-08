@@ -15,6 +15,7 @@ import { formatPrice, INDIAN_CITIES } from "@/lib/utils";
 import type { Property } from "@/types";
 import SearchBar from "@/components/SearchBar";
 import { brand, pageTitleWithTagline } from "@/lib/brand";
+import HeroBackground from "@/components/HeroBackground";
 
 export const metadata: Metadata = {
   title: pageTitleWithTagline(),
@@ -97,11 +98,8 @@ export default async function HomePage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero Section */}
-      <section className="bg-hero-gradient relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-sky-400/20 rounded-full blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden">
+        <HeroBackground />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-10">

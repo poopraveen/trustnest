@@ -4,6 +4,7 @@ import { MapPin, TrendingUp, TrendingDown, Award, ExternalLink, Info } from "luc
 import { cn } from "@/lib/utils";
 import { DISTRICT_SCORES, DATA_SOURCES } from "@/lib/tn-official-data";
 import FYSelectorBar from "@/components/FYSelectorBar";
+import ScorecardInfoTooltip from "@/components/ScorecardInfoTooltip";
 
 export const metadata: Metadata = { title: "District Scorecards | TN Vettri" };
 
@@ -57,7 +58,10 @@ export default function ScorecardsPage() {
             <Link href="/tnvettri" className="hover:text-white transition-colors">Home</Link>
             <span>/</span><span>Scorecards</span>
           </div>
-          <h1 className="text-3xl font-bold">District Performance Scorecards</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold">District Performance Scorecards</h1>
+            <ScorecardInfoTooltip />
+          </div>
           <p className="text-blue-200 mt-1 text-lg font-tamil">மாவட்ட செயல்திறன் மதிப்பீடு</p>
           <p className="text-blue-300 text-sm mt-2">38 Districts · 5 Categories · Q4 2024 · Composite Governance Index</p>
         </div>
@@ -193,8 +197,11 @@ export default function ScorecardsPage() {
               );
             })}
           </div>
-          <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-400">
-            Composite score = 0.25×Financial Efficiency + 0.25×Service Delivery + 0.20×Citizen Impact + 0.15×Infrastructure + 0.15×Governance Integrity · Q4 2024
+          <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+            <p className="text-xs text-slate-400">
+              Composite score = 0.25×Financial Efficiency + 0.25×Service Delivery + 0.20×Citizen Impact + 0.15×Infrastructure + 0.15×Governance Integrity · Q4 2024
+            </p>
+            <ScorecardInfoTooltip />
           </div>
         </div>
 
