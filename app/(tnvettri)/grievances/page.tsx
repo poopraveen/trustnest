@@ -7,7 +7,8 @@ import {
   Send, ChevronRight, ExternalLink, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GRIEVANCES } from "@/lib/tn-official-data";
+import { GRIEVANCES, DATA_SOURCES } from "@/lib/tn-official-data";
+import DataFreshnessBar from "@/components/DataFreshnessBar";
 
 const STATS = [
   { label: "Total Filed",        labelTa: "மொத்தம் பதிவு",    value: GRIEVANCES.totalFiled.toLocaleString("en-IN"),    sub: "FY 2024-25",                        color: "text-primary-700", bg: "bg-primary-50",  icon: MessageSquare },
@@ -89,6 +90,13 @@ export default function GrievancesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* Data freshness bar */}
+        {(() => { const s = DATA_SOURCES.find(d => d.id === "grievances")!; return (
+          <DataFreshnessBar sourceId={s.id} sourceName={s.url.replace("https://","")} sourceUrl={s.url}
+            covers={s.covers} lastVerified={s.lastVerified} updateFrequency={s.updateFrequency}
+            health={s.health} recordCount={s.recordCount} />
+        ); })()}
 
         {/* File Grievance + Track */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

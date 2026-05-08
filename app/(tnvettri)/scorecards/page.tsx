@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MapPin, TrendingUp, TrendingDown, Award, ExternalLink, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DISTRICT_SCORES } from "@/lib/tn-official-data";
+import { DISTRICT_SCORES, DATA_SOURCES } from "@/lib/tn-official-data";
+import FYSelectorBar from "@/components/FYSelectorBar";
 
 export const metadata: Metadata = { title: "District Scorecards | TN Vettri" };
 
@@ -88,6 +89,13 @@ export default function ScorecardsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* Data freshness + FY selector */}
+        {(() => { const s = DATA_SOURCES.find(d => d.id === "districts")!; return (
+          <FYSelectorBar sourceId={s.id} sourceName={s.url.replace("https://","")} sourceUrl={s.url}
+            covers={s.covers} lastVerified={s.lastVerified} updateFrequency={s.updateFrequency}
+            health={s.health} recordCount={s.recordCount} />
+        ); })()}
 
         {/* Top & Bottom performers */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

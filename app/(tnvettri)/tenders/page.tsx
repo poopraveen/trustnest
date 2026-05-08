@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileSearch, TrendingUp, CheckCircle, Clock, Users, ExternalLink, Download, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TENDERS as TENDERS_DATA } from "@/lib/tn-official-data";
+import { TENDERS as TENDERS_DATA, DATA_SOURCES } from "@/lib/tn-official-data";
+import FYSelectorBar from "@/components/FYSelectorBar";
 
 export const metadata: Metadata = { title: "Procurement & Tenders | TN Vettri" };
 
@@ -142,6 +143,13 @@ export default function TendersPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* Data freshness + FY selector */}
+        {(() => { const s = DATA_SOURCES.find(d => d.id === "tenders")!; return (
+          <FYSelectorBar sourceId={s.id} sourceName={s.url.replace("https://","")} sourceUrl={s.url}
+            covers={s.covers} lastVerified={s.lastVerified} updateFrequency={s.updateFrequency}
+            health={s.health} recordCount={s.recordCount} />
+        ); })()}
 
         {/* Stage pipeline */}
         <div className="bg-white rounded-xl shadow-card p-6">

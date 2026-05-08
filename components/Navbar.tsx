@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,8 @@ export default function Navbar() {
     { href: "/projects",    label: "Projects",     labelTa: "திட்டங்கள்",  icon: Briefcase },
     { href: "/schemes",     label: "Schemes",      labelTa: "திட்டங்கள்",  icon: Users },
     { href: "/grievances",  label: "Grievances",   labelTa: "குறைகள்",    icon: MessageSquare },
-    { href: "/tenders",     label: "Tenders",      labelTa: "டெண்டர்",    icon: FileSearch },
+    { href: "/tenders",      label: "Tenders",      labelTa: "டெண்டர்",    icon: FileSearch },
+    { href: "/data-sources", label: "Data Sources", labelTa: "தரவு மூலங்கள்", icon: Info },
   ];
 
   return (

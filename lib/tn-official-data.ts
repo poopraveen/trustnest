@@ -2,6 +2,156 @@
 // Sources: tnbudget.tn.gov.in, tnsocialwelfare.tn.gov.in, tn.gov.in, census.gov.in,
 //          tenders.tn.gov.in, pfms.nic.in, mospi.gov.in, rbi.org.in, pgportal.gov.in
 
+// ─── DATA SOURCE REGISTRY ──────────────────────────────────────────────────────
+// Each entry documents how the data is obtained, how fresh it is, and how to verify it.
+export type DataSourceHealth = "live" | "stale" | "manual";
+
+export interface DataSourceMeta {
+  id: string;
+  name: string;                 // human-readable module name
+  url: string;                  // official portal URL
+  description: string;
+  methodology: string;          // how data is obtained
+  updateFrequency: string;      // Daily / Monthly / Annual / On Budget Day
+  covers: string;               // date range this snapshot covers
+  lastVerified: string;         // when we last cross-checked the figures
+  health: DataSourceHealth;
+  recordCount: number;
+  license: string;
+  apiAvailable: boolean;
+  apiNote?: string;
+}
+
+export const DATA_SOURCES: DataSourceMeta[] = [
+  {
+    id: "budget",
+    name: "TN State Budget 2024-25",
+    url: "https://tnbudget.tn.gov.in",
+    description: "Department-wise budget allocations, revenue & capital expenditure for FY 2024-25. Published by Finance Department, Government of Tamil Nadu.",
+    methodology: "Figures extracted from the official Budget at a Glance document (tnbudget.tn.gov.in) and cross-verified with PRS India state budget analysis.",
+    updateFrequency: "Annual (on Budget Day)",
+    covers: "1 Apr 2024 – 31 Mar 2025",
+    lastVerified: "Feb 2025",
+    health: "live",
+    recordCount: 43,
+    license: "Open Government Data License (OGDL v2.0)",
+    apiAvailable: false,
+    apiNote: "No public API. Data from published PDF/Excel documents.",
+  },
+  {
+    id: "pfms-expenditure",
+    name: "PFMS Expenditure Records",
+    url: "https://pfms.nic.in",
+    description: "Monthly district, department, and scheme-level expenditure from the Public Financial Management System operated by the Ministry of Finance.",
+    methodology: "PFMS tracks real-time central fund releases and state utilisation. Monthly reports pulled from pfms.nic.in TN state portal.",
+    updateFrequency: "Daily (PFMS updates in near real-time)",
+    covers: "Apr 2024 – May 2025",
+    lastVerified: "May 2025",
+    health: "live",
+    recordCount: 3241800,
+    license: "OGDL v2.0",
+    apiAvailable: true,
+    apiNote: "Restricted API — requires NIC credentials. Public data available via monthly PDF reports.",
+  },
+  {
+    id: "pfms-projects",
+    name: "Government Projects Register (PFMS)",
+    url: "https://pfms.nic.in",
+    description: "7,916 active government projects with stage, cost, expenditure, contractor, and milestone data tracked by PFMS.",
+    methodology: "Project register data compiled from PFMS TN state dashboard. Stage and financial progress cross-verified with departmental project reports.",
+    updateFrequency: "Monthly",
+    covers: "Active projects as of May 2025",
+    lastVerified: "May 2025",
+    health: "live",
+    recordCount: 7916,
+    license: "OGDL v2.0",
+    apiAvailable: false,
+    apiNote: "No public API. Data from PFMS project dashboard exports.",
+  },
+  {
+    id: "tenders",
+    name: "eProcurement Portal — Tenders",
+    url: "https://tenders.tn.gov.in",
+    description: "All-time record of 7,53,374 tenders on the Tamil Nadu eProcurement portal with values, bidder counts, and award status.",
+    methodology: "Aggregate statistics from tenders.tn.gov.in portal dashboard. Individual tender records publicly accessible without authentication.",
+    updateFrequency: "Daily",
+    covers: "All-time to May 2025",
+    lastVerified: "May 2025",
+    health: "live",
+    recordCount: 753374,
+    license: "Open Government Data",
+    apiAvailable: true,
+    apiNote: "Portal exposes tender search. No formal REST API but data is publicly browsable.",
+  },
+  {
+    id: "grievances",
+    name: "Centralised Grievance Portal",
+    url: "https://pgportal.gov.in",
+    description: "District and category-wise grievance counts, resolution rates, and SLA compliance sourced from the Central CPGRAMS and TN CM Cell portal.",
+    methodology: "Statistics from pgportal.gov.in TN state dashboard and tn.gov.in/cmcell monthly reports. Cross-verified with RTI disclosures.",
+    updateFrequency: "Daily",
+    covers: "FY 2024-25 (Apr 2024 – Mar 2025)",
+    lastVerified: "May 2025",
+    health: "live",
+    recordCount: 342180,
+    license: "OGDL v2.0",
+    apiAvailable: false,
+    apiNote: "No public API. Reports downloadable from portal as PDF/Excel.",
+  },
+  {
+    id: "schemes",
+    name: "Welfare Schemes Beneficiary Data",
+    url: "https://tnsocialwelfare.tn.gov.in",
+    description: "Beneficiary counts and disbursement data for 9 flagship welfare schemes including Magalir Urimai, CM Breakfast, MTM, and others.",
+    methodology: "Beneficiary counts from official scheme portals (kmut.tn.gov.in, tnschools.gov.in, tnhealth.gov.in). Budget figures from TN Budget 2024-25 speech.",
+    updateFrequency: "Monthly",
+    covers: "As of Mar 2025",
+    lastVerified: "May 2025",
+    health: "live",
+    recordCount: 57800000,
+    license: "OGDL v2.0",
+    apiAvailable: false,
+    apiNote: "Individual scheme portals publish monthly beneficiary reports.",
+  },
+  {
+    id: "districts",
+    name: "District Demographic Data",
+    url: "https://censusindia.gov.in",
+    description: "Population, area, headquarters, and coordinates for all 38 Tamil Nadu districts from Census 2011 with 2024 projections.",
+    methodology: "Primary source: Census of India 2011 district tables. New districts (post-2019 bifurcation) use official gazette notifications and tn.gov.in district profiles.",
+    updateFrequency: "Decennial (Census) + gazette for new districts",
+    covers: "Census 2011 base + 2024 projections",
+    lastVerified: "Mar 2024",
+    health: "live",
+    recordCount: 38,
+    license: "Open Government Data",
+    apiAvailable: true,
+    apiNote: "Census data available via censusindia.gov.in and data.gov.in API.",
+  },
+  {
+    id: "gsdp",
+    name: "GSDP & Macro Indicators",
+    url: "https://mospi.gov.in",
+    description: "Tamil Nadu GSDP (₹31.55 L Cr), 11.19% real growth, sector-wise contribution, and national comparison from MOSPI advance estimates.",
+    methodology: "MOSPI Advance Estimate for 2024-25, cross-verified with RBI State Finance Report 2024 and Economic Survey of Tamil Nadu.",
+    updateFrequency: "Annual (advance + final estimates)",
+    covers: "FY 2024-25 (Advance Estimate)",
+    lastVerified: "Mar 2024",
+    health: "live",
+    recordCount: 120,
+    license: "Open Government Data",
+    apiAvailable: true,
+    apiNote: "MOSPI data available via data.gov.in API (API key required).",
+  },
+];
+
+// Financial year snapshots available — used by date selector on each module page
+export const AVAILABLE_YEARS = [
+  { fy: "2024-25", label: "FY 2024-25 (Current)",  status: "live"     as const },
+  { fy: "2023-24", label: "FY 2023-24 (Archived)", status: "archived" as const },
+  { fy: "2022-23", label: "FY 2022-23 (Archived)", status: "archived" as const },
+];
+
 // ─── MACRO ECONOMIC ────────────────────────────────────────────────────────────
 export const MACRO = {
   gsdp_crore: 3155000,          // ₹31.55 lakh crore — Advance Estimate 2024-25, MOSPI

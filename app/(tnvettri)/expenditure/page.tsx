@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink, Download, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BUDGET, DEPT_BUDGETS, MONTHLY_EXPENDITURE } from "@/lib/tn-official-data";
+import { BUDGET, DEPT_BUDGETS, MONTHLY_EXPENDITURE, DATA_SOURCES } from "@/lib/tn-official-data";
+import FYSelectorBar from "@/components/FYSelectorBar";
 
 export const metadata: Metadata = { title: "Budget Expenditure | TN Vettri" };
 
@@ -76,6 +77,13 @@ export default function ExpenditurePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* Data freshness + FY selector */}
+        {(() => { const s = DATA_SOURCES.find(d => d.id === "budget")!; return (
+          <FYSelectorBar sourceId={s.id} sourceName={s.url.replace("https://","")} sourceUrl={s.url}
+            covers={s.covers} lastVerified={s.lastVerified} updateFrequency={s.updateFrequency}
+            health={s.health} recordCount={s.recordCount} />
+        ); })()}
 
         {/* Utilisation meter */}
         <div className="bg-white rounded-xl shadow-card p-6">
