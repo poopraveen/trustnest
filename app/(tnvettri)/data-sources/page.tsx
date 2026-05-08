@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import GovHeroBackground from "@/components/GovHeroBackground";
 import { DATA_SOURCES, AVAILABLE_YEARS, type DataSourceMeta } from "@/lib/tn-official-data";
 
 export const metadata: Metadata = {
@@ -46,8 +47,9 @@ export default function DataSourcesPage() {
     <div className="min-h-screen bg-surface">
 
       {/* ── Finance Department Hero ─────────────────────────────── */}
-      <div className="bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="relative overflow-hidden text-white">
+        <GovHeroBackground />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-green-300 text-xs mb-6">

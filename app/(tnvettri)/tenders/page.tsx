@@ -4,6 +4,7 @@ import { FileSearch, TrendingUp, CheckCircle, Clock, Users, ExternalLink, Downlo
 import { cn } from "@/lib/utils";
 import { TENDERS as TENDERS_DATA, DATA_SOURCES } from "@/lib/tn-official-data";
 import FYSelectorBar from "@/components/FYSelectorBar";
+import GovHeroBackground from "@/components/GovHeroBackground";
 
 export const metadata: Metadata = { title: "Procurement & Tenders | TN Vettri" };
 
@@ -101,17 +102,18 @@ export default function TendersPage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero */}
-      <div className="bg-hero-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex items-center gap-2 text-blue-200 text-sm mb-3">
+      <div className="relative overflow-hidden text-white">
+        <GovHeroBackground />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex items-center gap-2 text-green-200 text-sm mb-3">
             <Link href="/tnvettri" className="hover:text-white">Home</Link>
             <span>/</span><span>Tenders</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">Procurement Transparency</h1>
-              <p className="text-blue-200 mt-1 text-lg font-tamil">கொள்முதல் வெளிப்படைத்தன்மை</p>
-              <p className="text-blue-300 text-sm mt-2">7,53,374 tenders · ₹7,53,403 Cr total value · Source: tenders.tn.gov.in</p>
+              <p className="text-green-200 mt-1 text-lg font-tamil">கொள்முதல் வெளிப்படைத்தன்மை</p>
+              <p className="text-green-300 text-sm mt-2">7,53,374 tenders · ₹7,53,403 Cr total value · Source: tenders.tn.gov.in</p>
             </div>
             <div className="flex gap-2">
               <a href="https://tenders.tn.gov.in" target="_blank" rel="noopener noreferrer"

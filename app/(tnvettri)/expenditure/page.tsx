@@ -4,6 +4,7 @@ import { ExternalLink, Download, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUDGET, DEPT_BUDGETS, MONTHLY_EXPENDITURE, DATA_SOURCES } from "@/lib/tn-official-data";
 import FYSelectorBar from "@/components/FYSelectorBar";
+import GovHeroBackground from "@/components/GovHeroBackground";
 
 export const metadata: Metadata = { title: "Budget Expenditure | TN Vettri" };
 
@@ -28,17 +29,18 @@ export default function ExpenditurePage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero */}
-      <div className="bg-hero-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex items-center gap-2 text-blue-200 text-sm mb-3">
+      <div className="relative overflow-hidden text-white">
+        <GovHeroBackground />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex items-center gap-2 text-green-200 text-sm mb-3">
             <Link href="/tnvettri" className="hover:text-white transition-colors">Home</Link>
             <span>/</span><span>Expenditure</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">Budget Expenditure Tracker</h1>
-              <p className="text-blue-200 mt-1 text-lg font-tamil">பட்ஜெட் செலவின கண்காணிப்பு</p>
-              <p className="text-blue-300 text-sm mt-2">
+              <p className="text-green-200 mt-1 text-lg font-tamil">பட்ஜெட் செலவின கண்காணிப்பு</p>
+              <p className="text-green-300 text-sm mt-2">
                 Financial Year {BUDGET.financialYear} · Source: {BUDGET.source} · Updated {BUDGET.lastUpdated}
               </p>
             </div>

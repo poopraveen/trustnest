@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { DISTRICT_SCORES, DATA_SOURCES } from "@/lib/tn-official-data";
 import FYSelectorBar from "@/components/FYSelectorBar";
 import ScorecardInfoTooltip from "@/components/ScorecardInfoTooltip";
+import GovHeroBackground from "@/components/GovHeroBackground";
 
 export const metadata: Metadata = { title: "District Scorecards | TN Vettri" };
 
@@ -52,9 +53,10 @@ export default function ScorecardsPage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero */}
-      <div className="bg-hero-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex items-center gap-2 text-blue-200 text-sm mb-3">
+      <div className="relative overflow-hidden text-white">
+        <GovHeroBackground />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex items-center gap-2 text-green-200 text-sm mb-3">
             <Link href="/tnvettri" className="hover:text-white transition-colors">Home</Link>
             <span>/</span><span>Scorecards</span>
           </div>
@@ -62,8 +64,8 @@ export default function ScorecardsPage() {
             <h1 className="text-3xl font-bold">District Performance Scorecards</h1>
             <ScorecardInfoTooltip />
           </div>
-          <p className="text-blue-200 mt-1 text-lg font-tamil">மாவட்ட செயல்திறன் மதிப்பீடு</p>
-          <p className="text-blue-300 text-sm mt-2">38 Districts · 5 Categories · Q4 2024 · Composite Governance Index</p>
+          <p className="text-green-200 mt-1 text-lg font-tamil">மாவட்ட செயல்திறன் மதிப்பீடு</p>
+          <p className="text-green-300 text-sm mt-2">38 Districts · 5 Categories · Q4 2024 · Composite Governance Index</p>
         </div>
       </div>
 

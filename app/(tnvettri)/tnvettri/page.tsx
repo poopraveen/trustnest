@@ -8,6 +8,7 @@ import {
   ChevronRight, ExternalLink, Clock,
 } from "lucide-react";
 import KpiTile from "@/components/KpiTile";
+import GovHeroBackground from "@/components/GovHeroBackground";
 import { brand, pageTitleWithTagline } from "@/lib/brand";
 import { BUDGET, MACRO, SCHEMES, TENDERS, DEPT_BUDGETS } from "@/lib/tn-official-data";
 
@@ -137,11 +138,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero — Trust Snapshot */}
-      <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #14532d 0%, #166534 45%, #15803d 100%)" }}>
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-400/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-emerald-400/20 rounded-full blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden">
+        <GovHeroBackground />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full mb-6 border border-white/20">

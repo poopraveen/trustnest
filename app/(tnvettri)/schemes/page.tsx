@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GovHeroBackground from "@/components/GovHeroBackground";
 import { IndianRupee, Calendar, ExternalLink, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SCHEMES, fmtCount, fmtCrore, DATA_SOURCES } from "@/lib/tn-official-data";
@@ -33,15 +34,16 @@ export default function SchemesPage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero */}
-      <div className="bg-hero-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex items-center gap-2 text-blue-200 text-sm mb-3">
+      <div className="relative overflow-hidden text-white">
+        <GovHeroBackground />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex items-center gap-2 text-green-200 text-sm mb-3">
             <Link href="/tnvettri" className="hover:text-white transition-colors">Home</Link>
             <span>/</span><span>Schemes</span>
           </div>
           <h1 className="text-3xl font-bold">Welfare Scheme Benefits</h1>
-          <p className="text-blue-200 mt-1 text-lg font-tamil">நலத்திட்ட பலன்கள்</p>
-          <p className="text-blue-300 text-sm mt-2">
+          <p className="text-green-200 mt-1 text-lg font-tamil">நலத்திட்ட பலன்கள்</p>
+          <p className="text-green-300 text-sm mt-2">
             {SCHEMES.length} flagship schemes · {fmtCount(totalBeneficiaries)} beneficiaries · {fmtCrore(totalDisbursed)} disbursed · FY 2024-25
           </p>
         </div>
