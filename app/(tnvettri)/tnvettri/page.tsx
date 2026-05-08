@@ -137,10 +137,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface">
 
       {/* Hero — Trust Snapshot */}
-      <section className="bg-hero-gradient relative overflow-hidden">
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #14532d 0%, #166534 45%, #15803d 100%)" }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-sky-400/20 rounded-full blur-3xl" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-400/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-emerald-400/20 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-10">
@@ -153,7 +153,7 @@ export default function HomePage() {
               <span className="text-yellow-300">Public Transparency Platform</span>
             </h1>
             <p className="text-white/80 font-tamil text-lg mb-1">தமிழ்நாடு வெளிப்படைத்தன்மை தளம்</p>
-            <p className="text-blue-100 text-base max-w-2xl mx-auto mt-3">
+            <p className="text-green-100 text-base max-w-2xl mx-auto mt-3">
               Track every rupee spent, every scheme beneficiary reached, every project milestone,
               and every grievance resolved — district by district.
             </p>
@@ -164,8 +164,8 @@ export default function HomePage() {
             {TRUST_STATS.map((s) => (
               <div key={s.label} className="text-white">
                 <div className="text-2xl font-bold font-data">{s.value}</div>
-                <div className="text-blue-200 text-sm">{s.label}</div>
-                <div className="text-blue-300/70 text-xs font-tamil">{s.labelTa}</div>
+                <div className="text-green-200 text-sm">{s.label}</div>
+                <div className="text-green-300/70 text-xs font-tamil">{s.labelTa}</div>
               </div>
             ))}
           </div>
@@ -174,7 +174,7 @@ export default function HomePage() {
           <div className="mt-10 flex justify-center">
             <Link
               href="/scorecards"
-              className="flex items-center gap-2 bg-white text-primary-800 font-bold px-8 py-3.5 rounded-xl hover:bg-blue-50 transition-colors shadow-lg text-base"
+              className="flex items-center gap-2 bg-white text-green-800 font-bold px-8 py-3.5 rounded-xl hover:bg-green-50 transition-colors shadow-lg text-base"
             >
               View My Locality
               <ArrowRight className="w-5 h-5" />
@@ -184,7 +184,8 @@ export default function HomePage() {
       </section>
 
       {/* Quick Navigation */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="bg-gradient-to-b from-emerald-50 to-white">
+        <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {QUICK_LINKS.map((q) => (
             <Link
@@ -202,33 +203,36 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
+        </div>
       </section>
 
       {/* KPI Dashboard */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="section-title">Budget & Welfare Snapshot</h2>
-            <p className="section-subtitle">Key figures from official TN government sources</p>
+      <section className="bg-gradient-to-b from-green-50 to-emerald-50/40">
+        <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="section-title">Budget & Welfare Snapshot</h2>
+              <p className="section-subtitle">Key figures from official TN government sources</p>
+            </div>
+            <Link href="/expenditure" className="flex items-center gap-1 text-sm text-primary-700 font-medium hover:text-primary-900 transition-colors">
+              Full Expenditure <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <Link href="/expenditure" className="flex items-center gap-1 text-sm text-primary-700 font-medium hover:text-primary-900 transition-colors">
-            Full Expenditure <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {BUDGET_KPIS.map((kpi) => (
-            <KpiTile
-              key={kpi.label}
-              {...kpi}
-              auditHref={kpi.source ? `/audit?source=${kpi.source}` : undefined}
-              downloadHref="/data/tn_real_data"
-            />
-          ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {BUDGET_KPIS.map((kpi) => (
+              <KpiTile
+                key={kpi.label}
+                {...kpi}
+                auditHref={kpi.source ? `/audit?source=${kpi.source}` : undefined}
+                downloadHref="/data/tn_real_data"
+              />
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Department Leaderboard */}
-      <section className="py-10 bg-white">
+      <section className="py-10 bg-gradient-to-r from-teal-50 via-white to-teal-50/60">
         <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -358,11 +362,11 @@ export default function HomePage() {
       </section>
 
       {/* Transparency Commitment */}
-      <section className="py-12 bg-primary-950 text-white">
+      <section className="py-12 bg-gradient-to-br from-green-950 to-green-900 text-white">
         <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-white mb-2">Our Transparency Commitment</h2>
-            <p className="text-blue-200 text-sm">Every data point is sourced, timestamped, and auditable</p>
+            <p className="text-green-200 text-sm">Every data point is sourced, timestamped, and auditable</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
@@ -371,33 +375,33 @@ export default function HomePage() {
               { icon: FileSearch,title: "Full Audit Trail",        desc: "Every metric has a traceable source, change history, and responsible office — visible to all citizens." },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex flex-col items-center">
-                <div className="w-14 h-14 rounded-2xl bg-primary-800 flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-blue-300" />
+                <div className="w-14 h-14 rounded-2xl bg-green-800 flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-green-300" />
                 </div>
                 <h3 className="font-bold text-white text-base mb-2">{title}</h3>
-                <p className="text-blue-200 text-sm max-w-xs">{desc}</p>
+                <p className="text-green-200 text-sm max-w-xs">{desc}</p>
               </div>
             ))}
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a href="https://tnbudget.tn.gov.in" target="_blank" rel="noopener noreferrer"
-               className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white border border-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+               className="flex items-center gap-1.5 text-xs text-green-300 hover:text-white border border-green-700 px-3 py-1.5 rounded-lg transition-colors">
               <ExternalLink className="w-3 h-3" /> tnbudget.tn.gov.in
             </a>
             <a href="https://pfms.nic.in" target="_blank" rel="noopener noreferrer"
-               className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white border border-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+               className="flex items-center gap-1.5 text-xs text-green-300 hover:text-white border border-green-700 px-3 py-1.5 rounded-lg transition-colors">
               <ExternalLink className="w-3 h-3" /> pfms.nic.in
             </a>
             <a href="https://pgportal.gov.in" target="_blank" rel="noopener noreferrer"
-               className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white border border-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+               className="flex items-center gap-1.5 text-xs text-green-300 hover:text-white border border-green-700 px-3 py-1.5 rounded-lg transition-colors">
               <ExternalLink className="w-3 h-3" /> pgportal.gov.in
             </a>
             <a href="https://tenders.tn.gov.in" target="_blank" rel="noopener noreferrer"
-               className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white border border-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+               className="flex items-center gap-1.5 text-xs text-green-300 hover:text-white border border-green-700 px-3 py-1.5 rounded-lg transition-colors">
               <ExternalLink className="w-3 h-3" /> tenders.tn.gov.in
             </a>
             <a href="https://egramswaraj.gov.in" target="_blank" rel="noopener noreferrer"
-               className="flex items-center gap-1.5 text-xs text-blue-300 hover:text-white border border-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+               className="flex items-center gap-1.5 text-xs text-green-300 hover:text-white border border-green-700 px-3 py-1.5 rounded-lg transition-colors">
               <ExternalLink className="w-3 h-3" /> egramswaraj.gov.in
             </a>
           </div>
