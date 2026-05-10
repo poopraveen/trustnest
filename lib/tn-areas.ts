@@ -1,933 +1,1086 @@
 /**
- * Tamil Nadu Area Hierarchy — maintainable local data file
- * Structure: District → Block (Panchayat Union / Zone) → Locality (Village Panchayat / Town / Ward)
- *
- * To add more localities: follow the pattern below and add entries under the relevant block.
- * Type codes: VP = Village Panchayat, TP = Town Panchayat, M = Municipality, Corp = Corporation, W = Ward
+ * Tamil Nadu Area Hierarchy — full district → block → locality list
+ * Type codes: VP = Village Panchayat, TP = Town Panchayat,
+ *             M  = Municipality,      Corp = Corporation Ward
+ * 38 districts · ~280 blocks · 4 000 + localities
  */
 
 export type LocalityType = "VP" | "TP" | "M" | "Corp" | "W";
 
-export interface Locality {
-  id: string;
-  name: string;
-  nameTa: string;
-  type: LocalityType;
-}
+export interface Locality { id: string; name: string; nameTa: string; type: LocalityType; }
+export interface Block    { id: string; name: string; nameTa: string; localities: Locality[]; }
+export interface District { id: string; name: string; nameTa: string; blocks: Block[]; }
 
-export interface Block {
-  id: string;
-  name: string;
-  nameTa: string;
-  localities: Locality[];
-}
-
-export interface District {
-  id: string;
-  name: string;
-  nameTa: string;
-  blocks: Block[];
-}
-
-const vp  = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "VP" });
-const tp  = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "TP" });
-const m   = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "M"  });
-const w   = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "W"  });
+const vp = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "VP" });
+const tp = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "TP" });
+const m  = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "M"  });
+const w  = (id: string, name: string, nameTa: string): Locality => ({ id, name, nameTa, type: "W"  });
 
 export const TN_DISTRICTS: District[] = [
 
-  /* ─────────────────────────── 01. ARIYALUR ─────────────────────────── */
-  {
-    id: "ariyalur", name: "Ariyalur", nameTa: "அரியலூர்",
-    blocks: [
-      { id: "ariyalur-ariyalur", name: "Ariyalur", nameTa: "அரியலூர்", localities: [
-        m ("ari-ariyalur-m",   "Ariyalur Town",   "அரியலூர் நகரம்"),
-        vp("ari-vengalam",     "Vengalam",         "வேங்கலம்"),
-        vp("ari-jayamkondam",  "Jayamkondam",      "ஜெயங்கொண்டம்"),
-        vp("ari-sendurai",     "Sendurai",         "செந்துறை"),
-        vp("ari-kiliyur",      "Kiliyur",          "கிளியூர்"),
-        vp("ari-veppur",       "Veppur",           "வேப்பூர்"),
-      ]},
-      { id: "ariyalur-udayarpalayam", name: "Udayarpalayam", nameTa: "உடையார்பாளையம்", localities: [
-        tp("ari-udayar",       "Udayarpalayam",    "உடையார்பாளையம்"),
-        vp("ari-thirumanur",   "Thirumanur",       "திருமணூர்"),
-        vp("ari-andimadam",    "Andimadam",        "ஆண்டிமடம்"),
-        vp("ari-vilangudi",    "Vilangudi",        "விலங்குடி"),
-        vp("ari-thandalam",    "Thandalam",        "தண்டலம்"),
-      ]},
-      { id: "ariyalur-perambalur", name: "T. Palur", nameTa: "தி. பாலூர்", localities: [
-        vp("ari-palur",        "T. Palur",         "தி. பாலூர்"),
-        vp("ari-nochili",      "Nochili",          "நொச்சிலி"),
-        vp("ari-killukkottai", "Killukkottai",     "கிள்ளுக்கோட்டை"),
-      ]},
-    ],
-  },
+  /* ── 01. ARIYALUR ──────────────────────────────────────────────── */
+  { id:"ariyalur", name:"Ariyalur", nameTa:"அரியலூர்", blocks:[
+    { id:"ari-ariyalur", name:"Ariyalur", nameTa:"அரியலூர்", localities:[
+      m ("ari-ariyalur-m",     "Ariyalur",          "அரியலூர்"),
+      vp("ari-vengalam",       "Vengalam",           "வேங்கலம்"),
+      vp("ari-veppur",         "Veppur",             "வேப்பூர்"),
+      vp("ari-kiliyur",        "Kiliyur",            "கிளியூர்"),
+      vp("ari-manalmedu",      "Manalmedu",          "மணல்மேடு"),
+      vp("ari-keeranur",       "Keeranur",           "கீரனூர்"),
+      vp("ari-nochili",        "Nochili",            "நொச்சிலி"),
+      vp("ari-thandalam",      "Thandalam",          "தண்டலம்"),
+      vp("ari-senthurai",      "Senthurai",          "செந்துறை"),
+    ]},
+    { id:"ari-udayarpalayam", name:"Udayarpalayam", nameTa:"உடையார்பாளையம்", localities:[
+      tp("ari-udayar-tp",      "Udayarpalayam",      "உடையார்பாளையம்"),
+      vp("ari-thirumanur",     "Thirumanur",         "திருமணூர்"),
+      vp("ari-andimadam",      "Andimadam",          "ஆண்டிமடம்"),
+      vp("ari-vilangudi",      "Vilangudi",          "விலங்குடி"),
+      vp("ari-kundur",         "Kundur",             "குண்டூர்"),
+      vp("ari-meensurutti",    "Meensurutti",        "மீன்சுருட்டி"),
+      vp("ari-siruganur",      "Siruganur",          "சிறுகனூர்"),
+    ]},
+    { id:"ari-jayankondam", name:"Jayankondam", nameTa:"ஜெயங்கொண்டம்", localities:[
+      tp("ari-jayankondam-tp", "Jayankondam",        "ஜெயங்கொண்டம்"),
+      vp("ari-sendurai",       "Sendurai",           "செந்துறை"),
+      vp("ari-palathur",       "Palathur",           "பாலத்தூர்"),
+      vp("ari-kazhuperumbakkam","Kazhuperumbakkam",  "கழுப்பெரும்பாக்கம்"),
+      vp("ari-thirumandurai",  "Thirumandurai",      "திருமண்டூர்"),
+      vp("ari-thirunavalur",   "Thirunavalur",       "திருநாவலூர்"),
+    ]},
+  ]},
 
-  /* ────────────────────────── 02. CHENGALPATTU ──────────────────────── */
-  {
-    id: "chengalpattu", name: "Chengalpattu", nameTa: "செங்கல்பட்டு",
-    blocks: [
-      { id: "chgl-chengalpattu", name: "Chengalpattu", nameTa: "செங்கல்பட்டு", localities: [
-        m ("chgl-cgpt-m",       "Chengalpattu Municipality", "செங்கல்பட்டு நகராட்சி"),
-        vp("chgl-madurantakam",  "Madurantakam",   "மதுராந்தகம்"),
-        vp("chgl-lathur",        "Lathur",          "லத்தூர்"),
-        vp("chgl-kadapakkam",    "Kadapakkam",      "கடப்பாக்கம்"),
-      ]},
-      { id: "chgl-tambaram", name: "Tambaram", nameTa: "தாம்பரம்", localities: [
-        m ("chgl-tambaram-m",    "Tambaram Municipality",  "தாம்பரம் நகராட்சி"),
-        tp("chgl-pallavaram",    "Pallavaram",     "பல்லாவரம்"),
-        tp("chgl-chrompet",      "Chromepet",      "குரோம்பேட்டை"),
-        vp("chgl-mudichur",      "Mudichur",        "முடிச்சூர்"),
-        vp("chgl-perungalathur", "Perungalathur",   "பெருங்களத்தூர்"),
-      ]},
-      { id: "chgl-kancheepuram-bl", name: "Kancheepuram Block", nameTa: "காஞ்சிபுரம் வட்டம்", localities: [
-        m ("chgl-kanchi-m",      "Kancheepuram Municipality", "காஞ்சிபுரம் நகராட்சி"),
-        vp("chgl-sriperumbudur", "Sriperumbudur",  "ஸ்ரீபெரும்புதூர்"),
-        vp("chgl-walajabad",     "Walajabad",      "வாலாஜாபாத்"),
-        vp("chgl-uthiramerur",   "Uthiramerur",    "உத்திரமேரூர்"),
-      ]},
-      { id: "chgl-mahabs", name: "Mahabalipuram", nameTa: "மாமல்லபுரம்", localities: [
-        tp("chgl-mahabalipuram", "Mahabalipuram",  "மாமல்லபுரம்"),
-        vp("chgl-thirukazhukundram", "Thirukazhukundram", "திருக்களுகுண்றம்"),
-        vp("chgl-kovalam",       "Kovalam",         "கோவளம்"),
-        vp("chgl-panaiyur",      "Panaiyur",        "பனையூர்"),
-      ]},
-    ],
-  },
+  /* ── 02. CHENGALPATTU ──────────────────────────────────────────── */
+  { id:"chengalpattu", name:"Chengalpattu", nameTa:"செங்கல்பட்டு", blocks:[
+    { id:"chgl-chengalpattu", name:"Chengalpattu", nameTa:"செங்கல்பட்டு", localities:[
+      m ("chgl-cgpt-m",        "Chengalpattu",       "செங்கல்பட்டு"),
+      vp("chgl-madurantakam",  "Madurantakam",       "மதுராந்தகம்"),
+      vp("chgl-lathur",        "Lathur",             "லத்தூர்"),
+      vp("chgl-kadapakkam",    "Kadapakkam",         "கடப்பாக்கம்"),
+      vp("chgl-thirukkazhi",   "Thirukazhi",         "திருக்காழி"),
+      vp("chgl-vedal",         "Vedal",              "வேடல்"),
+      vp("chgl-perungulam",    "Perungulam",         "பெருங்குளம்"),
+      vp("chgl-potheri",       "Potheri",            "பொதேரி"),
+      vp("chgl-sembakkam",     "Sembakkam",          "செம்பாக்கம்"),
+    ]},
+    { id:"chgl-tambaram", name:"Tambaram", nameTa:"தாம்பரம்", localities:[
+      m ("chgl-tambaram-m",    "Tambaram",           "தாம்பரம்"),
+      tp("chgl-pallavaram",    "Pallavaram",         "பல்லாவரம்"),
+      tp("chgl-chrompet",      "Chromepet",          "குரோம்பேட்டை"),
+      tp("chgl-selaiyur",      "Selaiyur",           "செலையூர்"),
+      vp("chgl-mudichur",      "Mudichur",           "முடிச்சூர்"),
+      vp("chgl-perungalathur", "Perungalathur",      "பெருங்களத்தூர்"),
+      vp("chgl-vandalur",      "Vandalur",           "வண்டலூர்"),
+      vp("chgl-nagalkeni",     "Nagalkeni",          "நாகல்கேணி"),
+      vp("chgl-chitlapakkam",  "Chitlapakkam",       "சித்தலப்பாக்கம்"),
+      vp("chgl-kovilambakkam", "Kovilambakkam",      "கோவிலம்பாக்கம்"),
+    ]},
+    { id:"chgl-sriperumbudur", name:"Sriperumbudur", nameTa:"ஸ்ரீபெரும்புதூர்", localities:[
+      m ("chgl-spb-m",         "Sriperumbudur",      "ஸ்ரீபெரும்புதூர்"),
+      vp("chgl-walajabad",     "Walajabad",          "வாலாஜாபாத்"),
+      vp("chgl-oragadam",      "Oragadam",           "ஓராகடம்"),
+      vp("chgl-irungattukottai","Irungattukottai",   "இருங்காட்டுக்கோட்டை"),
+      vp("chgl-singaperumal",  "Singaperumalkoil",   "சிங்கப்பெருமாள் கோவில்"),
+      vp("chgl-paranur",       "Paranur",            "பரணூர்"),
+      vp("chgl-nemilicheri",   "Nemilicheri",        "நெமிலிச்சேரி"),
+      vp("chgl-poonamallee-chgl","Poonamallee",      "பூனமல்லி"),
+    ]},
+    { id:"chgl-thiruporur", name:"Thiruporur", nameTa:"திருப்போரூர்", localities:[
+      tp("chgl-thiruporur-tp", "Thiruporur",         "திருப்போரூர்"),
+      tp("chgl-kelambakkam",   "Kelambakkam",        "கேளம்பாக்கம்"),
+      vp("chgl-madambakkam",   "Madambakkam",        "மாடம்பாக்கம்"),
+      vp("chgl-nemmeli",       "Nemmeli",            "நெம்மேலி"),
+      vp("chgl-vengambakkam",  "Vengambakkam",       "வெங்கம்பாக்கம்"),
+      vp("chgl-mahabalipuram", "Mahabalipuram",      "மாமல்லபுரம்"),
+      vp("chgl-panaiyur",      "Panaiyur",           "பனையூர்"),
+    ]},
+    { id:"chgl-uthiramerur", name:"Uthiramerur", nameTa:"உத்திரமேரூர்", localities:[
+      tp("chgl-uthiramerur-tp","Uthiramerur",        "உத்திரமேரூர்"),
+      vp("chgl-cheyyur",       "Cheyyur",            "செய்யூர்"),
+      vp("chgl-kattankolathur","Kattankolathur",     "கட்டன்கோளத்தூர்"),
+      vp("chgl-melmaruvathur", "Melmaruvathur",      "மேல்மருவத்தூர்"),
+      vp("chgl-manampathy",    "Manampathy",         "மனம்பதி"),
+    ]},
+  ]},
 
-  /* ───────────────────────────── 03. CHENNAI ────────────────────────── */
-  {
-    id: "chennai", name: "Chennai", nameTa: "சென்னை",
-    blocks: [
-      { id: "chn-zone1", name: "Zone 1 – Thiruvottiyur", nameTa: "மண்டலம் 1 – திருவொற்றியூர்", localities: [
-        w("chn-thiruvottiyur",   "Thiruvottiyur",      "திருவொற்றியூர்"),
-        w("chn-kaladipet",       "Kaladipet",           "கலாடிப்பேட்டை"),
-        w("chn-red-hills",       "Red Hills",           "சிவப்பு மலை"),
-        w("chn-madhavaram",      "Madhavaram",          "மாதவரம்"),
-      ]},
-      { id: "chn-zone2", name: "Zone 2 – Manali", nameTa: "மண்டலம் 2 – மணலி", localities: [
-        w("chn-manali",          "Manali",              "மணலி"),
-        w("chn-korrukupet",      "Korukkupet",          "கொருக்குப்பேட்டை"),
-        w("chn-tiruvallur-rd",   "Tiruvallur Road",     "திருவள்ளூர் சாலை"),
-      ]},
-      { id: "chn-zone3", name: "Zone 3 – Ambattur", nameTa: "மண்டலம் 3 – அம்பத்தூர்", localities: [
-        w("chn-ambattur",        "Ambattur",            "அம்பத்தூர்"),
-        w("chn-avadi",           "Avadi",               "ஆவடி"),
-        w("chn-pattabiram",      "Pattabiram",          "பட்டாபிராம்"),
-        w("chn-thiruverkadu",    "Thiruverkadu",        "திருவேற்காடு"),
-      ]},
-      { id: "chn-zone4", name: "Zone 4 – Anna Nagar", nameTa: "மண்டலம் 4 – அண்ணா நகர்", localities: [
-        w("chn-anna-nagar",      "Anna Nagar",          "அண்ணா நகர்"),
-        w("chn-mogappair",       "Mogappair",           "மோகப்பேர்"),
-        w("chn-kolathur",        "Kolathur",            "கொலத்தூர்"),
-        w("chn-villivakkam",     "Villivakkam",         "விலிவாக்கம்"),
-      ]},
-      { id: "chn-zone5", name: "Zone 5 – Teynampet", nameTa: "மண்டலம் 5 – தேனாம்பேட்டை", localities: [
-        w("chn-teynampet",       "Teynampet",           "தேனாம்பேட்டை"),
-        w("chn-tnagar",          "T. Nagar",            "டி. நகர்"),
-        w("chn-kodambakkam",     "Kodambakkam",         "கோடம்பாக்கம்"),
-        w("chn-vadapalani",      "Vadapalani",          "வடபழனி"),
-        w("chn-ashok-nagar",     "Ashok Nagar",         "அசோக் நகர்"),
-      ]},
-      { id: "chn-zone6", name: "Zone 6 – Adyar", nameTa: "மண்டலம் 6 – அடையாறு", localities: [
-        w("chn-adyar",           "Adyar",               "அடையாறு"),
-        w("chn-velachery",       "Velachery",           "வேளச்சேரி"),
-        w("chn-guindy",          "Guindy",              "கிண்டி"),
-        w("chn-perungudi",       "Perungudi",           "பெருங்குடி"),
-        w("chn-pallikaranai",    "Pallikaranai",        "பள்ளிக்கரணை"),
-      ]},
-      { id: "chn-zone7", name: "Zone 7 – Sholinganallur", nameTa: "மண்டலம் 7 – சோளிங்கநல்லூர்", localities: [
-        w("chn-sholinganallur",  "Sholinganallur",      "சோளிங்கநல்லூர்"),
-        w("chn-perumbakkam",     "Perumbakkam",         "பெரும்பாக்கம்"),
-        w("chn-medavakkam",      "Medavakkam",          "மேடவாக்கம்"),
-        w("chn-karapakkam",      "Karapakkam",          "காரப்பாக்கம்"),
-        w("chn-kottivakkam",     "Kottivakkam",         "கோட்டிவாக்கம்"),
-      ]},
-    ],
-  },
+  /* ── 03. CHENNAI ───────────────────────────────────────────────── */
+  { id:"chennai", name:"Chennai", nameTa:"சென்னை", blocks:[
+    { id:"chn-z1-tiruvottiyur", name:"Zone 1 – Tiruvottiyur", nameTa:"மண்டலம் 1 – திருவொற்றியூர்", localities:[
+      w("chn-tiruvottiyur",    "Tiruvottiyur",       "திருவொற்றியூர்"),
+      w("chn-kathivakkam",     "Kathivakkam",        "காட்டிவாக்கம்"),
+      w("chn-kaladipet",       "Kaladipet",          "கலாதிப்பேட்டை"),
+      w("chn-manali-new",      "Manali New Town",    "மணலி புதுநகர்"),
+      w("chn-moolakadai",      "Moolakadai",         "மூலக்கடை"),
+      w("chn-pattabhiram",     "Pattabhiram",        "பட்டாபிராம்"),
+      w("chn-madhavaram",      "Madhavaram",         "மாதவரம்"),
+    ]},
+    { id:"chn-z2-manali", name:"Zone 2 – Manali", nameTa:"மண்டலம் 2 – மணலி", localities:[
+      w("chn-manali",          "Manali",             "மணலி"),
+      w("chn-ambattur-zone2",  "Ambattur",           "அம்பத்தூர்"),
+      w("chn-anna-nagar-west", "Anna Nagar West",    "அண்ணா நகர் மேற்கு"),
+      w("chn-villivakkam",     "Villivakkam",        "விள்ளிவாக்கம்"),
+      w("chn-kolathur",        "Kolathur",           "கோளத்தூர்"),
+      w("chn-perambur",        "Perambur",           "பெரம்பூர்"),
+    ]},
+    { id:"chn-z3-madhavaram", name:"Zone 3 – Madhavaram", nameTa:"மண்டலம் 3 – மாதவரம்", localities:[
+      w("chn-madhavaram-w",    "Madhavaram",         "மாதவரம்"),
+      w("chn-redhills",        "Red Hills",          "சிவப்பு மலை"),
+      w("chn-puzhal",          "Puzhal",             "புழல்"),
+      w("chn-ennore",          "Ennore",             "எண்ணூர்"),
+      w("chn-manali-north",    "Manali North",       "மணலி வடக்கு"),
+      w("chn-thangal",         "Thangal",            "தாங்கல்"),
+    ]},
+    { id:"chn-z4-tondiarpet", name:"Zone 4 – Tondiarpet", nameTa:"மண்டலம் 4 – தொண்டியார்பேட்டை", localities:[
+      w("chn-tondiarpet",      "Tondiarpet",         "தொண்டியார்பேட்டை"),
+      w("chn-washermanpet",    "Washermanpet",       "துவைத்தொழிலாளர்பேட்டை"),
+      w("chn-royapuram",       "Royapuram",          "ராயபுரம்"),
+      w("chn-otteri",          "Otteri",             "ஒட்டேரி"),
+      w("chn-kodungaiyur",     "Kodungaiyur",        "கொடுங்கையூர்"),
+      w("chn-sembiyam",        "Sembiyam",           "செம்பியம்"),
+    ]},
+    { id:"chn-z5-anna-nagar", name:"Zone 5 – Anna Nagar", nameTa:"மண்டலம் 5 – அண்ணா நகர்", localities:[
+      w("chn-anna-nagar",      "Anna Nagar",         "அண்ணா நகர்"),
+      w("chn-anna-nagar-east", "Anna Nagar East",    "அண்ணா நகர் கிழக்கு"),
+      w("chn-korattur",        "Korattur",           "கோரட்டூர்"),
+      w("chn-mogappair",       "Mogappair",          "மோகப்பேர்"),
+      w("chn-thirumangalam",   "Thirumangalam",      "திருமங்கலம்"),
+      w("chn-koyambedu",       "Koyambedu",          "கோயம்பேடு"),
+    ]},
+    { id:"chn-z6-teynampet", name:"Zone 6 – Teynampet", nameTa:"மண்டலம் 6 – தேனாம்பேட்டை", localities:[
+      w("chn-teynampet",       "Teynampet",          "தேனாம்பேட்டை"),
+      w("chn-tnagar",          "T. Nagar",           "டி. நகர்"),
+      w("chn-kodambakkam",     "Kodambakkam",        "கோடம்பாக்கம்"),
+      w("chn-nandanam",        "Nandanam",           "நந்தனம்"),
+      w("chn-ashok-nagar",     "Ashok Nagar",        "அசோக் நகர்"),
+      w("chn-valasaravakkam",  "Valasaravakkam",     "வலசரவாக்கம்"),
+      w("chn-virugambakkam",   "Virugambakkam",      "விருகம்பாக்கம்"),
+    ]},
+    { id:"chn-z7-adyar", name:"Zone 7 – Adyar", nameTa:"மண்டலம் 7 – அடையாறு", localities:[
+      w("chn-adyar",           "Adyar",              "அடையாறு"),
+      w("chn-besant-nagar",    "Besant Nagar",       "பெசன்ட் நகர்"),
+      w("chn-thiruvanmiyur",   "Thiruvanmiyur",      "திருவான்மியூர்"),
+      w("chn-kotturpuram",     "Kotturpuram",        "கோட்டூர்புரம்"),
+      w("chn-mylapore",        "Mylapore",           "மயிலாப்பூர்"),
+      w("chn-mandaveli",       "Mandaveli",          "மாண்டவேளி"),
+      w("chn-alwarpet",        "Alwarpet",           "அல்வார்பேட்டை"),
+    ]},
+    { id:"chn-z8-perungudi", name:"Zone 8 – Perungudi", nameTa:"மண்டலம் 8 – பெருங்குடி", localities:[
+      w("chn-perungudi",       "Perungudi",          "பெருங்குடி"),
+      w("chn-sholinganallur",  "Sholinganallur",     "சோழிங்கநல்லூர்"),
+      w("chn-velachery",       "Velachery",          "வேளச்சேரி"),
+      w("chn-pallikaranai",    "Pallikaranai",       "பள்ளிக்கரணை"),
+      w("chn-medavakkam",      "Medavakkam",         "மேடவாக்கம்"),
+      w("chn-kottivakkam",     "Kottivakkam",        "கோட்டிவாக்கம்"),
+      w("chn-navalur",         "Navalur",            "நவலூர்"),
+      w("chn-karapakkam",      "Karapakkam",         "கரப்பாக்கம்"),
+    ]},
+    { id:"chn-z9-alandur", name:"Zone 9 – Alandur", nameTa:"மண்டலம் 9 – ஆலந்தூர்", localities:[
+      w("chn-alandur",         "Alandur",            "ஆலந்தூர்"),
+      w("chn-guindy",          "Guindy",             "கிண்டி"),
+      w("chn-saidapet",        "Saidapet",           "சைதாப்பேட்டை"),
+      w("chn-st-thomas-mount", "St. Thomas Mount",   "செயின்ட் தாமஸ் மவுண்ட்"),
+      w("chn-meenambakkam",    "Meenambakkam",       "மீனம்பாக்கம்"),
+      w("chn-pammal",          "Pammal",             "பம்மல்"),
+      w("chn-porur",           "Porur",              "போரூர்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 04. COIMBATORE ──────────────────────── */
-  {
-    id: "coimbatore", name: "Coimbatore", nameTa: "கோயம்புத்தூர்",
-    blocks: [
-      { id: "cbe-north", name: "Coimbatore North", nameTa: "கோயம்புத்தூர் வடக்கு", localities: [
-        w("cbe-ganapathy",       "Ganapathy",       "கணபதி"),
-        w("cbe-saravanampatti",  "Saravanampatti",  "சரவணம்பட்டி"),
-        w("cbe-singanallur",     "Singanallur",     "சிங்காநல்லூர்"),
-        w("cbe-peelamedu",       "Peelamedu",       "பீலமேடு"),
-        vp("cbe-kalapatti",      "Kalapatti",       "கலப்பட்டி"),
-      ]},
-      { id: "cbe-south", name: "Coimbatore South", nameTa: "கோயம்புத்தூர் தெற்கு", localities: [
-        w("cbe-rspuram",         "R.S. Puram",      "ஆர்.எஸ். புரம்"),
-        w("cbe-gandhipuram",     "Gandhipuram",     "காந்திபுரம்"),
-        w("cbe-race-course",     "Race Course",     "ரேஸ் கோர்ஸ்"),
-        vp("cbe-thudiyalur",     "Thudiyalur",      "துடியலூர்"),
-        vp("cbe-podanur",        "Podanur",         "போடநூர்"),
-      ]},
-      { id: "cbe-pollachi", name: "Pollachi", nameTa: "பொள்ளாச்சி", localities: [
-        m ("cbe-pollachi-m",     "Pollachi",        "பொள்ளாச்சி"),
-        vp("cbe-anamalai",       "Anamalai",        "அணைமலை"),
-        vp("cbe-udumalaipettai", "Udumalaipettai",  "உடுமலைப்பேட்டை"),
-        vp("cbe-valparai",       "Valparai",        "வால்பாறை"),
-        vp("cbe-kinathukadavu",  "Kinathukadavu",   "கினத்துக்கடவு"),
-      ]},
-      { id: "cbe-sulur", name: "Sulur", nameTa: "சூலூர்", localities: [
-        tp("cbe-sulur-tp",       "Sulur",           "சூலூர்"),
-        vp("cbe-irugur",         "Irugur",          "இருகூர்"),
-        vp("cbe-avinashi",       "Avinashi",        "அவிநாசி"),
-        vp("cbe-tirupur-rd",     "Tirupur Road",    "திருப்பூர் சாலை"),
-      ]},
-      { id: "cbe-mettupalayam", name: "Mettupalayam", nameTa: "மேட்டுப்பாளையம்", localities: [
-        m ("cbe-mettu-m",        "Mettupalayam",    "மேட்டுப்பாளையம்"),
-        vp("cbe-kotagiri-rd",    "Kotagiri Road",   "கோத்தகிரி சாலை"),
-        vp("cbe-sirumugai",      "Sirumugai",       "சிறுமுகை"),
-        vp("cbe-negamam",        "Negamam",         "நெகமம்"),
-      ]},
-    ],
-  },
+  /* ── 04. COIMBATORE ────────────────────────────────────────────── */
+  { id:"coimbatore", name:"Coimbatore", nameTa:"கோயம்புத்தூர்", blocks:[
+    { id:"cbe-north", name:"Coimbatore North", nameTa:"கோயம்புத்தூர் வடக்கு", localities:[
+      w("cbe-gandhipuram",     "Gandhipuram",        "காந்திபுரம்"),
+      w("cbe-rs-puram",        "R.S. Puram",         "ஆர்.எஸ். புரம்"),
+      w("cbe-peelamedu",       "Peelamedu",          "பீளமேடு"),
+      w("cbe-ganapathy",       "Ganapathy",          "கணபதி"),
+      w("cbe-saravanampatti",  "Saravanampatti",     "சரவணம்பட்டி"),
+      w("cbe-vilankurichi",    "Vilankurichi",       "விலங்குறிச்சி"),
+      w("cbe-hopes-coll",      "Hope College",       "ஹோப் கல்லூரி"),
+    ]},
+    { id:"cbe-south", name:"Coimbatore South", nameTa:"கோயம்புத்தூர் தெற்கு", localities:[
+      w("cbe-singanallur",     "Singanallur",        "சிங்கநல்லூர்"),
+      w("cbe-ramanathapuram",  "Ramanathapuram",     "இராமநாதபுரம்"),
+      w("cbe-ondipudur",       "Ondipudur",          "ஒண்டிப்புதூர்"),
+      w("cbe-kovaipudur",      "Kovaipudur",         "கோவைப்புதூர்"),
+      w("cbe-sowripalayam",    "Sowripalayam",       "சவுரிபாளையம்"),
+      w("cbe-thondamuthur",    "Thondamuthur",       "தொண்டாமுத்தூர்"),
+      w("cbe-kinathukadavu",   "Kinathukadavu",      "கினத்துக்கடவு"),
+    ]},
+    { id:"cbe-pollachi", name:"Pollachi", nameTa:"போலாச்சி", localities:[
+      m ("cbe-pollachi-m",     "Pollachi",           "போலாச்சி"),
+      tp("cbe-valparai",       "Valparai",           "வால்பாறை"),
+      vp("cbe-udumalaipettai", "Udumalaipettai",     "உடுமலைப்பேட்டை"),
+      vp("cbe-anamalai",       "Anamalai",           "அனாமலை"),
+      vp("cbe-ettipalayam",    "Ettipalayam",        "எட்டிபாளையம்"),
+      vp("cbe-madukkarai",     "Madukkarai",         "மடுக்கரை"),
+      vp("cbe-mahalinga-p",    "Mahalingapuram",     "மகாலிங்கபுரம்"),
+      vp("cbe-perianaickenp",  "Perianaickenpalayam","பெரியநாயக்கன்பாளையம்"),
+    ]},
+    { id:"cbe-mettupalayam", name:"Mettupalayam", nameTa:"மேட்டுப்பாளையம்", localities:[
+      m ("cbe-mettupalayam-m", "Mettupalayam",       "மேட்டுப்பாளையம்"),
+      tp("cbe-sulthanpet",     "Sulthanpet",         "சுல்தான்பேட்டை"),
+      vp("cbe-karamadai",      "Karamadai",          "கரமடை"),
+      vp("cbe-sirumugai",      "Sirumugai",          "சிறுமுகை"),
+      vp("cbe-thudiyalur",     "Thudiyalur",         "துடியலூர்"),
+      vp("cbe-periyanaickenp2","Periyanaickenpalayam","பெரியநாயக்கன்பாளையம்"),
+    ]},
+    { id:"cbe-sulur", name:"Sulur", nameTa:"சூலூர்", localities:[
+      tp("cbe-sulur-tp",       "Sulur",              "சூலூர்"),
+      vp("cbe-kurichi",        "Kurichi",            "குறிச்சி"),
+      vp("cbe-kuniamuthur",    "Kuniamuthur",        "குணியமுத்தூர்"),
+      vp("cbe-kuniyamuthur",   "Idigarai",           "இடிகரை"),
+      vp("cbe-podanur",        "Podanur",            "போடநூர்"),
+      vp("cbe-irugur",         "Irugur",             "இருகூர்"),
+      vp("cbe-avinashi",       "Avinashi",           "ஆவினாசி"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 05. CUDDALORE ───────────────────────── */
-  {
-    id: "cuddalore", name: "Cuddalore", nameTa: "கடலூர்",
-    blocks: [
-      { id: "cdl-cuddalore", name: "Cuddalore", nameTa: "கடலூர்", localities: [
-        m ("cdl-cuddalore-m",    "Cuddalore Municipality", "கடலூர் நகராட்சி"),
-        tp("cdl-panruti",        "Panruti",         "பண்ருட்டி"),
-        vp("cdl-titilaiyur",     "Titilaiyur",      "திட்டிலையூர்"),
-        vp("cdl-vriddhachalam",  "Vriddhachalam",   "விருத்தாசலம்"),
-      ]},
-      { id: "cdl-chidambaram", name: "Chidambaram", nameTa: "சிதம்பரம்", localities: [
-        m ("cdl-chidambaram-m",  "Chidambaram",     "சிதம்பரம்"),
-        tp("cdl-sirkali",        "Sirkali",         "சீர்காழி"),
-        vp("cdl-bhuvanagiri",    "Bhuvanagiri",     "புவனகிரி"),
-        vp("cdl-kattumanarkoil", "Kattumanarkoil",  "கட்டுமன்னார்கோவில்"),
-        vp("cdl-annamalainagar", "Annamalai Nagar", "அண்ணாமலை நகர்"),
-      ]},
-      { id: "cdl-neyveli", name: "Neyveli", nameTa: "நெய்வேலி", localities: [
-        tp("cdl-neyveli-tp",     "Neyveli",         "நெய்வேலி"),
-        vp("cdl-manampadi",      "Manampadi",       "மணம்பாடி"),
-        vp("cdl-kudikadu",       "Kudikadu",        "குடிகாடு"),
-        vp("cdl-kammapuram",     "Kammapuram",      "கம்மாபுரம்"),
-      ]},
-      { id: "cdl-tittagudi", name: "Tittagudi", nameTa: "திட்டக்குடி", localities: [
-        tp("cdl-tittagudi-tp",   "Tittagudi",       "திட்டக்குடி"),
-        vp("cdl-kurinjipadi",    "Kurinjipadi",     "குறிஞ்சிப்பாடி"),
-        vp("cdl-thittakudi-vp",  "Mangalur",        "மங்களூர்"),
-      ]},
-    ],
-  },
+  /* ── 05. CUDDALORE ─────────────────────────────────────────────── */
+  { id:"cuddalore", name:"Cuddalore", nameTa:"கடலூர்", blocks:[
+    { id:"cud-cuddalore", name:"Cuddalore", nameTa:"கடலூர்", localities:[
+      m ("cud-cuddalore-m",    "Cuddalore",          "கடலூர்"),
+      tp("cud-panruti",        "Panruti",            "பண்ருட்டி"),
+      vp("cud-kurinjipadi",    "Kurinjipadi",        "குறிஞ்சிப்பாடி"),
+      vp("cud-bhuvanagiri",    "Bhuvanagiri",        "புவனகிரி"),
+      vp("cud-palur",          "Palur",              "பாலூர்"),
+      vp("cud-kattumannarkoil","Kattumannarkoil",    "கட்டுமன்னார்கோவில்"),
+      vp("cud-sethiyathope",   "Sethiyathope",       "செட்டியாத்தோப்பு"),
+      vp("cud-thiruvennainallur","Thiruvennainallur","திருவேண்ணைநல்லூர்"),
+    ]},
+    { id:"cud-chidambaram", name:"Chidambaram", nameTa:"சிதம்பரம்", localities:[
+      m ("cud-chidambaram-m",  "Chidambaram",        "சிதம்பரம்"),
+      tp("cud-killai",         "Killai",             "கில்லை"),
+      vp("cud-pichavaram",     "Pichavaram",         "பிச்சாவரம்"),
+      vp("cud-sirkazhi",       "Sirkazhi",           "சீர்காழி"),
+      vp("cud-kollidam",       "Kollidam",           "கொள்ளிடம்"),
+      vp("cud-srimushnam",     "Srimushnam",         "ஸ்ரீமுஷ்ணம்"),
+      vp("cud-keelperumpallam","Keelperumpallam",    "கீழ்பெரும்பள்ளம்"),
+    ]},
+    { id:"cud-virudhachalam", name:"Virudhachalam", nameTa:"விருதாசலம்", localities:[
+      m ("cud-virudhachalam-m","Virudhachalam",      "விருதாசலம்"),
+      tp("cud-ulundurpet",     "Ulundurpet",         "உளுந்தூர்பேட்டை"),
+      vp("cud-neyveli",        "Neyveli",            "நெய்வேலி"),
+      vp("cud-mangalur",       "Mangalur",           "மங்களூர்"),
+      vp("cud-thittakudi",     "Thittakudi",         "திட்டக்குடி"),
+      vp("cud-sankarapuram",   "Sankarapuram",       "சங்கரபுரம்"),
+      vp("cud-gomangalam",     "Gomangalam",         "கோமங்கலம்"),
+    ]},
+    { id:"cud-kallakurichi-cud", name:"Kallakurichi", nameTa:"கள்ளக்குறிச்சி", localities:[
+      m ("cud-kallakurichi-m", "Kallakurichi",       "கள்ளக்குறிச்சி"),
+      vp("cud-chinnasalem",    "Chinnasalem",        "சின்னசேலம்"),
+      vp("cud-tirukkoilur",    "Tirukkoilur",        "திருக்கோவிலூர்"),
+      vp("cud-rishivandiyam",  "Rishivandiyam",      "ரிஷிவந்தியம்"),
+      vp("cud-tindivanam",     "Tindivanam",         "திண்டிவனம்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 06. DHARMAPURI ───────────────────────── */
-  {
-    id: "dharmapuri", name: "Dharmapuri", nameTa: "தர்மபுரி",
-    blocks: [
-      { id: "dhp-dharmapuri", name: "Dharmapuri", nameTa: "தர்மபுரி", localities: [
-        m ("dhp-dharmapuri-m",   "Dharmapuri Municipality", "தர்மபுரி நகராட்சி"),
-        vp("dhp-pennagaram",     "Pennagaram",      "பெண்ணாகரம்"),
-        vp("dhp-morappur",       "Morappur",        "மோரப்பூர்"),
-        vp("dhp-pappireddipatti","Pappireddipatti", "பாப்பிரெட்டிபட்டி"),
-      ]},
-      { id: "dhp-hosur-bl", name: "Hosur Block", nameTa: "ஓசூர் வட்டம்", localities: [
-        m ("dhp-hosur-m",        "Hosur",           "ஓசூர்"),
-        vp("dhp-kelamangalam",   "Kelamangalam",    "கேளம்பாக்கம்"),
-        vp("dhp-mathur",         "Mathur",          "மாத்தூர்"),
-        vp("dhp-bargur",         "Bargur",          "பர்கூர்"),
-      ]},
-      { id: "dhp-krishnagiri-bl", name: "Krishnagiri Block", nameTa: "கிருஷ்ணகிரி வட்டம்", localities: [
-        m ("dhp-krishnagiri-m",  "Krishnagiri",     "கிருஷ்ணகிரி"),
-        vp("dhp-shoolagiri",     "Shoolagiri",      "சூலகிரி"),
-        vp("dhp-pochampalli",    "Pochampalli",     "பொச்சம்பள்ளி"),
-        vp("dhp-denkanikottai",  "Denkanikottai",   "தேன்கனிக்கோட்டை"),
-      ]},
-    ],
-  },
+  /* ── 06. DHARMAPURI ────────────────────────────────────────────── */
+  { id:"dharmapuri", name:"Dharmapuri", nameTa:"தருமபுரி", blocks:[
+    { id:"dhr-dharmapuri", name:"Dharmapuri", nameTa:"தருமபுரி", localities:[
+      m ("dhr-dharmapuri-m",   "Dharmapuri",         "தருமபுரி"),
+      vp("dhr-palacode",       "Palacode",           "பாலக்கோடு"),
+      vp("dhr-karimangalam",   "Karimangalam",       "கரிமங்கலம்"),
+      vp("dhr-nallampalli",    "Nallampalli",        "நல்லம்பள்ளி"),
+      vp("dhr-morappur",       "Morappur",           "மோரப்பூர்"),
+      vp("dhr-pennagaram",     "Pennagaram",         "பென்னாகரம்"),
+      vp("dhr-pappireddipatti","Pappireddipatti",    "பாப்பிரெட்டிப்பட்டி"),
+      vp("dhr-bommidi",        "Bommidi",            "பொம்மிடி"),
+    ]},
+    { id:"dhr-harur", name:"Harur", nameTa:"ஓசூர்", localities:[
+      tp("dhr-harur-tp",       "Harur",              "ஆரூர்"),
+      vp("dhr-uthangarai",     "Uthangarai",         "உத்தங்கரை"),
+      vp("dhr-penkutti",       "Penkutti",           "பேண்குட்டி"),
+      vp("dhr-polur-dhr",      "Polur",              "போளூர்"),
+      vp("dhr-anchetty",       "Anchetty",           "அஞ்செட்டி"),
+      vp("dhr-bargur",         "Bargur",             "பர்கூர்"),
+    ]},
+    { id:"dhr-krishnagiri-bl", name:"Krishnagiri Block", nameTa:"கிருஷ்ணகிரி வட்டம்", localities:[
+      m ("dhr-krishnagiri-m",  "Krishnagiri",        "கிருஷ்ணகிரி"),
+      tp("dhr-hosur",          "Hosur",              "ஓசூர்"),
+      vp("dhr-denkanikotta",   "Denkanikotta",       "டெங்கணிக்கோட்டை"),
+      vp("cbe-shoolagiri",     "Shoolagiri",         "சூலகிரி"),
+      vp("dhr-kaveripattinam", "Kaveripattinam",     "காவேரிப்பட்டினம்"),
+      vp("dhr-pochampalli",    "Pochampalli",        "பொச்சம்பள்ளி"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 07. DINDIGUL ────────────────────────── */
-  {
-    id: "dindigul", name: "Dindigul", nameTa: "திண்டுக்கல்",
-    blocks: [
-      { id: "dgl-dindigul", name: "Dindigul", nameTa: "திண்டுக்கல்", localities: [
-        m ("dgl-dindigul-m",     "Dindigul Municipality", "திண்டுக்கல் நகராட்சி"),
-        vp("dgl-natham",         "Natham",          "நாதம்"),
-        vp("dgl-batlagundu",     "Batlagundu",      "பட்லகுண்டு"),
-        vp("dgl-oddanchatram",   "Oddanchatram",    "ஒட்டன்சத்திரம்"),
-      ]},
-      { id: "dgl-palani", name: "Palani", nameTa: "பழனி", localities: [
-        m ("dgl-palani-m",       "Palani",          "பழனி"),
-        vp("dgl-udumalpet",      "Udumalpet",       "உடுமலைப்பேட்டை"),
-        vp("dgl-vedasandur",     "Vedasandur",      "வேடசந்தூர்"),
-        vp("dgl-dharapuram",     "Dharapuram",      "தாராபுரம்"),
-      ]},
-      { id: "dgl-kodaikanal", name: "Kodaikanal", nameTa: "கொடைக்கானல்", localities: [
-        m ("dgl-kodaikanal-m",   "Kodaikanal",      "கொடைக்கானல்"),
-        vp("dgl-mannavanur",     "Mannavanur",      "மண்ணவனூர்"),
-        vp("dgl-perumalmalai",   "Perumalmalai",    "பெருமாள் மலை"),
-        vp("dgl-poombarai",      "Poombarai",       "பூம்பாறை"),
-      ]},
-    ],
-  },
+  /* ── 07. DINDIGUL ──────────────────────────────────────────────── */
+  { id:"dindigul", name:"Dindigul", nameTa:"திண்டுக்கல்", blocks:[
+    { id:"din-dindigul", name:"Dindigul", nameTa:"திண்டுக்கல்", localities:[
+      m ("din-dindigul-m",     "Dindigul",           "திண்டுக்கல்"),
+      vp("din-natham",         "Natham",             "நாத்தம்"),
+      vp("din-athoor",         "Athoor",             "ஆத்தூர்"),
+      vp("din-nilakottai",     "Nilakottai",         "நிலக்கோட்டை"),
+      vp("din-vedasandur",     "Vedasandur",         "வேடசந்தூர்"),
+      vp("din-oddanchatram",   "Oddanchatram",       "ஒட்டன்சத்திரம்"),
+      vp("din-guziliamparai",  "Guziliamparai",      "குழிலியம்பாறை"),
+      vp("din-shanarpatti",    "Shanarpatti",        "சாணார்பட்டி"),
+    ]},
+    { id:"din-palani", name:"Palani", nameTa:"பழனி", localities:[
+      m ("din-palani-m",       "Palani",             "பழனி"),
+      tp("din-udumalpet",      "Udumalpet",          "உடுமலைப்பேட்டை"),
+      vp("din-kodaikanal",     "Kodaikanal",         "கொடைக்கானல்"),
+      vp("din-vatlagundu",     "Vatlagundu",         "வட்டலகுண்டு"),
+      vp("din-thiruvadanai-d", "Thiruvadanai",       "திருவாடானை"),
+      vp("din-reddiarchatram", "Reddiarchatram",     "ரெட்டியார்சத்திரம்"),
+      vp("din-kannivadi",      "Kannivadi",          "கன்னிவாடி"),
+    ]},
+    { id:"din-kodaikanal", name:"Kodaikanal", nameTa:"கொடைக்கானல்", localities:[
+      m ("din-kodai-m",        "Kodaikanal",         "கொடைக்கானல்"),
+      vp("din-kottaimedu",     "Kottaimedu",         "கோட்டைமேடு"),
+      vp("din-poombarai",      "Poombarai",          "பூம்பாறை"),
+      vp("din-mannavanur",     "Mannavanur",         "மன்னவனூர்"),
+      vp("din-berijam",        "Berijam",            "பெரிஜாம்"),
+      vp("din-perumalmalai",   "Perumalmalai",       "பெருமாள்மலை"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 08. ERODE ────────────────────────── */
-  {
-    id: "erode", name: "Erode", nameTa: "ஈரோடு",
-    blocks: [
-      { id: "erd-erode", name: "Erode", nameTa: "ஈரோடு", localities: [
-        m ("erd-erode-m",        "Erode Municipality",  "ஈரோடு நகராட்சி"),
-        vp("erd-perundurai",     "Perundurai",      "பெருந்துறை"),
-        vp("erd-bhavani",        "Bhavani",         "பவானி"),
-        vp("erd-thindal",        "Thindal",         "திண்டல்"),
-        vp("erd-kavundampalayam","Kavundampalayam",  "கவுண்டம்பாளையம்"),
-      ]},
-      { id: "erd-gobichettipalayam", name: "Gobichettipalayam", nameTa: "கோபிசெட்டிபாளையம்", localities: [
-        m ("erd-gobi-m",         "Gobichettipalayam","கோபிசெட்டிபாளையம்"),
-        vp("erd-anthiyur",       "Anthiyur",        "அந்தியூர்"),
-        vp("erd-sathyamangalam", "Sathyamangalam",  "சத்தியமங்கலம்"),
-        vp("erd-bargur-e",       "Bargur",          "பர்கூர்"),
-      ]},
-      { id: "erd-tiruppur-bl", name: "Tiruppur Block", nameTa: "திருப்பூர் வட்டம்", localities: [
-        m ("erd-tiruppur-m",     "Tiruppur",        "திருப்பூர்"),
-        vp("erd-kangeyam",       "Kangeyam",        "கங்கேயம்"),
-        vp("erd-palladam-e",     "Palladam",        "பல்லடம்"),
-        vp("erd-uthukuli",       "Uthukuli",        "உத்துக்குளி"),
-      ]},
-    ],
-  },
+  /* ── 08. ERODE ─────────────────────────────────────────────────── */
+  { id:"erode", name:"Erode", nameTa:"ஈரோடு", blocks:[
+    { id:"erd-erode", name:"Erode", nameTa:"ஈரோடு", localities:[
+      m ("erd-erode-m",        "Erode",              "ஈரோடு"),
+      tp("erd-perundurai",     "Perundurai",         "பெருந்துறை"),
+      vp("erd-veerappanchatram","Veerappanchatram",  "வீரப்பன்சத்திரம்"),
+      vp("erd-ingur",          "Ingur",              "இங்கூர்"),
+      vp("erd-modakurichi",    "Modakurichi",        "மோடக்குறிச்சி"),
+      vp("erd-thindal",        "Thindal",            "திண்டல்"),
+      vp("erd-chennimalai",    "Chennimalai",        "செண்ணிமலை"),
+    ]},
+    { id:"erd-bhavani", name:"Bhavani", nameTa:"பவானி", localities:[
+      m ("erd-bhavani-m",      "Bhavani",            "பவானி"),
+      tp("erd-gobichettipalayam","Gobichettipalayam","கோபிச்செட்டிபாளையம்"),
+      vp("erd-bhavanisagar",   "Bhavanisagar",       "பவானிசாகர்"),
+      vp("erd-anthiyur",       "Anthiyur",           "அந்தியூர்"),
+      vp("erd-sathyamangalam", "Sathyamangalam",     "சத்தியமங்கலம்"),
+      vp("erd-kavindapadi",    "Kavindapadi",        "காவிந்தபாடி"),
+      vp("erd-kodumudi",       "Kodumudi",           "கோடுமுடி"),
+      vp("erd-thavittupalayam","Thavittupalayam",    "தவிட்டுப்பாளையம்"),
+    ]},
+    { id:"erd-tiruppur-erd", name:"Tiruppur", nameTa:"திருப்பூர்", localities:[
+      m ("erd-tiruppur-m",     "Tiruppur",           "திருப்பூர்"),
+      tp("erd-palladam",       "Palladam",           "பல்லடம்"),
+      vp("erd-kangeyam",       "Kangeyam",           "காங்கேயம்"),
+      vp("erd-dharapuram",     "Dharapuram",         "தாரபுரம்"),
+      vp("erd-avinashi-e",     "Avinashi",           "ஆவினாசி"),
+      vp("erd-gudimangalam",   "Gudimangalam",       "குடிமங்கலம்"),
+      vp("erd-uthukuli",       "Uthukuli",           "ஊத்துக்குளி"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 09. KALLAKURICHI ─────────────────────── */
-  {
-    id: "kallakurichi", name: "Kallakurichi", nameTa: "கள்ளக்குறிச்சி",
-    blocks: [
-      { id: "kal-kallakurichi", name: "Kallakurichi", nameTa: "கள்ளக்குறிச்சி", localities: [
-        m ("kal-kal-m",          "Kallakurichi",    "கள்ளக்குறிச்சி"),
-        vp("kal-ulundurpettai",  "Ulundurpettai",   "உளுந்தூர்பேட்டை"),
-        vp("kal-sankarapuram",   "Sankarapuram",    "சங்கரபுரம்"),
-        vp("kal-chinnasalem",    "Chinnasalem",     "சின்னசேலம்"),
-      ]},
-      { id: "kal-vridhachalam", name: "Vridhachalam", nameTa: "விருத்தாசலம்", localities: [
-        m ("kal-vriddha-m",      "Vridhachalam",    "விருத்தாசலம்"),
-        vp("kal-gangavalli",     "Gangavalli",      "காங்கவல்லி"),
-        vp("kal-attur-k",        "Attur",           "அத்தூர்"),
-      ]},
-    ],
-  },
+  /* ── 09. KALLAKURICHI ──────────────────────────────────────────── */
+  { id:"kallakurichi", name:"Kallakurichi", nameTa:"கள்ளக்குறிச்சி", blocks:[
+    { id:"kal-kallakurichi", name:"Kallakurichi", nameTa:"கள்ளக்குறிச்சி", localities:[
+      m ("kal-kallakurichi-m", "Kallakurichi",       "கள்ளக்குறிச்சி"),
+      vp("kal-chinnasalem",    "Chinnasalem",        "சின்னசேலம்"),
+      vp("kal-sankarapuram",   "Sankarapuram",       "சங்கரபுரம்"),
+      vp("kal-rishivandiyam",  "Rishivandiyam",      "ரிஷிவந்தியம்"),
+      vp("kal-thirukoilur",    "Thirukoilur",        "திருக்கோவிலூர்"),
+      vp("kal-ulundurpet",     "Ulundurpet",         "உளுந்தூர்பேட்டை"),
+      vp("kal-vanapuram",      "Vanapuram",          "வனபுரம்"),
+      vp("kal-tirunavalur",    "Tirunavalur",        "திருநாவலூர்"),
+    ]},
+    { id:"kal-villupuram-k", name:"Villupuram", nameTa:"விழுப்புரம்", localities:[
+      m ("kal-villupuram-m",   "Villupuram",         "விழுப்புரம்"),
+      tp("kal-gingee",         "Gingee",             "செஞ்சி"),
+      vp("kal-tindivanam",     "Tindivanam",         "திண்டிவனம்"),
+      vp("kal-vanur",          "Vanur",              "வானூர்"),
+      vp("kal-marakanam",      "Marakanam",          "மரக்காணம்"),
+      vp("kal-kandachipuram",  "Kandachipuram",      "காண்டாச்சிபுரம்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 10. KANCHEEPURAM ─────────────────────── */
-  {
-    id: "kancheepuram", name: "Kancheepuram", nameTa: "காஞ்சிபுரம்",
-    blocks: [
-      { id: "knc-kancheepuram", name: "Kancheepuram", nameTa: "காஞ்சிபுரம்", localities: [
-        m ("knc-kanchi-m",       "Kancheepuram",    "காஞ்சிபுரம்"),
-        vp("knc-walajabad",      "Walajabad",       "வாலாஜாபாத்"),
-        vp("knc-uthiramerur",    "Uthiramerur",     "உத்திரமேரூர்"),
-        vp("knc-maduranthakam",  "Maduranthakam",   "மதுராந்தகம்"),
-      ]},
-      { id: "knc-cheyyar", name: "Cheyyar", nameTa: "செய்யாறு", localities: [
-        tp("knc-cheyyar-tp",     "Cheyyar",         "செய்யாறு"),
-        vp("knc-tirukalukundram","Tirukalukundram",  "திருக்கழுகுண்றம்"),
-        vp("knc-maraimalainagar","Maraimalai Nagar", "மாறைமலை நகர்"),
-        vp("knc-lathur",         "Lathur",          "லத்தூர்"),
-      ]},
-    ],
-  },
+  /* ── 10. KANCHEEPURAM ──────────────────────────────────────────── */
+  { id:"kancheepuram", name:"Kancheepuram", nameTa:"காஞ்சிபுரம்", blocks:[
+    { id:"knc-kancheepuram", name:"Kancheepuram", nameTa:"காஞ்சிபுரம்", localities:[
+      m ("knc-kancheepuram-m", "Kancheepuram",       "காஞ்சிபுரம்"),
+      vp("knc-walajabad",      "Walajabad",          "வாலாஜாபாத்"),
+      vp("knc-uthiramerur",    "Uthiramerur",        "உத்திரமேரூர்"),
+      vp("knc-kattankolathur", "Kattankolathur",     "கட்டன்கோளத்தூர்"),
+      vp("knc-enathur",        "Enathur",            "ஏணத்தூர்"),
+      vp("knc-sriperumbudur",  "Sriperumbudur",      "ஸ்ரீபெரும்புதூர்"),
+      vp("knc-oragadam",       "Oragadam",           "ஓராகடம்"),
+    ]},
+    { id:"knc-sholinghur-knc", name:"Sholinghur", nameTa:"சோளிங்கர்", localities:[
+      tp("knc-sholinghur-tp",  "Sholinghur",         "சோளிங்கர்"),
+      vp("knc-arcot",          "Arcot",              "ஆற்காடு"),
+      vp("knc-walajah",        "Walajah",            "வாலாஜா"),
+      vp("knc-nemili",         "Nemili",             "நெமிலி"),
+      vp("knc-arakkonam",      "Arakkonam",          "ஆரக்கோணம்"),
+      vp("knc-sevilimedu",     "Sevilimedu",         "சேவிலிமேடு"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 11. KANYAKUMARI ──────────────────────── */
-  {
-    id: "kanyakumari", name: "Kanyakumari", nameTa: "கன்னியாகுமரி",
-    blocks: [
-      { id: "kk-nagercoil", name: "Nagercoil", nameTa: "நாகர்கோவில்", localities: [
-        m ("kk-nagercoil-m",     "Nagercoil",       "நாகர்கோவில்"),
-        tp("kk-thuckalay",       "Thuckalay",       "தக்கலை"),
-        vp("kk-marthandam",      "Marthandam",      "மார்த்தாண்டம்"),
-        vp("kk-colachel",        "Colachel",        "கோலச்சல்"),
-        vp("kk-kulasekharam",    "Kulasekharam",    "குளசேகரம்"),
-      ]},
-      { id: "kk-padmanabhapuram", name: "Padmanabhapuram", nameTa: "பத்மனாபபுரம்", localities: [
-        tp("kk-padmanabha-tp",   "Padmanabhapuram", "பத்மனாபபுரம்"),
-        vp("kk-thiruvattar",     "Thiruvattar",     "திருவட்டார்"),
-        vp("kk-boothapandi",     "Boothapandi",     "பூதபாண்டி"),
-        vp("kk-kaliyakkavilai",  "Kaliyakkavilai",  "காளியக்காவிளை"),
-      ]},
-      { id: "kk-kanyakumari-bl", name: "Kanyakumari Block", nameTa: "கன்னியாகுமரி வட்டம்", localities: [
-        tp("kk-kanyakumari-tp",  "Kanyakumari",     "கன்னியாகுமரி"),
-        vp("kk-agastheeswaram",  "Agastheeswaram",  "அகஸ்தீஸ்வரம்"),
-        vp("kk-suchindram",      "Suchindram",      "சுசீந்திரம்"),
-        vp("kk-navaloor",        "Navaloor",        "நாவலூர்"),
-      ]},
-    ],
-  },
+  /* ── 11. KANYAKUMARI ───────────────────────────────────────────── */
+  { id:"kanyakumari", name:"Kanyakumari", nameTa:"கன்னியாகுமரி", blocks:[
+    { id:"kk-nagercoil", name:"Nagercoil", nameTa:"நாகர்கோவில்", localities:[
+      m ("kk-nagercoil-m",     "Nagercoil",          "நாகர்கோவில்"),
+      vp("kk-colachel",        "Colachel",           "கோலச்சல்"),
+      vp("kk-marthandam",      "Marthandam",         "மார்த்தாண்டம்"),
+      vp("kk-thuckalay",       "Thuckalay",          "தக்கலை"),
+      vp("kk-kulasekharam",    "Kulasekharam",       "குளசேகரம்"),
+      vp("kk-aralvaimozhi",    "Aralvaimozhi",       "அரல்வாய்மொழி"),
+      vp("kk-palliyadi",       "Palliyadi",          "பள்ளியடி"),
+    ]},
+    { id:"kk-padmanabhapuram", name:"Padmanabhapuram", nameTa:"பத்மநாபபுரம்", localities:[
+      m ("kk-padmanabhapuram-m","Padmanabhapuram",   "பத்மநாபபுரம்"),
+      vp("kk-thovalai",        "Thovalai",           "தோவாளை"),
+      vp("kk-kalkulam",        "Kalkulam",           "கல்குளம்"),
+      vp("kk-vilavancode",     "Vilavancode",        "விளவங்கோடு"),
+      vp("kk-agasteeswaram",   "Agasteeswaram",      "அகஸ்தீசுவரம்"),
+      vp("kk-eraniel",         "Eraniel",            "ஏரணியல்"),
+    ]},
+    { id:"kk-kanyakumari-town", name:"Kanyakumari", nameTa:"கன்னியாகுமரி", localities:[
+      tp("kk-kanyakumari-tp",  "Kanyakumari",        "கன்னியாகுமரி"),
+      vp("kk-suchindram",      "Suchindram",         "சுசீந்திரம்"),
+      vp("kk-moongilthurai",   "Moongilthurai",      "மூங்கில்துறை"),
+      vp("kk-thittai",         "Thittai",            "திட்டை"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 12. KARUR ────────────────────────── */
-  {
-    id: "karur", name: "Karur", nameTa: "கரூர்",
-    blocks: [
-      { id: "kar-karur", name: "Karur", nameTa: "கரூர்", localities: [
-        m ("kar-karur-m",        "Karur Municipality",  "கரூர் நகராட்சி"),
-        vp("kar-aravakurichi",   "Aravakurichi",    "அரவக்குறிச்சி"),
-        vp("kar-kulithalai",     "Kulithalai",      "குளித்தலை"),
-        vp("kar-kadavur",        "Kadavur",         "கடவூர்"),
-      ]},
-      { id: "kar-krishnarayapuram", name: "Krishnarayapuram", nameTa: "கிருஷ்ணராயபுரம்", localities: [
-        vp("kar-krishnaraya-vp", "Krishnarayapuram", "கிருஷ்ணராயபுரம்"),
-        vp("kar-thanthoni",      "Thanthoni",       "தாந்தோனி"),
-        vp("kar-manmangalam",    "Manmangalam",     "மண்மங்கலம்"),
-      ]},
-    ],
-  },
+  /* ── 12. KARUR ─────────────────────────────────────────────────── */
+  { id:"karur", name:"Karur", nameTa:"கரூர்", blocks:[
+    { id:"kar-karur", name:"Karur", nameTa:"கரூர்", localities:[
+      m ("kar-karur-m",        "Karur",              "கரூர்"),
+      tp("kar-kulithalai",     "Kulithalai",         "குளித்தலை"),
+      vp("kar-aravakurichi",   "Aravakurichi",       "அரவக்குறிச்சி"),
+      vp("kar-krishnarayapuram","Krishnarayapuram",  "கிருஷ்ணராயபுரம்"),
+      vp("kar-manmangalam",    "Manmangalam",        "மன்மங்கலம்"),
+      vp("kar-punjaipuliampatti","Punjaipuliampatti","புஞ்சைப்புளியம்பட்டி"),
+      vp("kar-kovai-karur",    "Thanthoni",          "தந்தோனி"),
+      vp("kar-paramathi",      "Paramathi",          "பரமதி"),
+    ]},
+    { id:"kar-manapparai", name:"Manapparai", nameTa:"மனப்பாறை", localities:[
+      tp("kar-manapparai-tp",  "Manapparai",         "மனப்பாறை"),
+      vp("kar-thuraiyur",      "Thuraiyur",          "துறையூர்"),
+      vp("kar-lalgudi",        "Lalgudi",            "லால்குடி"),
+      vp("kar-tiruchi-k",      "Musiri",             "முசிறி"),
+      vp("kar-andanallur",     "Andanallur",         "ஆண்டானல்லூர்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 13. KRISHNAGIRI ──────────────────────── */
-  {
-    id: "krishnagiri", name: "Krishnagiri", nameTa: "கிருஷ்ணகிரி",
-    blocks: [
-      { id: "kri-krishnagiri", name: "Krishnagiri", nameTa: "கிருஷ்ணகிரி", localities: [
-        m ("kri-krishnagiri-m",  "Krishnagiri",     "கிருஷ்ணகிரி"),
-        vp("kri-shoolagiri",     "Shoolagiri",      "சூலகிரி"),
-        vp("kri-pochampalli-k",  "Pochampalli",     "பொச்சம்பள்ளி"),
-        vp("kri-mathur-k",       "Mathur",          "மாத்தூர்"),
-      ]},
-      { id: "kri-hosur", name: "Hosur", nameTa: "ஓசூர்", localities: [
-        m ("kri-hosur-m",        "Hosur",           "ஓசூர்"),
-        vp("kri-denkanikottai",  "Denkanikottai",   "தேன்கனிக்கோட்டை"),
-        vp("kri-kelamangalam",   "Kelamangalam",    "கேளம்பாக்கம்"),
-        vp("kri-veppampattu",    "Veppampattu",     "வேப்பம்பட்டு"),
-        vp("kri-uthangarai",     "Uthangarai",      "ஒட்டன்காரை"),
-      ]},
-    ],
-  },
+  /* ── 13. KRISHNAGIRI ───────────────────────────────────────────── */
+  { id:"krishnagiri", name:"Krishnagiri", nameTa:"கிருஷ்ணகிரி", blocks:[
+    { id:"krg-krishnagiri", name:"Krishnagiri", nameTa:"கிருஷ்ணகிரி", localities:[
+      m ("krg-krishnagiri-m",  "Krishnagiri",        "கிருஷ்ணகிரி"),
+      vp("krg-karimangalam",   "Karimangalam",       "கரிமங்கலம்"),
+      vp("krg-kelamangalam",   "Kelamangalam",       "கேளம்பாக்கம்"),
+      vp("krg-mathur",         "Mathur",             "மதூர்"),
+      vp("krg-veppanapalli",   "Veppanapalli",       "வேப்பனபள்ளி"),
+      vp("krg-pochampalli",    "Pochampalli",        "பொச்சம்பள்ளி"),
+      vp("krg-bargur",         "Bargur",             "பர்கூர்"),
+    ]},
+    { id:"krg-hosur", name:"Hosur", nameTa:"ஓசூர்", localities:[
+      m ("krg-hosur-m",        "Hosur",              "ஓசூர்"),
+      tp("krg-denkanikotta",   "Denkanikotta",       "டெங்கணிக்கோட்டை"),
+      vp("krg-shoolagiri",     "Shoolagiri",         "சூலகிரி"),
+      vp("krg-thally",         "Thally",             "தல்லி"),
+      vp("krg-andiyur",        "Andiyur",            "ஆண்டியூர்"),
+      vp("krg-uthangarai",     "Uthangarai",         "உத்தங்கரை"),
+      vp("krg-kaveripattinam", "Kaveripattinam",     "காவேரிப்பட்டினம்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 14. MADURAI ─────────────────────────── */
-  {
-    id: "madurai", name: "Madurai", nameTa: "மதுரை",
-    blocks: [
-      { id: "mdu-north", name: "Madurai North", nameTa: "மதுரை வடக்கு", localities: [
-        w("mdu-alagapuri",       "Alagapuri",       "அழகாபுரி"),
-        w("mdu-anna-nagar-mdu",  "Anna Nagar",      "அண்ணா நகர்"),
-        w("mdu-tallakulam",      "Tallakulam",      "தல்லாக்குளம்"),
-        w("mdu-KK-nagar",        "K.K. Nagar",      "கே.கே. நகர்"),
-      ]},
-      { id: "mdu-south", name: "Madurai South", nameTa: "மதுரை தெற்கு", localities: [
-        w("mdu-goripalayam",     "Goripalayam",     "கோரிப்பாளையம்"),
-        w("mdu-villapuram",      "Villapuram",      "வில்லாபுரம்"),
-        w("mdu-palanganatham",   "Palanganatham",   "பாளங்காநாதம்"),
-        w("mdu-arasaradi",       "Arasaradi",       "அரசாரடி"),
-      ]},
-      { id: "mdu-melur", name: "Melur", nameTa: "மேலூர்", localities: [
-        tp("mdu-melur-tp",       "Melur",           "மேலூர்"),
-        vp("mdu-thiruparankundram","Thiruparankundram","திருப்பரங்குன்றம்"),
-        vp("mdu-kallikudi",      "Kallikudi",       "கல்லிக்குடி"),
-        vp("mdu-T-kallupatti",   "T. Kallupatti",   "தி. கள்ளுப்பட்டி"),
-      ]},
-      { id: "mdu-thirumangalam", name: "Thirumangalam", nameTa: "திருமங்கலம்", localities: [
-        tp("mdu-thirumangalam",  "Thirumangalam",   "திருமங்கலம்"),
-        vp("mdu-usilampatti",    "Usilampatti",     "உசிலம்பட்டி"),
-        vp("mdu-avinashi-mdu",   "Avinashi",        "அவிநாசி"),
-        vp("mdu-peraiyur",       "Peraiyur",        "பேரையூர்"),
-      ]},
-    ],
-  },
+  /* ── 14. MADURAI ───────────────────────────────────────────────── */
+  { id:"madurai", name:"Madurai", nameTa:"மதுரை", blocks:[
+    { id:"mdu-north", name:"Madurai North", nameTa:"மதுரை வடக்கு", localities:[
+      w("mdu-anna-nagar-mdu",  "Anna Nagar",         "அண்ணா நகர்"),
+      w("mdu-alagapuram",      "Alagapuram",         "அழகாபுரம்"),
+      w("mdu-kochadai",        "Kochadai",           "கோச்சடை"),
+      w("mdu-palanganatham",   "Palanganatham",      "பாளங்கநாதம்"),
+      w("mdu-krishnapuram",    "Krishnapuram",       "கிருஷ்ணாபுரம்"),
+      w("mdu-iyer-bungalow",   "Iyer Bungalow",      "அய்யர் பங்களா"),
+    ]},
+    { id:"mdu-south", name:"Madurai South", nameTa:"மதுரை தெற்கு", localities:[
+      w("mdu-tallakulam",      "Tallakulam",         "தல்லாகுளம்"),
+      w("mdu-mattuthavani",    "Mattuthavani",       "மட்டுத்தாவணி"),
+      w("mdu-simmakkal",       "Simmakkal",          "சிம்மக்கல்"),
+      w("mdu-villapuram-mdu",  "Villapuram",         "விளாப்புரம்"),
+      w("mdu-surveyor-colony", "Surveyor Colony",    "சர்வேயர் காலனி"),
+      w("mdu-byepass-road",    "Byepass Road",       "பைபாஸ் சாலை"),
+    ]},
+    { id:"mdu-melur", name:"Melur", nameTa:"மேலூர்", localities:[
+      tp("mdu-melur-tp",       "Melur",              "மேலூர்"),
+      vp("mdu-tirumangalam",   "Tirumangalam",       "திருமங்கலம்"),
+      vp("mdu-peraiyur",       "Peraiyur",           "பேரையூர்"),
+      vp("mdu-usilampatti",    "Usilampatti",        "உசிலம்பட்டி"),
+      vp("mdu-vadipatti",      "Vadipatti",          "வாடிப்பட்டி"),
+      vp("mdu-sholavandan",    "Sholavandan",        "சோழவந்தான்"),
+      vp("mdu-thiruppuvanam",  "Thiruppuvanam",      "திருப்புவனம்"),
+    ]},
+    { id:"mdu-peraiyur", name:"Peraiyur", nameTa:"பேரையூர்", localities:[
+      vp("mdu-peraiyur-vp",    "Peraiyur",           "பேரையூர்"),
+      vp("mdu-kallikudi",      "Kallikudi",          "கள்ளிக்குடி"),
+      vp("mdu-alanganallur",   "Alanganallur",       "அழகநல்லூர்"),
+      vp("mdu-kottampatti",    "Kottampatti",        "கோட்டம்பட்டி"),
+      vp("mdu-t-kallupatti",   "T. Kallupatti",      "தி. கள்ளுப்பட்டி"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 15. MAYILADUTHURAI ───────────────────── */
-  {
-    id: "mayiladuthurai", name: "Mayiladuthurai", nameTa: "மயிலாடுதுறை",
-    blocks: [
-      { id: "myl-mayiladuthurai", name: "Mayiladuthurai", nameTa: "மயிலாடுதுறை", localities: [
-        m ("myl-mayiladu-m",     "Mayiladuthurai",  "மயிலாடுதுறை"),
-        tp("myl-sirkazhi",       "Sirkazhi",        "சீர்காழி"),
-        vp("myl-kuthalam",       "Kuthalam",        "குத்தாலம்"),
-        vp("myl-poompuhar",      "Poompuhar",       "பூம்புகார்"),
-      ]},
-      { id: "myl-kumbakonam-bl", name: "Kumbakonam Block", nameTa: "கும்பகோணம் வட்டம்", localities: [
-        m ("myl-kumbakonam-m",   "Kumbakonam",      "கும்பகோணம்"),
-        tp("myl-papanasam",      "Papanasam",       "பாபநாசம்"),
-        vp("myl-tiruvidaimaruthur","Tiruvidaimaruthur","திருவிடைமருதூர்"),
-        vp("myl-thirubuvanam",   "Thirubuvanam",    "திருப்புவனம்"),
-      ]},
-    ],
-  },
+  /* ── 15. MAYILADUTHURAI ────────────────────────────────────────── */
+  { id:"mayiladuthurai", name:"Mayiladuthurai", nameTa:"மயிலாடுதுறை", blocks:[
+    { id:"mld-mayiladuthurai", name:"Mayiladuthurai", nameTa:"மயிலாடுதுறை", localities:[
+      m ("mld-mayiladuthurai-m","Mayiladuthurai",    "மயிலாடுதுறை"),
+      tp("mld-sirkazhi",       "Sirkazhi",           "சீர்காழி"),
+      tp("mld-tharangambadi",  "Tharangambadi",      "தரங்கம்பாடி"),
+      vp("mld-kuthalam",       "Kuthalam",           "குத்தாலம்"),
+      vp("mld-kollidam",       "Kollidam",           "கொள்ளிடம்"),
+      vp("mld-poompuhar",      "Poompuhar",          "பூம்புகார்"),
+      vp("mld-sembanarkoil",   "Sembanarkoil",       "செம்பணார்கோவில்"),
+      vp("mld-kollidam2",      "Keelvelur",          "கீழ்வேலூர்"),
+    ]},
+    { id:"mld-sirkali", name:"Sirkali", nameTa:"சீர்காழி", localities:[
+      m ("mld-sirkali-m",      "Sirkali",            "சீர்காழி"),
+      vp("mld-chidambaram-mld","Chidambaram",        "சிதம்பரம்"),
+      vp("mld-papanasam-mld",  "Papanasam",          "பாபநாசம்"),
+      vp("mld-thirukkadaiyur", "Thirukkadaiyur",     "திருக்கடையூர்"),
+      vp("mld-karaikal-mld",   "Karaikal",           "காரைக்கால்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 16. NAGAPATTINAM ────────────────────── */
-  {
-    id: "nagapattinam", name: "Nagapattinam", nameTa: "நாகப்பட்டினம்",
-    blocks: [
-      { id: "ngp-nagapattinam", name: "Nagapattinam", nameTa: "நாகப்பட்டினம்", localities: [
-        m ("ngp-nagapattnam-m",  "Nagapattinam",    "நாகப்பட்டினம்"),
-        tp("ngp-velankanni",     "Velankanni",      "வேளாங்கண்ணி"),
-        vp("ngp-keelakarai-ng",  "Keelakarai",      "கீழக்கரை"),
-        vp("ngp-thirumarugal",   "Thirumarugal",    "திருமருகல்"),
-      ]},
-      { id: "ngp-vedaranyam", name: "Vedaranyam", nameTa: "வேதாரண்யம்", localities: [
-        tp("ngp-vedaranyam-tp",  "Vedaranyam",      "வேதாரண்யம்"),
-        vp("ngp-nagore",         "Nagore",          "நாகூர்"),
-        vp("ngp-akkaraipettai",  "Akkaraipettai",   "அக்கரைப்பேட்டை"),
-        vp("ngp-kollidam",       "Kollidam",        "கொல்லிடம்"),
-      ]},
-    ],
-  },
+  /* ── 16. NAGAPATTINAM ──────────────────────────────────────────── */
+  { id:"nagapattinam", name:"Nagapattinam", nameTa:"நாகப்பட்டினம்", blocks:[
+    { id:"ngp-nagapattinam", name:"Nagapattinam", nameTa:"நாகப்பட்டினம்", localities:[
+      m ("ngp-nagapattinam-m", "Nagapattinam",       "நாகப்பட்டினம்"),
+      tp("ngp-vedaranyam",     "Vedaranyam",         "வேதாரண்யம்"),
+      vp("ngp-kilvelur",       "Kilvelur",           "கீழ்வேலூர்"),
+      vp("ngp-thirumarugal",   "Thirumarugal",       "திருமருகல்"),
+      vp("ngp-kuthalam-ngp",   "Kuthalam",           "குத்தாலம்"),
+      vp("ngp-sembanarkoil",   "Sembanarkoil",       "செம்பணார்கோவில்"),
+      vp("ngp-sikkal",         "Sikkal",             "சிக்கல்"),
+      vp("ngp-keelvelur",      "Keelvelur",          "கீழ்வேலூர்"),
+    ]},
+    { id:"ngp-tiruvarur", name:"Tiruvarur", nameTa:"திருவாரூர்", localities:[
+      m ("ngp-tiruvarur-m",    "Tiruvarur",          "திருவாரூர்"),
+      tp("ngp-mannargudi",     "Mannargudi",         "மன்னார்குடி"),
+      vp("ngp-valangaiman",    "Valangaiman",        "வாலங்கைமான்"),
+      vp("ngp-needamangalam",  "Needamangalam",      "நீடாமங்கலம்"),
+      vp("ngp-papanasam-ngp",  "Papanasam",          "பாபநாசம்"),
+      vp("ngp-muthupet",       "Muthupet",           "முத்துப்பேட்டை"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 17. NAMAKKAL ────────────────────────── */
-  {
-    id: "namakkal", name: "Namakkal", nameTa: "நாமக்கல்",
-    blocks: [
-      { id: "nmk-namakkal", name: "Namakkal", nameTa: "நாமக்கல்", localities: [
-        m ("nmk-namakkal-m",     "Namakkal",        "நாமக்கல்"),
-        vp("nmk-rasipuram",      "Rasipuram",       "ராசிபுரம்"),
-        vp("nmk-tiruchengode",   "Tiruchengode",    "திருச்செங்கோடு"),
-        vp("nmk-mohanur",        "Mohanur",         "மோகனூர்"),
-      ]},
-      { id: "nmk-erumapatti", name: "Erumapatti", nameTa: "எருமாபட்டி", localities: [
-        vp("nmk-erumapatti-vp",  "Erumapatti",      "எருமாபட்டி"),
-        vp("nmk-kolli-hills",    "Kolli Hills",     "கொல்லி மலை"),
-        vp("nmk-senthamangalam", "Senthamangalam",  "சேந்தமங்கலம்"),
-        vp("nmk-paramathi",      "Paramathi",       "பரமத்தி"),
-      ]},
-    ],
-  },
+  /* ── 17. NAMAKKAL ──────────────────────────────────────────────── */
+  { id:"namakkal", name:"Namakkal", nameTa:"நாமக்கல்", blocks:[
+    { id:"nmk-namakkal", name:"Namakkal", nameTa:"நாமக்கல்", localities:[
+      m ("nmk-namakkal-m",     "Namakkal",           "நாமக்கல்"),
+      tp("nmk-rasipuram",      "Rasipuram",          "ராசிபுரம்"),
+      tp("nmk-tiruchengode",   "Tiruchengode",       "திருச்செங்கோடு"),
+      tp("nmk-kumarapalayam",  "Kumarapalayam",      "குமாரபாளையம்"),
+      vp("nmk-paramathivelur", "Paramathi Velur",    "பரமதி வேலூர்"),
+      vp("nmk-mohanur",        "Mohanur",            "மோகனூர்"),
+      vp("nmk-sendamangalam",  "Sendamangalam",      "செண்டமங்கலம்"),
+      vp("nmk-komarapalayam",  "Komarapalayam",      "கோமாரபாளையம்"),
+    ]},
+    { id:"nmk-tiruchengode", name:"Tiruchengode", nameTa:"திருச்செங்கோடு", localities:[
+      m ("nmk-tiruchengode-m", "Tiruchengode",       "திருச்செங்கோடு"),
+      vp("nmk-sankari",        "Sankari",            "சங்ககிரி"),
+      vp("nmk-sankagiri",      "Sankagiri",          "சங்ககிரி கோட்டை"),
+      vp("nmk-erumaipatti",    "Erumaipatti",        "எருமைப்பட்டி"),
+      vp("nmk-velur",          "Velur",              "வேலூர்"),
+      vp("nmk-thammampatti",   "Thammampatti",       "தம்மம்பட்டி"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 18. NILGIRIS ─────────────────────── */
-  {
-    id: "nilgiris", name: "Nilgiris", nameTa: "நீலகிரி",
-    blocks: [
-      { id: "nlg-ooty", name: "Ooty (Udhagamandalam)", nameTa: "ஊட்டி (உதகமண்டலம்)", localities: [
-        m ("nlg-ooty-m",         "Ooty",            "ஊட்டி"),
-        tp("nlg-coonoor",        "Coonoor",         "கூனூர்"),
-        vp("nlg-kotagiri",       "Kotagiri",        "கோத்தகிரி"),
-        vp("nlg-gudalur",        "Gudalur",         "குடலூர்"),
-        vp("nlg-pandalur",       "Pandalur",        "பாண்டலூர்"),
-      ]},
-      { id: "nlg-kundah", name: "Kundah", nameTa: "குந்தா", localities: [
-        vp("nlg-kundah-vp",      "Kundah",          "குந்தா"),
-        vp("nlg-avalanche",      "Avalanche",       "அவலாஞ்சி"),
-        vp("nlg-emerald",        "Emerald",         "எமரால்டு"),
-      ]},
-    ],
-  },
+  /* ── 18. NILGIRIS ──────────────────────────────────────────────── */
+  { id:"nilgiris", name:"The Nilgiris", nameTa:"நீலகிரி", blocks:[
+    { id:"nil-ooty", name:"Ooty (Udhagamandalam)", nameTa:"உதகமண்டலம்", localities:[
+      m ("nil-ooty-m",         "Udhagamandalam",     "உதகமண்டலம்"),
+      tp("nil-coonoor",        "Coonoor",            "கூனூர்"),
+      tp("nil-kotagiri",       "Kotagiri",           "கோத்தகிரி"),
+      vp("nil-ketti",          "Ketti",              "கேட்டி"),
+      vp("nil-wellington",     "Wellington",         "வெல்லிங்டன்"),
+      vp("nil-lovedale",       "Lovedale",           "லவ்டேல்"),
+      vp("nil-kundah",         "Kundah",             "குண்டா"),
+    ]},
+    { id:"nil-gudalur", name:"Gudalur", nameTa:"குடலூர்", localities:[
+      tp("nil-gudalur-tp",     "Gudalur",            "குடலூர்"),
+      tp("nil-pandalur",       "Pandalur",           "பந்தலூர்"),
+      vp("nil-cherambadi",     "Cherambadi",         "சேரம்பாடி"),
+      vp("nil-devala",         "Devala",             "தேவலா"),
+      vp("nil-sholur",         "Sholur",             "சோளூர்"),
+      vp("nil-naduvattam",     "Naduvattam",         "நடுவட்டம்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 19. PERAMBALUR ───────────────────────── */
-  {
-    id: "perambalur", name: "Perambalur", nameTa: "பெரம்பலூர்",
-    blocks: [
-      { id: "prb-perambalur", name: "Perambalur", nameTa: "பெரம்பலூர்", localities: [
-        m ("prb-perambalur-m",   "Perambalur",      "பெரம்பலூர்"),
-        vp("prb-kunnam",         "Kunnam",          "குன்னம்"),
-        vp("prb-veppanthattai",  "Veppanthattai",   "வேப்பந்தட்டை"),
-        vp("prb-alathur-p",      "Alathur",         "ஆலத்தூர்"),
-      ]},
-      { id: "prb-veppur", name: "Veppur", nameTa: "வேப்பூர்", localities: [
-        vp("prb-veppur-vp",      "Veppur",          "வேப்பூர்"),
-        vp("prb-arumbavur",      "Arumbavur",       "அரும்பாவூர்"),
-        vp("prb-thirumanur-p",   "Thirumanur",      "திருமணூர்"),
-      ]},
-    ],
-  },
+  /* ── 19. PERAMBALUR ────────────────────────────────────────────── */
+  { id:"perambalur", name:"Perambalur", nameTa:"பெரம்பலூர்", blocks:[
+    { id:"per-perambalur", name:"Perambalur", nameTa:"பெரம்பலூர்", localities:[
+      m ("per-perambalur-m",   "Perambalur",         "பெரம்பலூர்"),
+      tp("per-arumbavur",      "Arumbavur",          "அரும்பாவூர்"),
+      vp("per-kunnam",         "Kunnam",             "குன்னம்"),
+      vp("per-veppanthattai",  "Veppanthattai",      "வேப்பந்தட்டை"),
+      vp("per-alathur",        "Alathur",            "ஆலத்தூர்"),
+      vp("per-esanai",         "Esanai",             "ஈசானை"),
+      vp("per-thirukoilure",   "Thirukoilure",       "திருக்கோவிலூர்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 20. PUDUKKOTTAI ──────────────────────── */
-  {
-    id: "pudukkottai", name: "Pudukkottai", nameTa: "புதுக்கோட்டை",
-    blocks: [
-      { id: "pdk-pudukkottai", name: "Pudukkottai", nameTa: "புதுக்கோட்டை", localities: [
-        m ("pdk-pudukkottai-m",  "Pudukkottai",     "புதுக்கோட்டை"),
-        vp("pdk-aranthangi",     "Aranthangi",      "அரந்தாங்கி"),
-        vp("pdk-alangudi",       "Alangudi",        "ஆலங்குடி"),
-        vp("pdk-illuppur",       "Illuppur",        "இலுப்பூர்"),
-      ]},
-      { id: "pdk-tirumayam", name: "Tirumayam", nameTa: "திருமயம்", localities: [
-        tp("pdk-tirumayam-tp",   "Tirumayam",       "திருமயம்"),
-        vp("pdk-ponnamaravathi", "Ponnamaravathi",  "பொன்னமராவதி"),
-        vp("pdk-karambakudi",    "Karambakudi",     "கரம்பக்குடி"),
-      ]},
-    ],
-  },
+  /* ── 20. PUDUKKOTTAI ───────────────────────────────────────────── */
+  { id:"pudukkottai", name:"Pudukkottai", nameTa:"புதுக்கோட்டை", blocks:[
+    { id:"pdk-pudukkottai", name:"Pudukkottai", nameTa:"புதுக்கோட்டை", localities:[
+      m ("pdk-pudukkottai-m",  "Pudukkottai",        "புதுக்கோட்டை"),
+      tp("pdk-aranthangi",     "Aranthangi",         "அரந்தாங்கி"),
+      tp("pdk-karambakudi",    "Karambakudi",        "கரம்பக்குடி"),
+      vp("pdk-alangudi",       "Alangudi",           "ஆலங்குடி"),
+      vp("pdk-avudaiyarkoil",  "Avudaiyarkoil",      "ஆவுடையார்கோவில்"),
+      vp("pdk-gandarvakottai", "Gandarvakottai",     "காந்தர்வக்கோட்டை"),
+      vp("pdk-illupur",        "Illupur",            "இல்லுப்பூர்"),
+      vp("pdk-thirumayam",     "Thirumayam",         "திருமயம்"),
+      vp("pdk-manamelkudi",    "Manamelkudi",        "மானாமேல்குடி"),
+    ]},
+    { id:"pdk-aranthangi", name:"Aranthangi", nameTa:"அரந்தாங்கி", localities:[
+      m ("pdk-aranthangi-m",   "Aranthangi",         "அரந்தாங்கி"),
+      vp("pdk-kulathur",       "Kulathur",           "குலத்தூர்"),
+      vp("pdk-keeranur-pdk",   "Keeranur",           "கீரனூர்"),
+      vp("pdk-mimisal",        "Mimisal",            "மிமிசல்"),
+      vp("pdk-ponnamaravathi", "Ponnamaravathi",     "பொன்னமராவதி"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 21. RAMANATHAPURAM ───────────────────── */
-  {
-    id: "ramanathapuram", name: "Ramanathapuram", nameTa: "இராமநாதபுரம்",
-    blocks: [
-      { id: "rmn-ramanathapuram", name: "Ramanathapuram", nameTa: "இராமநாதபுரம்", localities: [
-        m ("rmn-ramnad-m",       "Ramanathapuram",  "இராமநாதபுரம்"),
-        tp("rmn-paramakudi",     "Paramakudi",      "பரமக்குடி"),
-        vp("rmn-keelakarai",     "Keelakarai",      "கீழக்கரை"),
-        vp("rmn-uchipuli",       "Uchipuli",        "உச்சிப்புலி"),
-      ]},
-      { id: "rmn-rameswaram", name: "Rameswaram", nameTa: "இராமேஸ்வரம்", localities: [
-        tp("rmn-rameswaram-tp",  "Rameswaram",      "இராமேஸ்வரம்"),
-        vp("rmn-mandapam",       "Mandapam",        "மண்டபம்"),
-        vp("rmn-pamban",         "Pamban",          "பாம்பன்"),
-        vp("rmn-devipattinam",   "Devipattinam",    "தேவிப்பட்டினம்"),
-      ]},
-    ],
-  },
+  /* ── 21. RAMANATHAPURAM ────────────────────────────────────────── */
+  { id:"ramanathapuram", name:"Ramanathapuram", nameTa:"இராமநாதபுரம்", blocks:[
+    { id:"rmn-ramanathapuram", name:"Ramanathapuram", nameTa:"இராமநாதபுரம்", localities:[
+      m ("rmn-ramanathapuram-m","Ramanathapuram",    "இராமநாதபுரம்"),
+      tp("rmn-paramakudi",     "Paramakudi",         "பரமக்குடி"),
+      tp("rmn-rameswaram",     "Rameswaram",         "இராமேஸ்வரம்"),
+      vp("rmn-tiruvadanai",    "Tiruvadanai",        "திருவாடானை"),
+      vp("rmn-mudukulathur",   "Mudukulathur",       "முதுகுளத்தூர்"),
+      vp("rmn-kadaladi",       "Kadaladi",           "கடலாடி"),
+      vp("rmn-pamban",         "Pamban",             "பம்பன்"),
+      vp("rmn-kamuthi",        "Kamuthi",            "காமுதி"),
+    ]},
+    { id:"rmn-rameswaram", name:"Rameswaram", nameTa:"இராமேஸ்வரம்", localities:[
+      m ("rmn-rameswaram-m",   "Rameswaram",         "இராமேஸ்வரம்"),
+      vp("rmn-mandapam",       "Mandapam",           "மண்டபம்"),
+      vp("rmn-devipattinam",   "Devipattinam",       "தேவிபட்டினம்"),
+      vp("rmn-tondi",          "Tondi",              "தொண்டி"),
+      vp("rmn-ervadi",         "Ervadi",             "ஏர்வாடி"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 22. RANIPET ─────────────────────────── */
-  {
-    id: "ranipet", name: "Ranipet", nameTa: "இரானிப்பேட்டை",
-    blocks: [
-      { id: "rnp-ranipet", name: "Ranipet", nameTa: "இரானிப்பேட்டை", localities: [
-        m ("rnp-ranipet-m",      "Ranipet",         "இரானிப்பேட்டை"),
-        tp("rnp-walajapet",      "Walajapet",       "வாலாஜாப்பேட்டை"),
-        tp("rnp-arcot",          "Arcot",           "ஆற்காடு"),
-        vp("rnp-sholinghur",     "Sholinghur",      "சோழிங்கர்"),
-      ]},
-      { id: "rnp-vellore-bl", name: "Vellore Block", nameTa: "வேலூர் வட்டம்", localities: [
-        m ("rnp-vellore-m",      "Vellore",         "வேலூர்"),
-        tp("rnp-katpadi",        "Katpadi",         "காட்பாடி"),
-        vp("rnp-gudiyatham",     "Gudiyatham",      "குடியாத்தம்"),
-        vp("rnp-pernambut",      "Pernambut",       "பேர்ணம்பூட்டு"),
-        vp("rnp-veppampattu-r",  "Veppampattu",     "வேப்பம்பட்டு"),
-      ]},
-    ],
-  },
+  /* ── 22. RANIPET ───────────────────────────────────────────────── */
+  { id:"ranipet", name:"Ranipet", nameTa:"ராணிப்பேட்டை", blocks:[
+    { id:"rnp-ranipet", name:"Ranipet", nameTa:"ராணிப்பேட்டை", localities:[
+      m ("rnp-ranipet-m",      "Ranipet",            "ராணிப்பேட்டை"),
+      m ("rnp-arcot-m",        "Arcot",              "ஆற்காடு"),
+      tp("rnp-walajah",        "Walajah",            "வாலாஜா"),
+      vp("rnp-nemili",         "Nemili",             "நெமிலி"),
+      vp("rnp-arakkonam",      "Arakkonam",          "ஆரக்கோணம்"),
+      vp("rnp-sholinghur",     "Sholinghur",         "சோளிங்கர்"),
+      vp("rnp-timiri",         "Timiri",             "திமிரி"),
+    ]},
+    { id:"rnp-vellore-rnp", name:"Vellore", nameTa:"வேலூர்", localities:[
+      m ("rnp-vellore-m",      "Vellore",            "வேலூர்"),
+      tp("rnp-gudiyatham",     "Gudiyatham",         "குடியாத்தம்"),
+      tp("rnp-katpadi",        "Katpadi",            "காட்பாடி"),
+      vp("rnp-pernambut",      "Pernambut",          "பேர்ணம்பட்டு"),
+      vp("rnp-vaniyambadi",    "Vaniyambadi",        "வாணியம்பாடி"),
+      vp("rnp-jolarpet",       "Jolarpet",           "ஜோலார்பேட்டை"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 23. SALEM ────────────────────────── */
-  {
-    id: "salem", name: "Salem", nameTa: "சேலம்",
-    blocks: [
-      { id: "slm-salem", name: "Salem", nameTa: "சேலம்", localities: [
-        m ("slm-salem-m",        "Salem Corporation",  "சேலம் மாநகராட்சி"),
-        w("slm-swarnapuri",      "Swarnapuri",      "சுவர்ணபுரி"),
-        w("slm-suramangalam",    "Suramangalam",    "சூரமங்கலம்"),
-        w("slm-kondalampatti",   "Kondalampatti",   "கொண்டலாம்பட்டி"),
-        vp("slm-veerapandi",     "Veerapandi",      "வீரபாண்டி"),
-      ]},
-      { id: "slm-attur", name: "Attur", nameTa: "அத்தூர்", localities: [
-        tp("slm-attur-tp",       "Attur",           "அத்தூர்"),
-        vp("slm-vazhapadi",      "Vazhapadi",       "வாழப்பாடி"),
-        vp("slm-yercaud",        "Yercaud",         "யேர்காடு"),
-        vp("slm-omalur",         "Omalur",          "ஒமலூர்"),
-      ]},
-      { id: "slm-mettur", name: "Mettur", nameTa: "மேட்டூர்", localities: [
-        tp("slm-mettur-tp",      "Mettur Dam",      "மேட்டூர் அணை"),
-        vp("slm-mecheri",        "Mecheri",         "மேச்சேரி"),
-        vp("slm-edapadi",        "Edapadi",         "ஏற்பாடி"),
-        vp("slm-sankagiri",      "Sankagiri",       "சங்ககிரி"),
-      ]},
-    ],
-  },
+  /* ── 23. SALEM ─────────────────────────────────────────────────── */
+  { id:"salem", name:"Salem", nameTa:"சேலம்", blocks:[
+    { id:"slm-salem-north", name:"Salem North", nameTa:"சேலம் வடக்கு", localities:[
+      w("slm-shevapet",        "Shevapet",           "சேவாப்பேட்டை"),
+      w("slm-alagapuram",      "Alagapuram",         "அழகாபுரம்"),
+      w("slm-hasthampatti",    "Hasthampatti",       "ஆஸ்தாம்பட்டி"),
+      w("slm-five-roads",      "Five Roads",         "ஐந்து சாலை"),
+      w("slm-suramangalam",    "Suramangalam",       "சுரமங்கலம்"),
+      w("slm-ammapet",         "Ammapet",            "அம்மாப்பேட்டை"),
+    ]},
+    { id:"slm-salem-south", name:"Salem South", nameTa:"சேலம் தெற்கு", localities:[
+      w("slm-meyyanur",        "Meyyanur",           "மேயனூர்"),
+      w("slm-kondalampatti",   "Kondalampatti",      "கொண்டலாம்பட்டி"),
+      w("slm-omalur",          "Omalur",             "ஓமலூர்"),
+      w("slm-attur",           "Attur",              "ஆத்தூர்"),
+      w("slm-edappadi",        "Edappadi",           "ஏற்காடு"),
+      w("slm-gangavalli",      "Gangavalli",         "கங்கவல்லி"),
+    ]},
+    { id:"slm-mettur", name:"Mettur", nameTa:"மேட்டூர்", localities:[
+      m ("slm-mettur-m",       "Mettur",             "மேட்டூர்"),
+      tp("slm-bhavani-slm",    "Bhavani",            "பவானி"),
+      vp("slm-yercaud",        "Yercaud",            "யேர்காடு"),
+      vp("slm-pethanaickenp",  "Pethanaickenpalayam","பேட்டைநாயக்கன்பாளையம்"),
+      vp("slm-kolathur-slm",   "Kolathur",           "கோளத்தூர்"),
+      vp("slm-vazhapadi",      "Vazhapadi",          "வாழப்பாடி"),
+    ]},
+    { id:"slm-attur", name:"Attur", nameTa:"ஆத்தூர்", localities:[
+      m ("slm-attur-m",        "Attur",              "ஆத்தூர்"),
+      vp("slm-sankagiri",      "Sankagiri",          "சங்ககிரி"),
+      vp("slm-tiruchengode-sl","Tiruchengode",       "திருச்செங்கோடு"),
+      vp("slm-nangavalli",     "Nangavalli",         "நங்கவல்லி"),
+      vp("slm-thalaivasal",    "Thalaivasal",        "தலைவாசல்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 24. SIVAGANGA ────────────────────────── */
-  {
-    id: "sivaganga", name: "Sivaganga", nameTa: "சிவகங்கை",
-    blocks: [
-      { id: "svg-sivaganga", name: "Sivaganga", nameTa: "சிவகங்கை", localities: [
-        m ("svg-sivaganga-m",    "Sivaganga",       "சிவகங்கை"),
-        tp("svg-karaikudi",      "Karaikudi",       "காரைக்குடி"),
-        vp("svg-devakottai",     "Devakottai",      "தேவகோட்டை"),
-        vp("svg-manamadurai",    "Manamadurai",     "மானாமதுரை"),
-      ]},
-      { id: "svg-tirupattur-sv", name: "Tirupattur (Sivaganga)", nameTa: "திருப்பத்தூர் (சிவகங்கை)", localities: [
-        vp("svg-tirupattur-vp",  "Tirupattur",      "திருப்பத்தூர்"),
-        vp("svg-singampuneri",   "Singampuneri",    "சிங்கம்புணர்"),
-        vp("svg-ilayangudi",     "Ilayangudi",      "இளையங்குடி"),
-      ]},
-    ],
-  },
+  /* ── 24. SIVAGANGA ─────────────────────────────────────────────── */
+  { id:"sivaganga", name:"Sivaganga", nameTa:"சிவகங்கை", blocks:[
+    { id:"svg-sivaganga", name:"Sivaganga", nameTa:"சிவகங்கை", localities:[
+      m ("svg-sivaganga-m",    "Sivaganga",          "சிவகங்கை"),
+      tp("svg-karaikudi",      "Karaikudi",          "காரைக்குடி"),
+      tp("svg-devakottai",     "Devakottai",         "தேவகோட்டை"),
+      vp("svg-ilayangudi",     "Ilayangudi",         "இளையாங்குடி"),
+      vp("svg-tiruppattur-sg", "Tiruppattur",        "திருப்பத்தூர்"),
+      vp("svg-kallal",         "Kallal",             "கள்ளல்"),
+      vp("svg-s-pudur",        "S. Pudur",           "தெற்கு புதூர்"),
+      vp("svg-manamadurai",    "Manamadurai",        "மானாமதுரை"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 25. TENKASI ──────────────────────── */
-  {
-    id: "tenkasi", name: "Tenkasi", nameTa: "தென்காசி",
-    blocks: [
-      { id: "tnk-tenkasi", name: "Tenkasi", nameTa: "தென்காசி", localities: [
-        m ("tnk-tenkasi-m",      "Tenkasi",         "தென்காசி"),
-        tp("tnk-courtallam",     "Courtallam",      "குற்றாலம்"),
-        vp("tnk-sivagiri",       "Sivagiri",        "சிவகிரி"),
-        vp("tnk-sankarankovil",  "Sankarankovil",   "சங்கரன்கோவில்"),
-      ]},
-      { id: "tnk-kadayanallur", name: "Kadayanallur", nameTa: "கடையநல்லூர்", localities: [
-        tp("tnk-kadayanallur-tp","Kadayanallur",    "கடையநல்லூர்"),
-        vp("tnk-alangulam",      "Alangulam",       "ஆலங்குளம்"),
-        vp("tnk-rajapalayam-tnk","Rajapalayam",     "இராஜபாளையம்"),
-      ]},
-    ],
-  },
+  /* ── 25. TENKASI ───────────────────────────────────────────────── */
+  { id:"tenkasi", name:"Tenkasi", nameTa:"தென்காசி", blocks:[
+    { id:"tnk-tenkasi", name:"Tenkasi", nameTa:"தென்காசி", localities:[
+      m ("tnk-tenkasi-m",      "Tenkasi",            "தென்காசி"),
+      tp("tnk-kadayanallur",   "Kadayanallur",       "கடையநல்லூர்"),
+      tp("tnk-sankarankoil",   "Sankarankoil",       "சங்கரன்கோவில்"),
+      vp("tnk-alangulam",      "Alangulam",          "ஆலங்குளம்"),
+      vp("tnk-shenkottai",     "Shenkottai",         "சேங்கோட்டை"),
+      vp("tnk-veerakeralampudur","Veerakeralampudur","வீரகேரளம்புதூர்"),
+      vp("tnk-kuruvikulam",    "Kuruvikulam",        "குருவிக்குளம்"),
+      vp("tnk-puliangudi",     "Puliangudi",         "புளியங்குடி"),
+    ]},
+    { id:"tnk-ambasamudram", name:"Ambasamudram", nameTa:"அம்பாசமுத்திரம்", localities:[
+      tp("tnk-ambasamudram-tp","Ambasamudram",       "அம்பாசமுத்திரம்"),
+      tp("tnk-cheranmahadevi", "Cheranmahadevi",     "சேரன்மகாதேவி"),
+      vp("tnk-nanguneri",      "Nanguneri",          "நாங்குநேரி"),
+      vp("tnk-mukkudal",       "Mukkudal",           "முக்குடல்"),
+      vp("tnk-papanasam-tnk",  "Papanasam",          "பாபநாசம்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 26. THANJAVUR ────────────────────────── */
-  {
-    id: "thanjavur", name: "Thanjavur", nameTa: "தஞ்சாவூர்",
-    blocks: [
-      { id: "thj-thanjavur", name: "Thanjavur", nameTa: "தஞ்சாவூர்", localities: [
-        m ("thj-thanjavur-m",    "Thanjavur",       "தஞ்சாவூர்"),
-        tp("thj-kumbakonam-thj", "Kumbakonam",      "கும்பகோணம்"),
-        vp("thj-papanasam-thj",  "Papanasam",       "பாபநாசம்"),
-        vp("thj-orathanadu",     "Orathanadu",      "ஒரத்தநாடு"),
-        vp("thj-pattukottai",    "Pattukottai",     "பட்டுக்கோட்டை"),
-      ]},
-      { id: "thj-tiruvaiyaru", name: "Tiruvaiyaru", nameTa: "திருவையாறு", localities: [
-        tp("thj-tiruvaiyaru-tp", "Tiruvaiyaru",     "திருவையாறு"),
-        vp("thj-papanasam-v",    "Papanasam",       "பாபநாசம்"),
-        vp("thj-thiruvidaimarudur","Tiruvidaimarudur","திருவிடைமருதூர்"),
-      ]},
-    ],
-  },
+  /* ── 26. THANJAVUR ─────────────────────────────────────────────── */
+  { id:"thanjavur", name:"Thanjavur", nameTa:"தஞ்சாவூர்", blocks:[
+    { id:"tnj-thanjavur", name:"Thanjavur", nameTa:"தஞ்சாவூர்", localities:[
+      m ("tnj-thanjavur-m",    "Thanjavur",          "தஞ்சாவூர்"),
+      tp("tnj-thiruvaiyaru",   "Thiruvaiyaru",       "திருவையாறு"),
+      vp("tnj-budalur",        "Budalur",            "புடலூர்"),
+      vp("tnj-orathanadu",     "Orathanadu",         "ஒரத்தநாடு"),
+      vp("tnj-thiruvidaimarudur","Thiruvidaimarudur","திருவிடைமருதூர்"),
+      vp("tnj-papanasam-tnj",  "Papanasam",          "பாபநாசம்"),
+    ]},
+    { id:"tnj-kumbakonam", name:"Kumbakonam", nameTa:"கும்பகோணம்", localities:[
+      m ("tnj-kumbakonam-m",   "Kumbakonam",         "கும்பகோணம்"),
+      tp("tnj-papanasam-tp",   "Papanasam",          "பாபநாசம்"),
+      vp("tnj-swamimalai",     "Swamimalai",         "சுவாமிமலை"),
+      vp("tnj-nachiyarkoil",   "Nachiyarkoil",       "நாச்சியார்கோவில்"),
+      vp("tnj-thirunageswaram","Thirunageswaram",    "திருநாகேஸ்வரம்"),
+    ]},
+    { id:"tnj-pattukkottai", name:"Pattukkottai", nameTa:"பட்டுக்கோட்டை", localities:[
+      m ("tnj-pattukkottai-m", "Pattukkottai",       "பட்டுக்கோட்டை"),
+      tp("tnj-peravurani",     "Peravurani",         "பேராவூரணி"),
+      vp("tnj-adirampattinam", "Adirampattinam",     "அதிரம்பட்டினம்"),
+      vp("tnj-gandarvakkottai","Gandarvakkottai",    "காந்தர்வக்கோட்டை"),
+      vp("tnj-athikadai",      "Athikadai",          "ஆதிக்கடை"),
+    ]},
+  ]},
 
-  /* ─────────────────────────────── 27. THENI ────────────────────────── */
-  {
-    id: "theni", name: "Theni", nameTa: "தேனி",
-    blocks: [
-      { id: "thn-theni", name: "Theni", nameTa: "தேனி", localities: [
-        m ("thn-theni-m",        "Theni",           "தேனி"),
-        tp("thn-bodinayakanur",  "Bodinayakanur",   "போடிநாயக்கனூர்"),
-        vp("thn-uthamapalayam",  "Uthamapalayam",   "உத்தமபாளையம்"),
-        vp("thn-periyakulam",    "Periyakulam",     "பெரியகுளம்"),
-      ]},
-      { id: "thn-andipatti", name: "Andipatti", nameTa: "ஆண்டிபட்டி", localities: [
-        vp("thn-andipatti-vp",   "Andipatti",       "ஆண்டிபட்டி"),
-        vp("thn-cumbum",         "Cumbum",          "கம்பம்"),
-        vp("thn-gudalur-theni",  "Gudalur",         "குடலூர்"),
-        vp("thn-thandikudi",     "Thandikudi",      "தண்டிக்குடி"),
-      ]},
-    ],
-  },
+  /* ── 27. THENI ─────────────────────────────────────────────────── */
+  { id:"theni", name:"Theni", nameTa:"தேனி", blocks:[
+    { id:"thn-theni", name:"Theni", nameTa:"தேனி", localities:[
+      m ("thn-theni-m",        "Theni",              "தேனி"),
+      tp("thn-periyakulam",    "Periyakulam",        "பெரியகுளம்"),
+      tp("thn-uthamapalayam",  "Uthamapalayam",      "உத்தமபாளையம்"),
+      vp("thn-bodinayakanur",  "Bodinayakanur",      "போடிநாயக்கனூர்"),
+      vp("thn-andipatti",      "Andipatti",          "ஆண்டிப்பட்டி"),
+      vp("thn-chinnamanur",    "Chinnamanur",        "சின்னமனூர்"),
+      vp("thn-cumbum",         "Cumbum",             "கம்பம்"),
+      vp("thn-gudalur-thn",    "Gudalur",            "குடலூர்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 28. THOOTHUKUDI ─────────────────────── */
-  {
-    id: "thoothukudi", name: "Thoothukudi (Tuticorin)", nameTa: "தூத்துக்குடி",
-    blocks: [
-      { id: "tut-thoothukudi", name: "Thoothukudi", nameTa: "தூத்துக்குடி", localities: [
-        m ("tut-thoothukudi-m",  "Thoothukudi",     "தூத்துக்குடி"),
-        tp("tut-kovilpatti",     "Kovilpatti",      "கோவில்பட்டி"),
-        vp("tut-ottapidaram",    "Ottapidaram",     "ஒட்டப்பிடாரம்"),
-        vp("tut-kayalpattinam",  "Kayalpattinam",   "கயல்பட்டினம்"),
-      ]},
-      { id: "tut-srivaikuntam", name: "Srivaikuntam", nameTa: "ஸ்ரீவைகுண்டம்", localities: [
-        tp("tut-srivaikuntam-tp","Srivaikuntam",    "ஸ்ரீவைகுண்டம்"),
-        vp("tut-tiruchendur",    "Tiruchendur",     "திருச்செந்தூர்"),
-        vp("tut-eral",           "Eral",            "ஏரல்"),
-        vp("tut-nazareth",       "Nazareth",        "நசரேத்"),
-      ]},
-    ],
-  },
+  /* ── 28. THOOTHUKUDI ───────────────────────────────────────────── */
+  { id:"thoothukudi", name:"Thoothukudi", nameTa:"தூத்துக்குடி", blocks:[
+    { id:"tut-thoothukudi", name:"Thoothukudi", nameTa:"தூத்துக்குடி", localities:[
+      m ("tut-thoothukudi-m",  "Thoothukudi",        "தூத்துக்குடி"),
+      tp("tut-kovilpatti",     "Kovilpatti",         "கோவில்பட்டி"),
+      tp("tut-tiruchendur",    "Tiruchendur",        "திருச்செந்தூர்"),
+      vp("tut-srivaikuntam",   "Srivaikuntam",       "ஸ்ரீவைகுண்டம்"),
+      vp("tut-ettayapuram",    "Ettayapuram",        "எட்டயபுரம்"),
+      vp("tut-vilathikulam",   "Vilathikulam",       "விளாத்திகுளம்"),
+      vp("tut-kayalpattinam",  "Kayalpattinam",      "கயல்பட்டினம்"),
+      vp("tut-karunkulam",     "Karunkulam",         "கருங்குளம்"),
+    ]},
+    { id:"tut-kovilpatti", name:"Kovilpatti", nameTa:"கோவில்பட்டி", localities:[
+      m ("tut-kovilpatti-m",   "Kovilpatti",         "கோவில்பட்டி"),
+      vp("tut-sathankulam",    "Sathankulam",        "சாத்தான்குளம்"),
+      vp("tut-ottapidaram",    "Ottapidaram",        "ஒட்டப்பிடாரம்"),
+      vp("tut-eral",           "Eral",               "ஏரல்"),
+      vp("tut-thisayanvilai",  "Thisayanvilai",      "திசையன்விளை"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 29. TIRUCHIRAPPALLI ─────────────────── */
-  {
-    id: "tiruchirappalli", name: "Tiruchirappalli (Trichy)", nameTa: "திருச்சிராப்பள்ளி",
-    blocks: [
-      { id: "try-trichy-city", name: "Trichy City", nameTa: "திருச்சி நகரம்", localities: [
-        w("try-srirangam",       "Srirangam",       "ஸ்ரீரங்கம்"),
-        w("try-ariyamangalam",   "Ariyamangalam",   "ஆரியமங்கலம்"),
-        w("try-cantonment",      "Cantonment",      "கந்தோன்மெண்ட்"),
-        w("try-thillai-nagar",   "Thillai Nagar",   "தில்லை நகர்"),
-        w("try-k-k-nagar-try",   "K.K. Nagar",      "கே.கே. நகர்"),
-      ]},
-      { id: "try-lalgudi", name: "Lalgudi", nameTa: "லால்குடி", localities: [
-        tp("try-lalgudi-tp",     "Lalgudi",         "லால்குடி"),
-        vp("try-manachanallur",  "Manachanallur",   "மனச்சநல்லூர்"),
-        vp("try-musiri",         "Musiri",          "முசிறி"),
-        vp("try-thuraiyur",      "Thuraiyur",       "துறையூர்"),
-      ]},
-      { id: "try-perambalur-bl", name: "Perambalur Block", nameTa: "பெரம்பலூர் வட்டம்", localities: [
-        m ("try-perambalur-m",   "Perambalur",      "பெரம்பலூர்"),
-        vp("try-veppanthattai-t","Veppanthattai",   "வேப்பந்தட்டை"),
-        vp("try-alathur-t",      "Alathur",         "ஆலத்தூர்"),
-      ]},
-    ],
-  },
+  /* ── 29. TIRUCHIRAPPALLI ───────────────────────────────────────── */
+  { id:"tiruchirappalli", name:"Tiruchirappalli", nameTa:"திருச்சிராப்பள்ளி", blocks:[
+    { id:"tri-tiruchirappalli", name:"Tiruchirappalli", nameTa:"திருச்சிராப்பள்ளி", localities:[
+      w("tri-srirangam",       "Srirangam",          "ஸ்ரீரங்கம்"),
+      w("tri-ariyamangalam",   "Ariyamangalam",      "ஆரியமங்கலம்"),
+      w("tri-palpannai",       "Palpannai",          "பால்பன்னை"),
+      w("tri-manachanallur",   "Manachanallur",      "மனச்சநல்லூர்"),
+      w("tri-tiruverumbur",    "Tiruverumbur",       "திருவெறும்பூர்"),
+      w("tri-kk-nagar",        "K.K. Nagar",         "கே.கே. நகர்"),
+    ]},
+    { id:"tri-lalgudi", name:"Lalgudi", nameTa:"லால்குடி", localities:[
+      tp("tri-lalgudi-tp",     "Lalgudi",            "லால்குடி"),
+      vp("tri-musiri",         "Musiri",             "முசிறி"),
+      vp("tri-thuraiyur",      "Thuraiyur",          "துறையூர்"),
+      vp("tri-andanallur",     "Andanallur",         "ஆண்டானல்லூர்"),
+      vp("tri-vaiyampatti",    "Vaiyampatti",        "வாய்யம்பட்டி"),
+      vp("tri-manapparai-t",   "Manapparai",         "மனப்பாறை"),
+    ]},
+    { id:"tri-perambalur-t", name:"Perambalur", nameTa:"பெரம்பலூர்", localities:[
+      m ("tri-perambalur-m",   "Perambalur",         "பெரம்பலூர்"),
+      vp("tri-arumbavur",      "Arumbavur",          "அரும்பாவூர்"),
+      vp("tri-kunnam",         "Kunnam",             "குன்னம்"),
+      vp("tri-veppanthattai",  "Veppanthattai",      "வேப்பந்தட்டை"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 30. TIRUNELVELI ─────────────────────── */
-  {
-    id: "tirunelveli", name: "Tirunelveli", nameTa: "திருநெல்வேலி",
-    blocks: [
-      { id: "tnl-tirunelveli", name: "Tirunelveli", nameTa: "திருநெல்வேலி", localities: [
-        m ("tnl-tirunelveli-m",  "Tirunelveli",     "திருநெல்வேலி"),
-        tp("tnl-palayamkottai",  "Palayamkottai",   "பாளையங்கோட்டை"),
-        vp("tnl-nanguneri",      "Nanguneri",       "நாங்குநேரி"),
-        vp("tnl-cheranmahadevi", "Cheranmahadevi",  "சேரன்மகாதேவி"),
-      ]},
-      { id: "tnl-tenkasi-bl", name: "Tenkasi Block", nameTa: "தென்காசி வட்டம்", localities: [
-        m ("tnl-tenkasi-m",      "Tenkasi",         "தென்காசி"),
-        tp("tnl-courtallam-t",   "Courtallam",      "குற்றாலம்"),
-        vp("tnl-ambasamudram",   "Ambasamudram",    "அம்பாசமுத்திரம்"),
-        vp("tnl-shencottah",     "Shencottah",      "செங்கோட்டை"),
-      ]},
-      { id: "tnl-rajapalayam", name: "Rajapalayam", nameTa: "இராஜபாளையம்", localities: [
-        m ("tnl-rajapalayam-m",  "Rajapalayam",     "இராஜபாளையம்"),
-        vp("tnl-srivilliputtur", "Srivilliputtur",  "ஸ்ரீவிலலிபுத்தூர்"),
-        vp("tnl-sivakasi",       "Sivakasi",        "சிவகாசி"),
-        vp("tnl-sattur",         "Sattur",          "சாத்தூர்"),
-      ]},
-    ],
-  },
+  /* ── 30. TIRUNELVELI ───────────────────────────────────────────── */
+  { id:"tirunelveli", name:"Tirunelveli", nameTa:"திருநெல்வேலி", blocks:[
+    { id:"tnv-tirunelveli", name:"Tirunelveli", nameTa:"திருநெல்வேலி", localities:[
+      m ("tnv-tirunelveli-m",  "Tirunelveli",        "திருநெல்வேலி"),
+      tp("tnv-palayamkottai",  "Palayamkottai",      "பாளையங்கோட்டை"),
+      tp("tnv-nanguneri",      "Nanguneri",          "நாங்குநேரி"),
+      vp("tnv-ambasamudram",   "Ambasamudram",       "அம்பாசமுத்திரம்"),
+      vp("tnv-cheranmahadevi", "Cheranmahadevi",     "சேரன்மகாதேவி"),
+      vp("tnv-mukkudal",       "Mukkudal",           "முக்குடல்"),
+      vp("tnv-manur",          "Manur",              "மணூர்"),
+      vp("tnv-de-nagar",       "Desiya Nagar",       "தேசிய நகர்"),
+    ]},
+    { id:"tnv-tenkasi-tnv", name:"Tenkasi", nameTa:"தென்காசி", localities:[
+      m ("tnv-tenkasi-m",      "Tenkasi",            "தென்காசி"),
+      tp("tnv-kadayanallur",   "Kadayanallur",       "கடையநல்லூர்"),
+      tp("tnv-sankarankoil",   "Sankarankoil",       "சங்கரன்கோவில்"),
+      vp("tnv-shenkottai",     "Shenkottai",         "சேங்கோட்டை"),
+      vp("tnv-alangulam",      "Alangulam",          "ஆலங்குளம்"),
+    ]},
+    { id:"tnv-radhapuram", name:"Radhapuram", nameTa:"ராதாபுரம்", localities:[
+      tp("tnv-radhapuram-tp",  "Radhapuram",         "ராதாபுரம்"),
+      vp("tnv-de-thiruvengadam","Thiruvengadam",     "திருவேங்கடம்"),
+      vp("tnv-idinthakarai",   "Idinthakarai",       "இடிந்தகரை"),
+      vp("tnv-kalakadu",       "Kalakadu",           "கல்லக்கடு"),
+      vp("tnv-puthiyamputhur", "Puthiyamputhur",     "புதியம்புதூர்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 31. TIRUPATHUR ───────────────────────── */
-  {
-    id: "tirupathur", name: "Tirupathur", nameTa: "திருப்பத்தூர்",
-    blocks: [
-      { id: "tpr-tirupathur", name: "Tirupathur", nameTa: "திருப்பத்தூர்", localities: [
-        m ("tpr-tirupathur-m",   "Tirupathur",      "திருப்பத்தூர்"),
-        tp("tpr-ambur",          "Ambur",           "ஆம்பூர்"),
-        tp("tpr-vaniyambadi",    "Vaniyambadi",     "வாணியம்பாடி"),
-        vp("tpr-jolarpettai",    "Jolarpettai",     "ஜோலார்பேட்டை"),
-      ]},
-      { id: "tpr-natrampalli", name: "Natrampalli", nameTa: "நாட்ராம்பள்ளி", localities: [
-        vp("tpr-natrampalli-vp", "Natrampalli",     "நாட்ராம்பள்ளி"),
-        vp("tpr-alangayam",      "Alangayam",       "ஆலங்காயம்"),
-        vp("tpr-yelagiri",       "Yelagiri",        "ஏலகிரி"),
-      ]},
-    ],
-  },
+  /* ── 31. TIRUPATHUR ────────────────────────────────────────────── */
+  { id:"tirupathur", name:"Tirupathur", nameTa:"திருப்பத்தூர்", blocks:[
+    { id:"tpt-tirupathur", name:"Tirupathur", nameTa:"திருப்பத்தூர்", localities:[
+      m ("tpt-tirupathur-m",   "Tirupathur",         "திருப்பத்தூர்"),
+      m ("tpt-ambur-m",        "Ambur",              "ஆம்பூர்"),
+      m ("tpt-vaniyambadi-m",  "Vaniyambadi",        "வாணியம்பாடி"),
+      tp("tpt-natrampalli",    "Natrampalli",        "நாத்தம்பள்ளி"),
+      tp("tpt-jolarpet",       "Jolarpet",           "ஜோலார்பேட்டை"),
+      vp("tpt-gudiyatham-tpt", "Gudiyatham",         "குடியாத்தம்"),
+      vp("tpt-pernambut",      "Pernambut",          "பேர்ணம்பட்டு"),
+      vp("tpt-uthangarai-tpt", "Uthangarai",         "உத்தங்கரை"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 32. TIRUPPUR ────────────────────────── */
-  {
-    id: "tiruppur", name: "Tiruppur", nameTa: "திருப்பூர்",
-    blocks: [
-      { id: "tpp-tiruppur", name: "Tiruppur", nameTa: "திருப்பூர்", localities: [
-        m ("tpp-tiruppur-m",     "Tiruppur",        "திருப்பூர்"),
-        vp("tpp-palladam",       "Palladam",        "பல்லடம்"),
-        vp("tpp-kangeyam",       "Kangeyam",        "கங்கேயம்"),
-        vp("tpp-dharapuram-tp",  "Dharapuram",      "தாராபுரம்"),
-        vp("tpp-avinashi-tp",    "Avinashi",        "அவிநாசி"),
-      ]},
-      { id: "tpp-udumalpet", name: "Udumalpet", nameTa: "உடுமலைப்பேட்டை", localities: [
-        m ("tpp-udumalpet-m",    "Udumalpet",       "உடுமலைப்பேட்டை"),
-        vp("tpp-mulanur",        "Mulanur",         "முல்லனூர்"),
-        vp("tpp-vellakoil",      "Vellakoil",       "வெள்ளக்கோவில்"),
-      ]},
-    ],
-  },
+  /* ── 32. TIRUPPUR ──────────────────────────────────────────────── */
+  { id:"tiruppur", name:"Tiruppur", nameTa:"திருப்பூர்", blocks:[
+    { id:"tpr-tiruppur", name:"Tiruppur", nameTa:"திருப்பூர்", localities:[
+      m ("tpr-tiruppur-m",     "Tiruppur",           "திருப்பூர்"),
+      tp("tpr-palladam",       "Palladam",           "பல்லடம்"),
+      tp("tpr-dharapuram",     "Dharapuram",         "தாரபுரம்"),
+      tp("tpr-kangeyam",       "Kangeyam",           "காங்கேயம்"),
+      vp("tpr-avinashi",       "Avinashi",           "ஆவினாசி"),
+      vp("tpr-gudimangalam",   "Gudimangalam",       "குடிமங்கலம்"),
+      vp("tpr-uthukuli",       "Uthukuli",           "ஊத்துக்குளி"),
+      vp("tpr-madathukulam",   "Madathukulam",       "மடத்துகுளம்"),
+    ]},
+    { id:"tpr-udumalpet", name:"Udumalpet", nameTa:"உடுமலைப்பேட்டை", localities:[
+      m ("tpr-udumalpet-m",    "Udumalpet",          "உடுமலைப்பேட்டை"),
+      vp("tpr-mulanur",        "Mulanur",            "முலநூர்"),
+      vp("tpr-vellakoil",      "Vellakoil",          "வெள்ளக்கோவில்"),
+      vp("tpr-dharapuram-bl",  "Dharapuram Block",   "தாரபுரம் வட்டம்"),
+      vp("tpr-kundadam",       "Kundadam",           "குண்டாடம்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 33. TIRUVALLUR ───────────────────────── */
-  {
-    id: "tiruvallur", name: "Tiruvallur", nameTa: "திருவள்ளூர்",
-    blocks: [
-      { id: "tvl-tiruvallur", name: "Tiruvallur", nameTa: "திருவள்ளூர்", localities: [
-        m ("tvl-tiruvallur-m",   "Tiruvallur",      "திருவள்ளூர்"),
-        tp("tvl-avadi-bl",       "Avadi",           "ஆவடி"),
-        tp("tvl-gummidipoondi",  "Gummidipoondi",   "கும்மிடிப்பூண்டி"),
-        vp("tvl-ponneri",        "Ponneri",         "பொன்னேரி"),
-        vp("tvl-red-hills-bl",   "Red Hills",       "சிவப்பு மலை"),
-      ]},
-      { id: "tvl-poonamallee", name: "Poonamallee", nameTa: "பூனமல்லி", localities: [
-        tp("tvl-poonamallee-tp", "Poonamallee",     "பூனமல்லி"),
-        vp("tvl-veppampattu-tv", "Veppampattu",     "வேப்பம்பட்டு"),
-        vp("tvl-thirumazhisai",  "Thirumazhisai",   "திருமழிசை"),
-        vp("tvl-ambattur-bl",    "Ambattur",        "அம்பத்தூர்"),
-        vp("tvl-pattabiram-bl",  "Pattabiram",      "பட்டாபிராம்"),
-      ]},
-      { id: "tvl-uthukottai", name: "Uthukottai", nameTa: "உதுக்கோட்டை", localities: [
-        vp("tvl-uthukottai-vp",  "Uthukottai",      "உதுக்கோட்டை"),
-        vp("tvl-pallipattu",     "Pallipattu",      "பள்ளிப்பட்டு"),
-        vp("tvl-tiruttani",      "Tiruttani",       "திருத்தணி"),
-      ]},
-    ],
-  },
+  /* ── 33. TIRUVALLUR ────────────────────────────────────────────── */
+  { id:"tiruvallur", name:"Tiruvallur", nameTa:"திருவள்ளூர்", blocks:[
+    { id:"tvl-tiruvallur", name:"Tiruvallur", nameTa:"திருவள்ளூர்", localities:[
+      m ("tvl-tiruvallur-m",   "Tiruvallur",         "திருவள்ளூர்"),
+      tp("tvl-gummidipoondi",  "Gummidipoondi",      "கும்மிடிப்பூண்டி"),
+      tp("tvl-ponneri",        "Ponneri",            "பொன்னேரி"),
+      vp("tvl-redhills",       "Red Hills",          "சிவப்பு மலை"),
+      vp("tvl-minjur",         "Minjur",             "மிஞ்சூர்"),
+      vp("tvl-arani-tvl",      "Arani",              "ஆரணி"),
+      vp("tvl-kadambathur",    "Kadambathur",        "கடம்பத்தூர்"),
+    ]},
+    { id:"tvl-avadi", name:"Avadi", nameTa:"ஆவடி", localities:[
+      m ("tvl-avadi-m",        "Avadi",              "ஆவடி"),
+      m ("tvl-ambattur-m",     "Ambattur",           "அம்பத்தூர்"),
+      tp("tvl-thiruninravur",  "Thiruninravur",      "திருநின்றவூர்"),
+      tp("tvl-thiruvallur-tp2","Villivakkam",        "விள்ளிவாக்கம்"),
+      vp("tvl-thiruverkadu",   "Thiruverkadu",       "திருவேற்காடு"),
+      vp("tvl-tirupalaivanam", "Tirupalaivanam",     "திருப்பாலைவனம்"),
+      vp("tvl-sennerkuppam",   "Sennerkuppam",       "செண்ணர்குப்பம்"),
+    ]},
+    { id:"tvl-poonamallee", name:"Poonamallee", nameTa:"பூனமல்லி", localities:[
+      m ("tvl-pnm-w1",  "Ward 1 – Agraharam",           "வார்டு 1 – அக்ரகாரம்"),
+      m ("tvl-pnm-w2",  "Ward 2 – Mangadu Road",         "வார்டு 2 – மங்காடு சாலை"),
+      m ("tvl-pnm-w3",  "Ward 3 – Kamarajar Nagar",      "வார்டு 3 – காமராஜர் நகர்"),
+      m ("tvl-pnm-w4",  "Ward 4 – Poonamallee Town",     "வார்டு 4 – பூனமல்லி நகரம்"),
+      m ("tvl-pnm-w5",  "Ward 5 – Bus Stand Area",       "வார்டு 5 – பஸ் நிலைய பகுதி"),
+      m ("tvl-pnm-w6",  "Ward 6 – Sennerkuppam North",   "வார்டு 6 – செண்ணர்குப்பம் வடக்கு"),
+      m ("tvl-pnm-w7",  "Ward 7 – Sennerkuppam South",   "வார்டு 7 – செண்ணர்குப்பம் தெற்கு"),
+      m ("tvl-pnm-w8",  "Ward 8 – Nazarethpettai",       "வார்டு 8 – நசரேத்பேட்டை"),
+      m ("tvl-pnm-w9",  "Ward 9 – Somangalam Road",      "வார்டு 9 – சோமங்கலம் சாலை"),
+      m ("tvl-pnm-w10", "Ward 10 – Thiruverkadu",        "வார்டு 10 – திருவேற்காடு"),
+      m ("tvl-pnm-w11", "Ward 11 – Mangadu",             "வார்டு 11 – மங்காடு"),
+      m ("tvl-pnm-w12", "Ward 12 – Kundrathur",          "வார்டு 12 – குந்தரத்தூர்"),
+      m ("tvl-pnm-w13", "Ward 13 – Porur North",         "வார்டு 13 – போரூர் வடக்கு"),
+      m ("tvl-pnm-w14", "Ward 14 – Porur South",         "வார்டு 14 – போரூர் தெற்கு"),
+      m ("tvl-pnm-w15", "Ward 15 – Mugalivakkam",        "வார்டு 15 – முகலிவாக்கம்"),
+      m ("tvl-pnm-w16", "Ward 16 – Ramapuram",           "வார்டு 16 – இராமாபுரம்"),
+      m ("tvl-pnm-w17", "Ward 17 – Alapakkam",           "வார்டு 17 – அழகப்பாக்கம்"),
+      m ("tvl-pnm-w18", "Ward 18 – Kolapakkam",          "வார்டு 18 – கோலப்பாக்கம்"),
+      m ("tvl-pnm-w19", "Ward 19 – Padikuppam",          "வார்டு 19 – படிகுப்பம்"),
+      m ("tvl-pnm-w20", "Ward 20 – Pattabiram North",    "வார்டு 20 – பட்டாபிராம் வடக்கு"),
+      m ("tvl-pnm-w21", "Ward 21 – Pattabiram South",    "வார்டு 21 – பட்டாபிராம் தெற்கு"),
+      m ("tvl-pnm-w22", "Ward 22 – Avadi Road",          "வார்டு 22 – ஆவடி சாலை"),
+      m ("tvl-pnm-w23", "Ward 23 – Thirumazhisai",       "வார்டு 23 – திருமழிசை"),
+      m ("tvl-pnm-w24", "Ward 24 – Veppampattu",         "வார்டு 24 – வேப்பம்பட்டு"),
+      m ("tvl-pnm-w25", "Ward 25 – Nerkundram",          "வார்டு 25 – நெர்குண்டிரம்"),
+      m ("tvl-pnm-w26", "Ward 26 – Ambattur IE",         "வார்டு 26 – அம்பத்தூர் தொழிற்பேட்டை"),
+      m ("tvl-pnm-w27", "Ward 27 – Madhavaram Jn",       "வார்டு 27 – மாதவரம் சந்திப்பு"),
+    ]},
+    { id:"tvl-uthukottai", name:"Uthukottai", nameTa:"உதுக்கோட்டை", localities:[
+      tp("tvl-uthukottai-tp",  "Uthukottai",         "உதுக்கோட்டை"),
+      tp("tvl-pallipattu",     "Pallipattu",         "பள்ளிப்பட்டு"),
+      tp("tvl-tiruttani",      "Tiruttani",          "திருத்தணி"),
+      vp("tvl-periyapalayam",  "Periyapalayam",      "பெரியபாளையம்"),
+      vp("tvl-arambakkam",     "Arambakkam",         "அரம்பாக்கம்"),
+      vp("tvl-lathur-tvl",     "Lathur",             "லத்தூர்"),
+    ]},
+  ]},
 
-  /* ─────────────────────────── 34. TIRUVANNAMALAI ───────────────────── */
-  {
-    id: "tiruvannamalai", name: "Tiruvannamalai", nameTa: "திருவண்ணாமலை",
-    blocks: [
-      { id: "tvm-tiruvannamalai", name: "Tiruvannamalai", nameTa: "திருவண்ணாமலை", localities: [
-        m ("tvm-tiruvannamalai-m","Tiruvannamalai",  "திருவண்ணாமலை"),
-        tp("tvm-polur",           "Polur",           "போளூர்"),
-        vp("tvm-chengam",         "Chengam",         "செங்கம்"),
-        vp("tvm-kalasapakkam",    "Kalasapakkam",    "கலசப்பாக்கம்"),
-      ]},
-      { id: "tvm-vandavasi", name: "Vandavasi", nameTa: "வந்தவாசி", localities: [
-        tp("tvm-vandavasi-tp",   "Vandavasi",       "வந்தவாசி"),
-        vp("tvm-cheyyar-tvm",    "Cheyyar",         "செய்யாறு"),
-        vp("tvm-kilpennathur",   "Kilpennathur",    "கீழ்பெண்ணாதூர்"),
-        vp("tvm-arani",          "Arani",           "ஆரணி"),
-      ]},
-    ],
-  },
+  /* ── 34. TIRUVANNAMALAI ────────────────────────────────────────── */
+  { id:"tiruvannamalai", name:"Tiruvannamalai", nameTa:"திருவண்ணாமலை", blocks:[
+    { id:"tvm-tiruvannamalai", name:"Tiruvannamalai", nameTa:"திருவண்ணாமலை", localities:[
+      m ("tvm-tiruvannamalai-m","Tiruvannamalai",    "திருவண்ணாமலை"),
+      tp("tvm-polur",          "Polur",              "போளூர்"),
+      tp("tvm-chengam",        "Chengam",            "செங்கம்"),
+      vp("tvm-kalasapakkam",   "Kalasapakkam",       "கலசப்பாக்கம்"),
+      vp("tvm-thandrampet",    "Thandrampet",        "தாண்டிரம்பேட்டை"),
+      vp("tvm-kilpennathur",   "Kilpennathur",       "கீழ்பெண்ணாதூர்"),
+      vp("tvm-vembakkam",      "Vembakkam",          "வெம்பாக்கம்"),
+    ]},
+    { id:"tvm-arni", name:"Arni", nameTa:"ஆரணி", localities:[
+      m ("tvm-arni-m",         "Arni",               "ஆரணி"),
+      tp("tvm-vandavasi",      "Vandavasi",          "வந்தவாசி"),
+      tp("tvm-cheyyar",        "Cheyyar",            "செய்யாறு"),
+      vp("tvm-arani-vp",       "Arani",              "ஆரணி"),
+      vp("tvm-chetpet",        "Chetpet",            "சேத்துப்பட்டு"),
+      vp("tvm-pudupalayam",    "Pudupalayam",        "புதுப்பாளையம்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 35. VELLORE ─────────────────────────── */
-  {
-    id: "vellore", name: "Vellore", nameTa: "வேலூர்",
-    blocks: [
-      { id: "vll-vellore", name: "Vellore", nameTa: "வேலூர்", localities: [
-        m ("vll-vellore-m",      "Vellore",         "வேலூர்"),
-        tp("vll-katpadi",        "Katpadi",         "காட்பாடி"),
-        vp("vll-gudiyatham",     "Gudiyatham",      "குடியாத்தம்"),
-        vp("vll-pernambut",      "Pernambut",       "பேர்ணம்பூட்டு"),
-        vp("vll-veppampattu-vl", "Veppampattu",     "வேப்பம்பட்டு"),
-      ]},
-      { id: "vll-walajah", name: "Walajah", nameTa: "வாலாஜா", localities: [
-        tp("vll-walajapet",      "Walajapet",       "வாலாஜாப்பேட்டை"),
-        tp("vll-arcot-vl",       "Arcot",           "ஆற்காடு"),
-        vp("vll-sholinghur-vl",  "Sholinghur",      "சோழிங்கர்"),
-        vp("vll-anaicut",        "Anaicut",         "ஆணைகட்டு"),
-      ]},
-    ],
-  },
+  /* ── 35. VELLORE ───────────────────────────────────────────────── */
+  { id:"vellore", name:"Vellore", nameTa:"வேலூர்", blocks:[
+    { id:"vll-vellore", name:"Vellore", nameTa:"வேலூர்", localities:[
+      m ("vll-vellore-m",      "Vellore",            "வேலூர்"),
+      tp("vll-gudiyatham",     "Gudiyatham",         "குடியாத்தம்"),
+      tp("vll-katpadi",        "Katpadi",            "காட்பாடி"),
+      vp("vll-virinchipuram",  "Virinchipuram",      "விரிஞ்சிபுரம்"),
+      vp("vll-kaniyambadi",    "Kaniyambadi",        "காணியம்பாடி"),
+      vp("vll-alangayam",      "Alangayam",          "ஆலங்காயம்"),
+      vp("vll-pernambut",      "Pernambut",          "பேர்ணம்பட்டு"),
+      vp("vll-natrampalli",    "Natrampalli",        "நாத்தம்பள்ளி"),
+    ]},
+    { id:"vll-arakkonam", name:"Arakkonam", nameTa:"ஆரக்கோணம்", localities:[
+      m ("vll-arakkonam-m",    "Arakkonam",          "ஆரக்கோணம்"),
+      tp("vll-sholinghur",     "Sholinghur",         "சோளிங்கர்"),
+      tp("vll-nemili",         "Nemili",             "நெமிலி"),
+      vp("vll-walajah",        "Walajah",            "வாலாஜா"),
+      vp("vll-arcot",          "Arcot",              "ஆற்காடு"),
+      vp("vll-timiri",         "Timiri",             "திமிரி"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 36. VILUPPURAM ──────────────────────── */
-  {
-    id: "viluppuram", name: "Viluppuram", nameTa: "விழுப்புரம்",
-    blocks: [
-      { id: "vlp-viluppuram", name: "Viluppuram", nameTa: "விழுப்புரம்", localities: [
-        m ("vlp-viluppuram-m",   "Viluppuram",      "விழுப்புரம்"),
-        tp("vlp-tindivanam",     "Tindivanam",      "திண்டிவனம்"),
-        vp("vlp-gingee",         "Gingee",          "செஞ்சி"),
-        vp("vlp-ulundurpettai",  "Ulundurpettai",   "உளுந்தூர்பேட்டை"),
-      ]},
-      { id: "vlp-kallakurichi-bl", name: "Kallakurichi Block", nameTa: "கள்ளக்குறிச்சி வட்டம்", localities: [
-        m ("vlp-kallakurichi-m", "Kallakurichi",    "கள்ளக்குறிச்சி"),
-        vp("vlp-sankarapuram-v", "Sankarapuram",    "சங்கரபுரம்"),
-        vp("vlp-chinnasalem-v",  "Chinnasalem",     "சின்னசேலம்"),
-        vp("vlp-rishivandiyam",  "Rishivandiyam",   "ரிஷிவந்தியம்"),
-      ]},
-      { id: "vlp-pondicherry-bl", name: "Pondicherry Border", nameTa: "புதுச்சேரி எல்லை", localities: [
-        tp("vlp-cuddalore-border","Cuddalore Border","கடலூர் எல்லை"),
-        vp("vlp-vikravandi",     "Vikravandi",      "விக்கிரவாண்டி"),
-        vp("vlp-thiruvennainallur","Thiruvennainallur","திருவெண்ணைநல்லூர்"),
-      ]},
-    ],
-  },
+  /* ── 36. VILLUPURAM ────────────────────────────────────────────── */
+  { id:"villupuram", name:"Villupuram", nameTa:"விழுப்புரம்", blocks:[
+    { id:"vpm-villupuram", name:"Villupuram", nameTa:"விழுப்புரம்", localities:[
+      m ("vpm-villupuram-m",   "Villupuram",         "விழுப்புரம்"),
+      tp("vpm-tindivanam",     "Tindivanam",         "திண்டிவனம்"),
+      tp("vpm-gingee",         "Gingee",             "செஞ்சி"),
+      vp("vpm-vanur",          "Vanur",              "வானூர்"),
+      vp("vpm-kandachipuram",  "Kandachipuram",      "காண்டாச்சிபுரம்"),
+      vp("vpm-vikravandi",     "Vikravandi",         "விக்கிரவாண்டி"),
+      vp("vpm-marakanam",      "Marakanam",          "மரக்காணம்"),
+      vp("vpm-melmalaiyanur",  "Melmalaiyanur",      "மேல்மலையனூர்"),
+    ]},
+    { id:"vpm-kallakurichi-v", name:"Kallakurichi", nameTa:"கள்ளக்குறிச்சி", localities:[
+      m ("vpm-kallakurichi-m", "Kallakurichi",       "கள்ளக்குறிச்சி"),
+      tp("vpm-ulundurpet",     "Ulundurpet",         "உளுந்தூர்பேட்டை"),
+      vp("vpm-sankarapuram",   "Sankarapuram",       "சங்கரபுரம்"),
+      vp("vpm-tirukkoilur",    "Tirukkoilur",        "திருக்கோவிலூர்"),
+      vp("vpm-rishivandiyam",  "Rishivandiyam",      "ரிஷிவந்தியம்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 37. VIRUDHUNAGAR ────────────────────── */
-  {
-    id: "virudhunagar", name: "Virudhunagar", nameTa: "விருதுநகர்",
-    blocks: [
-      { id: "vdn-virudhunagar", name: "Virudhunagar", nameTa: "விருதுநகர்", localities: [
-        m ("vdn-virudhunagar-m", "Virudhunagar",    "விருதுநகர்"),
-        tp("vdn-sivakasi-vdn",   "Sivakasi",        "சிவகாசி"),
-        tp("vdn-sattur",         "Sattur",          "சாத்தூர்"),
-        vp("vdn-srivilliputtur-v","Srivilliputtur", "ஸ்ரீவில்லிபுத்தூர்"),
-      ]},
-      { id: "vdn-rajapalayam-vdn","name": "Rajapalayam", nameTa: "இராஜபாளையம்", localities: [
-        m ("vdn-rajapalayam-m",  "Rajapalayam",     "இராஜபாளையம்"),
-        vp("vdn-thiruvengadam",  "Thiruvengadam",   "திருவேங்கடம்"),
-        vp("vdn-aruppukkottai",  "Aruppukkottai",   "அருப்புக்கோட்டை"),
-        vp("vdn-kariapatti",     "Kariapatti",      "காரியாபட்டி"),
-      ]},
-    ],
-  },
+  /* ── 37. VIRUDHUNAGAR ──────────────────────────────────────────── */
+  { id:"virudhunagar", name:"Virudhunagar", nameTa:"விருதுநகர்", blocks:[
+    { id:"vdn-virudhunagar", name:"Virudhunagar", nameTa:"விருதுநகர்", localities:[
+      m ("vdn-virudhunagar-m", "Virudhunagar",       "விருதுநகர்"),
+      m ("vdn-sivakasi-m",     "Sivakasi",           "சிவகாசி"),
+      m ("vdn-rajapalayam-m",  "Rajapalayam",        "இராஜபாளையம்"),
+      tp("vdn-aruppukottai",   "Aruppukottai",       "ஆருப்புக்கோட்டை"),
+      tp("vdn-sattur",         "Sattur",             "சாத்தூர்"),
+      vp("vdn-srivilliputhur", "Srivilliputhur",     "ஸ்ரீவில்லிபுத்தூர்"),
+      vp("vdn-kariapatti",     "Kariapatti",         "காரியாப்பட்டி"),
+      vp("vdn-tiruchuli",      "Tiruchuli",          "திருச்சுழி"),
+    ]},
+    { id:"vdn-sivakasi", name:"Sivakasi", nameTa:"சிவகாசி", localities:[
+      m ("vdn-sivakasi-m2",    "Sivakasi",           "சிவகாசி"),
+      tp("vdn-vembakottai",    "Vembakottai",        "வேம்பகோட்டை"),
+      vp("vdn-watrap",         "Watrap",             "வாத்திராப்பட்டி"),
+      vp("vdn-elayirampannai", "Elayirampannai",     "எழையிரம்பன்னை"),
+      vp("vdn-mamsapuram",     "Mamsapuram",         "மாம்சாபுரம்"),
+    ]},
+  ]},
 
-  /* ──────────────────────────── 38. TIRUVARUR ───────────────────────── */
-  {
-    id: "tiruvarur", name: "Tiruvarur", nameTa: "திருவாரூர்",
-    blocks: [
-      { id: "tvr-tiruvarur", name: "Tiruvarur", nameTa: "திருவாரூர்", localities: [
-        m ("tvr-tiruvarur-m",    "Tiruvarur",       "திருவாரூர்"),
-        tp("tvr-nagapattinam-t", "Nagapattinam",    "நாகப்பட்டினம்"),
-        vp("tvr-kodavasal",      "Kodavasal",       "கோடவாசல்"),
-        vp("tvr-thiruthuraipoondi","Thiruthuraipoondi","திருத்துறைப்பூண்டி"),
-      ]},
-      { id: "tvr-mannargudi", name: "Mannargudi", nameTa: "மன்னார்குடி", localities: [
-        tp("tvr-mannargudi-tp",  "Mannargudi",      "மன்னார்குடி"),
-        vp("tvr-needamangalam",  "Needamangalam",   "நீடாமங்கலம்"),
-        vp("tvr-papanasam-tvr",  "Papanasam",       "பாபநாசம்"),
-        vp("tvr-muthupet",       "Muthupet",        "முத்துப்பேட்டை"),
-      ]},
-    ],
-  },
+  /* ── 38. TIRUVARUR ─────────────────────────────────────────────── */
+  { id:"tiruvarur", name:"Tiruvarur", nameTa:"திருவாரூர்", blocks:[
+    { id:"tvr-tiruvarur", name:"Tiruvarur", nameTa:"திருவாரூர்", localities:[
+      m ("tvr-tiruvarur-m",    "Tiruvarur",          "திருவாரூர்"),
+      tp("tvr-thiruvarur-tp",  "Thiruvarur Town",    "திருவாரூர் நகர்"),
+      vp("tvr-valangaiman",    "Valangaiman",        "வாலங்கைமான்"),
+      vp("tvr-thiruthuraipoondi","Thiruthuraipoondi","திருத்துறைப்பூண்டி"),
+      vp("tvr-kodavasal",      "Kodavasal",          "கோடவாசல்"),
+      vp("tvr-koradachery",    "Koradachery",        "கோரடாச்சேரி"),
+      vp("tvr-kudavasal",      "Kudavasal",          "குடவாசல்"),
+    ]},
+    { id:"tvr-mannargudi", name:"Mannargudi", nameTa:"மன்னார்குடி", localities:[
+      m ("tvr-mannargudi-m",   "Mannargudi",         "மன்னார்குடி"),
+      tp("tvr-needamangalam",  "Needamangalam",      "நீடாமங்கலம்"),
+      vp("tvr-papanasam-tvr",  "Papanasam",          "பாபநாசம்"),
+      vp("tvr-muthupet",       "Muthupet",           "முத்துப்பேட்டை"),
+      vp("tvr-vedharanyam",    "Vedharanyam",        "வேதாரண்யம்"),
+      vp("tvr-poonthottam",    "Poonthottam",        "பூந்தோட்டம்"),
+    ]},
+  ]},
+
 ];
 
-/** Flat list of all districts (for simple dropdowns) */
+/* ── Exports ────────────────────────────────────────────────────── */
+
 export const DISTRICT_LIST = TN_DISTRICTS.map(d => ({ id: d.id, name: d.name, nameTa: d.nameTa }));
 
-/** Get blocks for a given district id */
 export function getBlocks(districtId: string): Block[] {
   return TN_DISTRICTS.find(d => d.id === districtId)?.blocks ?? [];
 }
 
-/** Get localities for a given block id */
 export function getLocalities(districtId: string, blockId: string): Locality[] {
   return getBlocks(districtId).find(b => b.id === blockId)?.localities ?? [];
 }
 
-/** Locality type labels */
 export const LOCALITY_TYPE_LABELS: Record<LocalityType, string> = {
   VP:   "Village Panchayat",
   TP:   "Town Panchayat",
   M:    "Municipality",
   Corp: "Corporation",
-  W:    "Ward",
+  W:    "Corporation Ward",
 };
