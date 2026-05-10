@@ -87,6 +87,11 @@ export async function POST(req: NextRequest) {
           envelopeId = envelope.envelopeId;
           emailSent  = envelope.gmailConfigured;
           signLinks  = envelope.inviteLinks ?? [];
+          console.log("[grievance/submit] SignFlow ok | id:", envelopeId,
+            "| links:", signLinks.length, "| gmailConfigured:", emailSent,
+            "| raw:", JSON.stringify(envelope.rawResponse).slice(0, 400));
+        } else {
+          console.warn("[grievance/submit] SignFlow returned null (check SIGNFLOW_API_KEY and logs above)");
         }
       } catch (sfErr) {
         console.error("[grievance/submit] SignFlow failed:", sfErr);
