@@ -1,17 +1,21 @@
 /**
- * Legal PDF generator — calls the public legal-tech API endpoint,
- * then converts the returned draft text into a formatted PDF via pdfkit.
+ * Legal PDF generator
  *
- * API: POST /legal-tech/generate-public  (x-api-key authenticated)
- * Returns: base64-encoded PDF string ready for SignFlow
+ * Strategy:
+ *   1. Always build a base PDF from form data using pdfkit (never fails)
+ *   2. Optionally call the AI legal-tech API for enriched draft text
+ *      — if API is unavailable the base PDF is returned unchanged
+ *
+ * Base PDF is generated immediately from the grievance form fields,
+ * so SignFlow always receives a document even when the AI API is cold/down.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PDFDocument = require("pdfkit") as typeof import("pdfkit");
 
-const LEGAL_API =
-  (process.env.LEGAL_TECH_API_URL ??
-    "https://payrollsystem-2w0h.onrender.com") + "/legal-tech/generate-public";
+const LEGAL_API_BASE =
+  process.env.LEGAL_TECH_API_URL ?? "https://payrollsystem-2w0h.onrender.com";
+const LEGAL_API = `${LEGAL_API_BASE}/legal-tech/generate-public`;
 
 /* ── Category → Respondent Department ───────────────────────── */
 const DEPT_MAP: Record<string, string> = {
@@ -23,27 +27,28 @@ const DEPT_MAP: Record<string, string> = {
   education:                "Tamil Nadu School Education Department",
   "social-welfare":         "Tamil Nadu Social Welfare and Women Empowerment Department",
   "land-records":           "Tamil Nadu Revenue and Disaster Management Department",
+  construction:             "Tamil Nadu Housing Board / Local Body Engineering Department",
 };
 const DEFAULT_DEPT = "Tamil Nadu State Government – Concerned Department";
 
-/* ── Category → Relief Sought ────────────────────────────────── */
 const RELIEF_MAP: Record<string, string> = {
-  "roads-&-infrastructure": "Immediate inspection, repair and restoration of road infrastructure causing public hardship",
-  "roads-infrastructure":   "Immediate inspection, repair and restoration of road infrastructure causing public hardship",
+  "roads-&-infrastructure": "Immediate inspection, repair and restoration of road / infrastructure causing public hardship",
+  "roads-infrastructure":   "Immediate inspection, repair and restoration of road / infrastructure causing public hardship",
   electricity:              "Restoration of uninterrupted power supply and repair of faulty electrical infrastructure",
   "water-supply":           "Restoration of regular, clean potable water supply to the affected locality",
   "health-services":        "Provision of adequate healthcare personnel, medicines and facilities at the public health centre",
   education:                "Resolution of the educational grievance and provision of quality education as per government norms",
-  "social-welfare":         "Release of all entitled social welfare benefits and correction of any administrative errors",
+  "social-welfare":         "Release of all entitled social welfare benefits and correction of administrative errors",
   "land-records":           "Rectification of land records and issuance of proper revenue documentation without delay",
+  construction:             "Immediate inspection and compliance action on the reported construction irregularity",
 };
 const DEFAULT_RELIEF =
-  "Prompt resolution of the grievance within the 30-day SLA stipulated by the Tamil Nadu Grievance Redressal Act";
+  "Prompt resolution within the 30-day SLA stipulated by the Tamil Nadu Grievance Redressal Act";
 
 /* ── Input type ──────────────────────────────────────────────── */
 export interface LegalPdfInput {
   ticketNo:     string;
-  name:         string;   // may include co-petitioners, e.g. "1. Alice, 2. Bob"
+  name:         string;
   phone:        string;
   email:        string;
   district:     string;
@@ -57,105 +62,154 @@ export interface LegalPdfInput {
   filedAt:      Date;
 }
 
-/* ── Text → PDF (pdfkit) ─────────────────────────────────────── */
-function buildPdfBase64(draftText: string, data: LegalPdfInput): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 72, size: "A4" });
-    const chunks: Buffer[] = [];
+/* ── Divider helper ──────────────────────────────────────────── */
+function divider(doc: InstanceType<typeof PDFDocument>, color = "#d1d5db") {
+  doc
+    .moveTo(60, doc.y)
+    .lineTo(doc.page.width - 60, doc.y)
+    .strokeColor(color).lineWidth(0.8).stroke();
+  doc.moveDown(0.6);
+}
 
+/* ── Build a styled A4 PDF from form data ────────────────────── */
+async function buildBasePdf(data: LegalPdfInput, aiDraft?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 60, size: "A4" });
+    const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
     doc.on("end",  () => resolve(Buffer.concat(chunks).toString("base64")));
     doc.on("error", reject);
 
-    /* ── Header ── */
-    doc
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("GOVERNMENT OF TAMIL NADU", { align: "center" });
-    doc
-      .fontSize(11)
-      .font("Helvetica")
-      .text("Citizen Grievance Portal — TN Vettri", { align: "center" });
+    const dept   = DEPT_MAP[data.category]   ?? DEFAULT_DEPT;
+    const relief = RELIEF_MAP[data.category] ?? DEFAULT_RELIEF;
+    const location = [data.address, data.locality, data.block, data.district]
+      .filter(Boolean).join(", ");
+    const filedStr = data.filedAt.toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata", year: "numeric", month: "long", day: "numeric",
+    });
 
-    doc.moveDown(0.4);
-    doc
-      .moveTo(72, doc.y)
-      .lineTo(doc.page.width - 72, doc.y)
-      .strokeColor("#15803d")
-      .lineWidth(1.5)
-      .stroke();
-    doc.moveDown(0.6);
+    /* ── Page header ── */
+    doc.rect(0, 0, doc.page.width, 80).fill("#14532d");
+    doc.fillColor("#ffffff").fontSize(14).font("Helvetica-Bold")
+       .text("GOVERNMENT OF TAMIL NADU", 60, 18, { align: "center" });
+    doc.fontSize(10).font("Helvetica")
+       .text("Citizen Grievance Portal  ·  TN Vettri", 60, 38, { align: "center" });
+    doc.fontSize(9).fillColor("#bbf7d0")
+       .text("tamilnadu.gov.in  ·  pgportal.gov.in", 60, 54, { align: "center" });
 
-    /* ── Metadata block ── */
-    doc.fontSize(10).font("Helvetica-Bold");
-    doc.text(`Ticket No:`, { continued: true }).font("Helvetica").text(`  ${data.ticketNo}`);
-    doc.font("Helvetica-Bold").text(`Filed On: `, { continued: true }).font("Helvetica")
-       .text(data.filedAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", year: "numeric", month: "long", day: "numeric" }));
-    doc.font("Helvetica-Bold").text(`Category: `, { continued: true }).font("Helvetica")
-       .text(data.category);
+    doc.fillColor("#111827").moveDown(0.5);
+    doc.y = 96;
 
+    /* ── Ticket badge ── */
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#15803d")
+       .text(`TICKET NO:  ${data.ticketNo}    ·    FILED ON:  ${filedStr}`, {
+         align: "center",
+       });
     doc.moveDown(0.5);
-    doc
-      .moveTo(72, doc.y)
-      .lineTo(doc.page.width - 72, doc.y)
-      .strokeColor("#d1d5db")
-      .lineWidth(0.8)
-      .stroke();
+    divider(doc, "#15803d");
+
+    /* ── Subject ── */
+    doc.fontSize(13).font("Helvetica-Bold").fillColor("#111827")
+       .text("GRIEVANCE NOTICE", { align: "center" });
+    doc.fontSize(11).font("Helvetica")
+       .text(`RE: ${data.title}`, { align: "center" });
     doc.moveDown(0.6);
+    divider(doc);
 
-    /* ── Petitioner section ── */
-    doc.fontSize(10).font("Helvetica-Bold").text("PETITIONER DETAILS");
-    doc.moveDown(0.3);
-    doc.font("Helvetica").fontSize(10);
-    doc.text(`Name:     ${data.name}`);
-    doc.text(`Phone:    ${data.phone}`);
-    if (data.email) doc.text(`Email:    ${data.email}`);
-    doc.text(`Address:  ${[data.address, data.locality, data.block, data.district].filter(Boolean).join(", ")}`);
+    /* ── Parties ── */
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
+       .text("FROM (PETITIONER)");
+    doc.moveDown(0.2);
+    doc.fontSize(10).font("Helvetica-Bold").fillColor("#111827")
+       .text(data.name);
+    doc.font("Helvetica").fillColor("#374151");
+    if (data.phone) doc.text(`Phone: ${data.phone}`);
+    if (data.email) doc.text(`Email: ${data.email}`);
+    if (location)   doc.text(`Address: ${location}`);
 
+    doc.moveDown(0.6);
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
+       .text("TO (RESPONDENT)");
+    doc.moveDown(0.2);
+    doc.fontSize(10).font("Helvetica-Bold").fillColor("#111827")
+       .text(dept);
+    doc.font("Helvetica").fillColor("#374151")
+       .text(`District Collectorate, ${data.district} District, Tamil Nadu`);
+
+    doc.moveDown(0.6);
+    divider(doc);
+
+    /* ── Category & SLA ── */
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("CATEGORY");
+    doc.moveDown(0.15);
+    doc.fontSize(10).font("Helvetica").fillColor("#111827")
+       .text(data.category.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
+    doc.moveDown(0.5);
+
+    /* ── Facts ── */
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("FACTS OF THE CASE");
+    doc.moveDown(0.2);
+    doc.fontSize(10).font("Helvetica").fillColor("#111827")
+       .text(data.description || data.title, { align: "justify", lineGap: 2 });
+    doc.moveDown(0.5);
+
+    /* ── Relief ── */
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("RELIEF SOUGHT");
+    doc.moveDown(0.2);
+    doc.fontSize(10).font("Helvetica").fillColor("#111827")
+       .text(relief, { align: "justify", lineGap: 2 });
     doc.moveDown(0.8);
-    doc
-      .moveTo(72, doc.y)
-      .lineTo(doc.page.width - 72, doc.y)
-      .strokeColor("#d1d5db")
-      .lineWidth(0.8)
-      .stroke();
-    doc.moveDown(0.6);
+    divider(doc);
 
-    /* ── AI-generated draft body ── */
-    doc.fontSize(10).font("Helvetica-Bold").text("LEGAL NOTICE / PETITION DRAFT");
-    doc.moveDown(0.4);
+    /* ── AI draft body (if available) ── */
+    if (aiDraft) {
+      doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
+         .text("AI-GENERATED LEGAL DRAFT (for reference)");
+      doc.moveDown(0.3);
+      doc.fontSize(9.5).font("Helvetica").fillColor("#111827")
+         .text(aiDraft, { align: "justify", lineGap: 3, paragraphGap: 5 });
+      doc.moveDown(0.8);
+      divider(doc);
+    }
 
-    /* Render the draft text — wrap long lines */
-    doc
-      .fontSize(10)
-      .font("Helvetica")
-      .text(draftText, {
-        align:     "justify",
-        lineGap:   3,
-        paragraphGap: 6,
-      });
+    /* ── Declaration & signature space ── */
+    doc.fontSize(10).font("Helvetica").fillColor("#111827")
+       .text(
+         "I, the undersigned, hereby declare that the facts stated above are true and correct " +
+         "to the best of my knowledge and belief, and request the concerned authority to take " +
+         "immediate action in accordance with the Tamil Nadu Grievance Redressal Act.",
+         { align: "justify", lineGap: 2 }
+       );
 
-    doc.moveDown(1.5);
+    doc.moveDown(2);
+    doc.fontSize(10).font("Helvetica")
+       .text("Petitioner Signature: ___________________________", { align: "left" });
+    doc.moveDown(0.5);
+    doc.text(`Date: ${filedStr}`, { align: "left" });
+    doc.moveDown(0.5);
+    doc.text(`Place: ${data.locality}, ${data.district}`, { align: "left" });
 
     /* ── Footer ── */
-    doc
-      .fontSize(9)
-      .fillColor("#6b7280")
-      .text(
-        "This document was generated by the TN Vettri Citizen Grievance Portal. " +
-        "It is intended as a legal draft and may require review by a qualified advocate.",
-        { align: "center" }
-      );
+    const footerY = doc.page.height - 45;
+    doc.y = footerY;
+    doc.fontSize(7.5).fillColor("#9ca3af")
+       .text(
+         `Generated by TN Vettri Citizen Grievance Portal  ·  Ticket: ${data.ticketNo}  ·  ` +
+         "This is a computer-generated document.",
+         { align: "center" }
+       );
 
     doc.end();
   });
 }
 
-/* ── Main export ─────────────────────────────────────────────── */
-export async function generateGrievancePdf(data: LegalPdfInput): Promise<string | null> {
+/* ── Try AI API for enriched draft text ─────────────────────── */
+async function fetchAiDraft(data: LegalPdfInput): Promise<string | null> {
+  const apiKey = process.env.LEGAL_TECH_API_TOKEN;
+  if (!apiKey) return null;
+
   const dept   = DEPT_MAP[data.category]   ?? DEFAULT_DEPT;
   const relief = RELIEF_MAP[data.category] ?? DEFAULT_RELIEF;
-
   const location = [data.address, data.locality, data.block, data.district]
     .filter(Boolean).join(", ");
 
@@ -170,60 +224,51 @@ export async function generateGrievancePdf(data: LegalPdfInput): Promise<string 
   };
 
   try {
-    /* ── 1. Call public API ── */
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 25_000);
-
-    const apiKey = process.env.LEGAL_TECH_API_TOKEN; // used as x-api-key for public endpoint
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (apiKey) headers["x-api-key"] = apiKey;
+    const tid = setTimeout(() => controller.abort(), 20_000);
 
     const res = await fetch(LEGAL_API, {
       method:  "POST",
-      headers,
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body:    JSON.stringify(payload),
       signal:  controller.signal,
     });
     clearTimeout(tid);
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => "(no body)");
-      console.error(`[legal-pdf] API error ${res.status}:`, errText.slice(0, 300));
+      console.warn(`[legal-pdf] AI API returned ${res.status} — using base PDF only`);
       return null;
     }
 
     const ct = res.headers.get("content-type") ?? "";
+    if (ct.includes("application/pdf")) return null; // binary, skip
 
-    /* Case A — API already returns a raw PDF binary */
-    if (ct.includes("application/pdf")) {
-      const buf = await res.arrayBuffer();
-      return Buffer.from(buf).toString("base64");
-    }
-
-    /* Case B — JSON response */
     const json = await res.json() as Record<string, unknown>;
-
-    /* Case B1 — JSON already has a base64 PDF field */
-    const existingB64 =
-      (json.pdf ?? json.pdfBase64 ?? json.base64 ?? json.data) as string | undefined;
-    if (typeof existingB64 === "string" && existingB64.length > 100) {
-      return existingB64.replace(/^data:[^;]+;base64,/, "");
-    }
-
-    /* Case B2 — JSON has a draft text field → convert to PDF via pdfkit */
-    const draftText = (json.draft ?? json.text ?? json.content) as string | undefined;
-    if (typeof draftText === "string" && draftText.length > 10) {
-      return await buildPdfBase64(draftText, data);
-    }
-
-    console.error("[legal-pdf] Unrecognised response:", JSON.stringify(json).slice(0, 200));
-    return null;
+    const text = (json.draft ?? json.text ?? json.content) as string | undefined;
+    return typeof text === "string" && text.length > 20 ? text : null;
   } catch (err: unknown) {
-    if ((err as { name?: string }).name === "AbortError") {
-      console.error("[legal-pdf] Request timed out after 25 s");
+    const isTimeout = (err as { name?: string }).name === "AbortError";
+    console.warn(`[legal-pdf] AI API ${isTimeout ? "timed out" : "failed"} — using base PDF only`);
+    return null;
+  }
+}
+
+/* ── Main export ─────────────────────────────────────────────── */
+export async function generateGrievancePdf(data: LegalPdfInput): Promise<string | null> {
+  try {
+    /* Always attempt AI draft — but PDF is generated regardless */
+    const aiDraft = await fetchAiDraft(data);
+    if (aiDraft) {
+      console.log("[legal-pdf] AI draft received, embedding in PDF");
     } else {
-      console.error("[legal-pdf] fetch failed:", err);
+      console.log("[legal-pdf] No AI draft — generating base PDF from form data");
     }
+
+    const pdfBase64 = await buildBasePdf(data, aiDraft ?? undefined);
+    console.log("[legal-pdf] PDF generated, base64 length:", pdfBase64.length);
+    return pdfBase64;
+  } catch (err) {
+    console.error("[legal-pdf] pdfkit build failed:", err);
     return null;
   }
 }
