@@ -14,6 +14,7 @@ import {
   PDFFont,
   PDFPage,
 } from "pdf-lib";
+import type { SignaturePosition } from "./signflow";
 
 const LEGAL_API_BASE =
   process.env.LEGAL_TECH_API_URL ?? "https://payrollsystem-2w0h.onrender.com";
@@ -134,8 +135,17 @@ function drawLabel(ctx: DrawCtx, label: string) {
   ctx.y -= 2;
 }
 
+export interface PdfResult {
+  base64:             string;
+  signaturePositions: SignaturePosition[];
+}
+
 /* ── Build the PDF ───────────────────────────────────────────── */
-async function buildPdf(data: LegalPdfInput, aiDraft?: string): Promise<string> {
+async function buildPdf(
+  data: LegalPdfInput,
+  aiDraft?: string,
+  numSigners = 1,
+): Promise<PdfResult> {
   const pdfDoc = await PDFDocument.create();
   const page   = pdfDoc.addPage([595, 842]); // A4
 
@@ -233,14 +243,53 @@ async function buildPdf(data: LegalPdfInput, aiDraft?: string): Promise<string> 
     "immediate action in accordance with the Tamil Nadu Grievance Redressal Act.",
     { size: 9.5 }
   );
-  ctx.y -= 24;
+  ctx.y -= 20;
 
-  /* ── Signature block ── */
-  drawText(ctx, "Petitioner Signature: ___________________________", { size: 10 });
-  ctx.y -= 6;
-  drawText(ctx, `Date: ${filedStr}`, { size: 10 });
-  ctx.y -= 6;
-  drawText(ctx, `Place: ${[data.locality, data.district].filter(Boolean).join(", ")}`, { size: 10 });
+  /* ── Signature block — one row per signer ── */
+  const PAGE_H = page.getHeight(); // 842
+  const signaturePositions: SignaturePosition[] = [];
+  const sigCount = Math.max(numSigners, 1);
+
+  for (let i = 0; i < sigCount; i++) {
+    const label = sigCount === 1
+      ? "Petitioner Signature:"
+      : `Petitioner ${i + 1} Signature:`;
+
+    // Draw the label
+    drawText(ctx, label, { bold: true, size: 9 });
+
+    // Blank signing space — draw a rect outline for the field
+    const sigBoxY = ctx.y + 4;           // top of box in pdf-lib coords (from bottom)
+    const sigBoxX = LM + 10;
+    const sigBoxW = 220;
+    const sigBoxH = 36;
+    page.drawRectangle({
+      x: sigBoxX, y: sigBoxY - sigBoxH,
+      width: sigBoxW, height: sigBoxH,
+      borderColor: rgb(0.6, 0.6, 0.6),
+      borderWidth: 0.5,
+    });
+
+    // Normalised coords for SignFlow:
+    // SignFlow x: 0 = left, 1 = right  →  sigBoxX / W
+    // SignFlow y: 0 = top,  1 = bottom →  1 - (sigBoxY / PAGE_H)
+    // Centre the field inside the box
+    const sfX = sigBoxX / W;
+    const sfY = 1 - (sigBoxY / PAGE_H);
+    signaturePositions.push({
+      x:          parseFloat(sfX.toFixed(4)),
+      y:          parseFloat(sfY.toFixed(4)),
+      pageIndex:  0,
+      width:      parseFloat((sigBoxW / W).toFixed(4)),
+      height:     parseFloat((sigBoxH / PAGE_H).toFixed(4)),
+    });
+
+    ctx.y = sigBoxY - sigBoxH - 8;
+
+    // Date & place on the same row
+    drawText(ctx, `Date: ${filedStr}   ·   Place: ${[data.locality, data.district].filter(Boolean).join(", ")}`, { size: 8.5 });
+    ctx.y -= 12;
+  }
 
   /* ── Footer ── */
   page.drawLine({ start: { x: LM, y: 42 }, end: { x: W - RM, y: 42 }, thickness: 0.4, color: rgb(0.8, 0.8, 0.8) });
@@ -250,7 +299,7 @@ async function buildPdf(data: LegalPdfInput, aiDraft?: string): Promise<string> 
   );
 
   const pdfBytes = await pdfDoc.save();
-  return Buffer.from(pdfBytes).toString("base64");
+  return { base64: Buffer.from(pdfBytes).toString("base64"), signaturePositions };
 }
 
 /* ── Optional AI API call ────────────────────────────────────── */
@@ -298,12 +347,18 @@ async function fetchAiDraft(data: LegalPdfInput): Promise<string | null> {
 }
 
 /* ── Main export ─────────────────────────────────────────────── */
-export async function generateGrievancePdf(data: LegalPdfInput): Promise<string | null> {
+export async function generateGrievancePdf(
+  data: LegalPdfInput,
+  numSigners = 1,
+): Promise<PdfResult | null> {
   try {
-    const aiDraft  = await fetchAiDraft(data);
-    const base64   = await buildPdf(data, aiDraft ?? undefined);
-    console.log(`[legal-pdf] PDF ready (${base64.length} b64 chars) aiDraft=${!!aiDraft}`);
-    return base64;
+    const aiDraft = await fetchAiDraft(data);
+    const result  = await buildPdf(data, aiDraft ?? undefined, numSigners);
+    console.log(
+      `[legal-pdf] PDF ready (${result.base64.length} chars) aiDraft=${!!aiDraft}`,
+      "signaturePositions:", result.signaturePositions,
+    );
+    return result;
   } catch (err) {
     console.error("[legal-pdf] build failed:", err);
     return null;

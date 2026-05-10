@@ -1,9 +1,13 @@
 /**
  * SignFlow integration — native e-signature envelopes
  * Base URL: https://signflow-drab.vercel.app
- * Docs:     https://signflow-drab.vercel.app/api/docs/openapi
+ * API docs: https://signflow-drab.vercel.app/api/docs/openapi
  *
  * Set SIGNFLOW_API_KEY in .env  (format: sfk_…)
+ *
+ * Signature position uses normalised coords (0–1):
+ *   x: left  → right  (0 = left edge, 1 = right edge)
+ *   y: top   → bottom (0 = top edge,  1 = bottom edge)
  */
 
 const SIGNFLOW_API = "https://signflow-drab.vercel.app/api/v1/envelopes";
@@ -14,11 +18,22 @@ export interface SignFlowSigner {
   routingOrder?: number;
 }
 
+/** Normalised (0–1) signature field position on the PDF page */
+export interface SignaturePosition {
+  x:          number;   // 0–1, left→right
+  y:          number;   // 0–1, top→bottom
+  pageIndex?: number;   // 0-based page number (default 0)
+  width?:     number;   // default 0.35
+  height?:    number;   // default 0.06
+}
+
 export interface SignFlowEnvelopeInput {
   title:               string;
-  documentPdfBase64:   string;   // raw base64, no "data:" prefix
+  documentPdfBase64:   string;
   signers:             SignFlowSigner[];
-  send?:               boolean;  // default true — sends email invite
+  /** One entry per signer — signerIndex matches signers[] array position */
+  signaturePositions?: SignaturePosition[];
+  send?:               boolean;
 }
 
 export interface SignFlowResult {
@@ -32,36 +47,24 @@ export interface SignFlowResult {
 
 /* ── Normalise whatever SignFlow returns into { email, link }[] ── */
 function extractInviteLinks(json: Record<string, unknown>): { email: string; link: string }[] {
-  /* Shape 1 — inviteLinks: [{ email, link }] */
   if (Array.isArray(json.inviteLinks)) {
     return (json.inviteLinks as { email?: string; link?: string }[])
       .filter(x => x.link)
       .map(x => ({ email: x.email ?? "", link: x.link! }));
   }
-
-  /* Shape 2 — signers: [{ email, signingUrl }] */
   if (Array.isArray(json.signers)) {
     return (json.signers as { email?: string; signingUrl?: string; signing_url?: string; link?: string }[])
       .filter(x => x.signingUrl ?? x.signing_url ?? x.link)
-      .map(x => ({
-        email: x.email ?? "",
-        link:  (x.signingUrl ?? x.signing_url ?? x.link)!,
-      }));
+      .map(x => ({ email: x.email ?? "", link: (x.signingUrl ?? x.signing_url ?? x.link)! }));
   }
-
-  /* Shape 3 — recipients / envelopeSigners */
   const recipients =
-    (json.recipients ?? json.envelopeSigners ?? json.recipients_data) as
-    { email?: string; signingUrl?: string; signing_url?: string; link?: string }[] | undefined;
+    (json.recipients ?? json.envelopeSigners) as
+    { email?: string; signingUrl?: string; link?: string }[] | undefined;
   if (Array.isArray(recipients)) {
     return recipients
-      .filter(x => x.signingUrl ?? x.signing_url ?? x.link)
-      .map(x => ({
-        email: x.email ?? "",
-        link:  (x.signingUrl ?? x.signing_url ?? x.link)!,
-      }));
+      .filter(x => x.signingUrl ?? x.link)
+      .map(x => ({ email: x.email ?? "", link: (x.signingUrl ?? x.link)! }));
   }
-
   return [];
 }
 
@@ -70,48 +73,60 @@ export async function createSignFlowEnvelope(
 ): Promise<SignFlowResult | null> {
   const apiKey = process.env.SIGNFLOW_API_KEY;
   if (!apiKey) {
-    console.warn("[signflow] SIGNFLOW_API_KEY not set — skipping envelope creation");
+    console.warn("[signflow] SIGNFLOW_API_KEY not set — skipping");
     return null;
   }
 
+  /* Build the fields array — one signature field per signer */
+  const fields = (input.signaturePositions ?? []).map((pos, i) => ({
+    type:        "signature",
+    signerIndex: i,
+    pageIndex:   pos.pageIndex ?? 0,
+    x:           pos.x,
+    y:           pos.y,
+    width:       pos.width  ?? 0.35,
+    height:      pos.height ?? 0.06,
+  }));
+
+  const body = JSON.stringify({
+    title:             input.title,
+    documentPdfBase64: input.documentPdfBase64,
+    signers:           input.signers,
+    send:              input.send ?? true,
+    ...(fields.length > 0 ? { fields } : {}),
+  });
+
+  console.log(
+    "[signflow] POST", SIGNFLOW_API,
+    "| signers:", input.signers.map(s => s.email).join(", "),
+    "| fields:", fields.length,
+    fields.map(f => `signer${f.signerIndex}@(${f.x.toFixed(2)},${f.y.toFixed(2)})`).join(" "),
+  );
+
   try {
     const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 20_000); // 20 s max
-
-    const body = JSON.stringify({
-      title:               input.title,
-      documentPdfBase64:   input.documentPdfBase64,
-      signers:             input.signers,
-      send:                input.send ?? true,
-    });
-
-    console.log("[signflow] Sending envelope to", SIGNFLOW_API,
-      "| signers:", input.signers.map(s => s.email).join(", "),
-      "| pdfLen:", input.documentPdfBase64.length);
+    const tid = setTimeout(() => controller.abort(), 20_000);
 
     const res = await fetch(SIGNFLOW_API, {
       method:  "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key":    apiKey,
-      },
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body,
-      signal: controller.signal,
+      signal:  controller.signal,
     });
-    clearTimeout(timeoutId);
+    clearTimeout(tid);
 
     const rawText = await res.text();
-    console.log("[signflow] Status:", res.status, "| Body:", rawText.slice(0, 500));
+    console.log("[signflow] status:", res.status, "| body:", rawText.slice(0, 600));
 
     let json: Record<string, unknown> = {};
-    try { json = JSON.parse(rawText); } catch { /* non-JSON response */ }
+    try { json = JSON.parse(rawText); } catch { /* non-JSON */ }
 
     if (!res.ok) {
-      console.error("[signflow] API error", res.status, rawText.slice(0, 300));
+      console.error("[signflow] error", res.status, rawText.slice(0, 300));
       return null;
     }
 
-    const inviteLinks  = extractInviteLinks(json);
+    const inviteLinks     = extractInviteLinks(json);
     const gmailConfigured =
       typeof json.gmailConfigured === "boolean" ? json.gmailConfigured :
       typeof json.emailSent       === "boolean" ? json.emailSent       :
@@ -122,15 +137,12 @@ export async function createSignFlowEnvelope(
       status:          (json.status ?? "created") as string,
       inviteLinks,
       gmailConfigured,
-      emailResults:    json.emailResults ?? json.email_results,
+      emailResults:    json.emailResults,
       rawResponse:     json,
     };
   } catch (err: unknown) {
-    if ((err as { name?: string }).name === "AbortError") {
-      console.error("[signflow] Request timed out after 20 s");
-    } else {
-      console.error("[signflow] fetch failed:", err);
-    }
+    const isTimeout = (err as { name?: string }).name === "AbortError";
+    console.error(`[signflow] ${isTimeout ? "timed out" : "failed"}:`, err);
     return null;
   }
 }

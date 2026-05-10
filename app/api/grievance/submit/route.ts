@@ -60,8 +60,14 @@ export async function POST(req: NextRequest) {
 
     /* ── 3. Generate legal PDF ────────────────────────────────────── */
     let pdfBase64: string | null = null;
+    let signaturePositions: import("@/lib/signflow").SignaturePosition[] = [];
+
     try {
-      pdfBase64 = await generateGrievancePdf(pdfInput);
+      const pdfResult = await generateGrievancePdf(pdfInput, allPetitioners.length);
+      if (pdfResult) {
+        pdfBase64          = pdfResult.base64;
+        signaturePositions = pdfResult.signaturePositions;
+      }
     } catch (pdfErr) {
       console.error("[grievance/submit] PDF generation failed:", pdfErr);
     }
@@ -78,10 +84,11 @@ export async function POST(req: NextRequest) {
     if (pdfBase64 && signersForEnvelope.length > 0) {
       try {
         const envelope = await createSignFlowEnvelope({
-          title:             `Grievance Acknowledgment – ${ticketNo}`,
-          documentPdfBase64: pdfBase64,
-          signers:           signersForEnvelope,
-          send:              true,
+          title:              `Grievance Acknowledgment – ${ticketNo}`,
+          documentPdfBase64:  pdfBase64,
+          signers:            signersForEnvelope,
+          signaturePositions: signaturePositions.slice(0, signersForEnvelope.length),
+          send:               true,
         });
         if (envelope) {
           envelopeId = envelope.envelopeId;
