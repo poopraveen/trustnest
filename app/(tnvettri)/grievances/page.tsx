@@ -63,10 +63,13 @@ export default function GrievancesPage() {
     category: "", title: "", description: "",
   });
   const [localitySearch, setLocalitySearch] = useState("");
-  const [submitted,  setSubmitted]  = useState(false);
-  const [ticketNo,   setTicketNo]   = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [errors,     setErrors]     = useState<Record<string, string>>({});
+  const [submitted,     setSubmitted]     = useState(false);
+  const [ticketNo,      setTicketNo]      = useState("");
+  const [submitting,    setSubmitting]    = useState(false);
+  const [errors,        setErrors]        = useState<Record<string, string>>({});
+  const [signLink,      setSignLink]      = useState<string | null>(null);
+  const [emailSent,     setEmailSent]     = useState(false);
+  const [pdfGenerated,  setPdfGenerated]  = useState(false);
 
   const blocks            = form.district ? getBlocks(form.district) : [];
   const localities        = form.block    ? getLocalities(form.district, form.block) : [];
@@ -129,6 +132,9 @@ export default function GrievancesPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Submission failed");
       setTicketNo(data.ticketNo);
+      setSignLink(data.signLink   ?? null);
+      setEmailSent(data.emailSent ?? false);
+      setPdfGenerated(data.pdfGenerated ?? false);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -140,7 +146,8 @@ export default function GrievancesPage() {
 
   function resetForm() {
     setForm({ name: "", phone: "", email: "", district: "", block: "", locality: "", address: "", category: "", title: "", description: "" });
-    setStep(1); setErrors({}); setSubmitted(false); setTicketNo(""); setLocalitySearch("");
+    setStep(1); setErrors({}); setSubmitted(false); setTicketNo("");
+    setLocalitySearch(""); setSignLink(null); setEmailSent(false); setPdfGenerated(false);
   }
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100;
@@ -213,23 +220,87 @@ export default function GrievancesPage() {
 
             {submitted ? (
               /* ── Success ── */
-              <div className="p-10 text-center pop-in">
-                <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
-                  <CheckCircle className="w-10 h-10 text-white tick-pop" />
+              <div className="p-8 pop-in">
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <CheckCircle className="w-10 h-10 text-white tick-pop" />
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-2">
+                    <Sparkles className="w-3.5 h-3.5" /> Grievance Filed Successfully
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800">Your complaint has been registered</h3>
+                  <p className="text-slate-500 text-sm mt-1">Assigned to the concerned department · 30-day SLA</p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                  <Sparkles className="w-3.5 h-3.5" /> Grievance Filed Successfully
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Your complaint has been registered</h3>
-                <p className="text-slate-500 text-sm mb-6">It has been assigned to the concerned department with a 30-day SLA.</p>
 
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-6 max-w-xs mx-auto">
-                  <p className="text-xs font-semibold text-green-700 uppercase tracking-widest mb-2">Ticket Number</p>
+                {/* Ticket */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 mb-4 text-center">
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-widest mb-1">Ticket Number</p>
                   <p className="text-3xl font-bold font-data text-green-800 tracking-widest">{ticketNo}</p>
-                  <p className="text-xs text-slate-500 mt-2">Save this to track your grievance</p>
+                  <p className="text-xs text-slate-500 mt-1">Save this to track your grievance status</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-2">
+                {/* PDF + Signing status */}
+                <div className="space-y-3 mb-5">
+
+                  {/* PDF generated */}
+                  {pdfGenerated && (
+                    <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-3.5">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-blue-800">Legal Acknowledgment PDF Generated</p>
+                        <p className="text-xs text-blue-600 mt-0.5">A formal grievance notice has been prepared under your name</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Email sent for signing */}
+                  {emailSent && form.email && (
+                    <div className="flex items-start gap-3 bg-violet-50 border border-violet-100 rounded-xl p-3.5">
+                      <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center shrink-0">
+                        <Mail className="w-4 h-4 text-violet-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-violet-800">Signature Request Sent</p>
+                        <p className="text-xs text-violet-600 mt-0.5">
+                          A signing link has been emailed to <span className="font-medium">{form.email}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sign now link (if available) */}
+                  {signLink && (
+                    <a href={signLink} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl p-3.5 transition-all shadow-sm group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">Sign Acknowledgment Now</p>
+                          <p className="text-xs text-violet-200">Click to review and digitally sign the document</p>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-violet-200 group-hover:text-white transition-colors" />
+                    </a>
+                  )}
+
+                  {/* No email provided — no signing */}
+                  {pdfGenerated && !form.email && (
+                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-3.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                      <p className="text-xs text-amber-800">
+                        No email provided — signing request skipped. Please provide your email next time to receive the acknowledgment PDF for signature.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3">
                   <button onClick={resetForm}
                     className="bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
                     File Another
