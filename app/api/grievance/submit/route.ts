@@ -7,7 +7,12 @@ import { getLocalities, TN_DISTRICTS }                from "@/lib/tn-areas";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, email, district, block, locality, address, category, title, description } = body;
+    const {
+      name, phone, email,
+      district, block, locality, address,
+      category, title, description,
+      additionalSigners = [],   // [{ name, email }]
+    } = body;
 
     /* ── 1. Validate required fields ─────────────────────────────── */
     if (!name || !phone || !district || !block || !locality || !category || !title) {
@@ -28,9 +33,18 @@ export async function POST(req: NextRequest) {
     const districtName = districtObj?.name ?? district;
     const blockName    = blockObj?.name    ?? block;
 
+    /* Build petitioner name including co-petitioners */
+    const allPetitioners = [
+      { name, email: email ?? "" },
+      ...additionalSigners.filter((s: { name: string; email: string }) => s.name?.trim()),
+    ];
+    const petitionerNameStr = allPetitioners
+      .map((s, i) => `${i + 1}. ${s.name}`)
+      .join(", ");
+
     const pdfInput = {
       ticketNo,
-      name,
+      name:         petitionerNameStr,   // all petitioners listed
       phone,
       email:        email  ?? "",
       district:     districtName,
@@ -50,53 +64,63 @@ export async function POST(req: NextRequest) {
       pdfBase64 = await generateGrievancePdf(pdfInput);
     } catch (pdfErr) {
       console.error("[grievance/submit] PDF generation failed:", pdfErr);
-      // non-fatal — continue without PDF
     }
 
-    /* ── 4. Create SignFlow envelope (only if we have a PDF + email) ─ */
-    let envelopeId:  string | null = null;
-    let signLink:    string | null = null;
-    let emailSent:   boolean       = false;
+    /* ── 4. Create SignFlow envelope ──────────────────────────────── */
+    let envelopeId: string | null = null;
+    let signLinks:  { email: string; link: string }[] = [];
+    let emailSent   = false;
 
-    if (pdfBase64 && email) {
+    const signersForEnvelope = allPetitioners
+      .filter(s => s.email?.trim())
+      .map((s, i) => ({ email: s.email, name: s.name, routingOrder: i + 1 }));
+
+    if (pdfBase64 && signersForEnvelope.length > 0) {
       try {
         const envelope = await createSignFlowEnvelope({
           title:             `Grievance Acknowledgment – ${ticketNo}`,
           documentPdfBase64: pdfBase64,
-          signers: [{ email, name, routingOrder: 1 }],
-          send:    true,
+          signers:           signersForEnvelope,
+          send:              true,
         });
-
         if (envelope) {
           envelopeId = envelope.envelopeId;
           emailSent  = envelope.gmailConfigured;
-          // Pick the signer's own invite link for direct access
-          signLink   = envelope.inviteLinks?.find(l => l.email === email)?.link
-                    ?? envelope.inviteLinks?.[0]?.link
-                    ?? null;
+          signLinks  = envelope.inviteLinks ?? [];
         }
       } catch (sfErr) {
         console.error("[grievance/submit] SignFlow failed:", sfErr);
-        // non-fatal
       }
     }
 
     /* ── 5. Telegram notification ─────────────────────────────────── */
     const telegramMsg = buildGrievanceMessage({
-      ...pdfInput,
+      ticketNo,
+      name,
+      phone,
+      email:        email ?? "",
+      district:     districtName,
+      block:        blockName,
+      locality:     localityName,
       localityType,
+      address:      address ?? "",
+      category,
+      title,
+      description:  description ?? "",
+      filedAt,
     });
     await sendTelegramMessage({ text: telegramMsg }).catch(err =>
       console.error("[grievance/submit] Telegram failed:", err)
     );
 
-    /* ── 6. Respond to client ─────────────────────────────────────── */
+    /* ── 6. Respond ───────────────────────────────────────────────── */
     return NextResponse.json({
       ticketNo,
-      filedAt:    filedAt.toISOString(),
+      filedAt:      filedAt.toISOString(),
       pdfGenerated: pdfBase64 !== null,
+      pdfBase64,          // ← client uses this for viewer + download
       envelopeId,
-      signLink,
+      signLinks,          // [{ email, link }] per signer
       emailSent,
     });
 

@@ -74,9 +74,13 @@ export async function generateGrievancePdf(data: LegalPdfInput): Promise<string 
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 25_000); // 25 s max
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const apiToken = process.env.LEGAL_TECH_API_TOKEN;
+    if (apiToken) headers["Authorization"] = `Bearer ${apiToken}`;
+
     const res = await fetch(LEGAL_API, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body:    JSON.stringify(payload),
       signal:  controller.signal,
     });
