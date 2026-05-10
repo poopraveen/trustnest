@@ -120,6 +120,9 @@ function wrapText(text: string, font: PDFFont, size: number, maxW: number): stri
 }
 
 /** Draw text block; returns final y */
+/** Content is not allowed below this y — signatures live beneath */
+const CONTENT_FLOOR = 235;
+
 function draw(
   ctx: Ctx,
   text: string,
@@ -130,7 +133,7 @@ function draw(
     center?: boolean;
     color?:  [number, number, number];
     indent?: number;
-    gap?:    number;    // extra gap after block (default 4)
+    gap?:    number;
   } = {}
 ): number {
   const sz  = opts.size ?? 9.5;
@@ -142,7 +145,7 @@ function draw(
   const lines = wrapText(text, f, sz, mw);
 
   for (const line of lines) {
-    if (ctx.y < 70) return ctx.y;
+    if (ctx.y < CONTENT_FLOOR) return ctx.y; // stop before signature area
     const lx = opts.center ? (ctx.W - f.widthOfTextAtSize(line, sz)) / 2 : x;
     ctx.page.drawText(line, { x: lx, y: ctx.y, size: sz, font: f, color: col });
     ctx.y -= lh;
@@ -276,12 +279,7 @@ async function buildPdf(
   }
 
   for (let i = 0; i < grounds.length; i++) {
-    const num = `${i + 1}.`;
-    draw(ctx, num, { bold: true, size: 9.5, indent: 0, gap: 0 });
-    // Re-render aligned after the number
-    const savedY = ctx.y + 14; // go back up to print body inline
-    ctx.y = savedY;
-    draw(ctx, `${num}  ${grounds[i]}`, { size: 9.5, indent: 14, gap: 8 });
+    draw(ctx, `${i + 1}.  ${grounds[i]}`, { size: 9.5, indent: 0, gap: 8 });
   }
 
   gap(ctx, 4);
@@ -312,48 +310,69 @@ async function buildPdf(
   rule(ctx, 0.5);
   gap(ctx, 8);
 
-  /* ── Signature blocks — one per signer ── */
+  /* ── Signature blocks — FIXED at bottom of page (never overflows) ── */
+  //
+  // Layout (y from bottom of A4 page, 0 = bottom, 841 = top):
+  //   y = 225  ← "SIGNATURE(S)" label
+  //   y = 212  ← signer name label
+  //   y = 170  ← top of signature box    (box height = 38)
+  //   y = 132  ← bottom of signature box
+  //   y = 118  ← Date / Place line
+  //   y =  66  ← footer rule
+  //   y =  54  ← footer text
+  //
+  const SIG_LABEL_Y  = 225;   // "SIGNATURE(S) OF PETITIONER(S):" label
+  const NAME_LABEL_Y = 210;   // "Petitioner:" / "Petitioner 1:" label
+  const BOX_TOP_Y    = 196;   // top of signature box (pdf-lib y = bottom+height)
+  const BOX_H        = 40;    // box height
+  const BOX_BOTTOM_Y = BOX_TOP_Y - BOX_H;  // 156
+  const DATE_Y       = BOX_BOTTOM_Y - 14;  // 142
+
   const signaturePositions: SignaturePosition[] = [];
   const sigCount = Math.max(numSigners, 1);
-  const colW     = Math.min(220, (usableW(ctx)) / sigCount - 12);
+  const colW     = Math.min(200, (usableW(ctx) - 12 * (sigCount - 1)) / sigCount);
 
-  draw(ctx, "SIGNATURE(S) OF PETITIONER(S):", { bold: true, size: 9, gap: 6 });
+  // Section heading
+  page.drawText("SIGNATURE(S) OF PETITIONER(S):", {
+    x: LM, y: SIG_LABEL_Y, size: 9, font: bold, color: rgb(0.08, 0.32, 0.17),
+  });
 
   for (let i = 0; i < sigCount; i++) {
-    const bx  = LM + i * (colW + 14);
-    const by  = ctx.y - 46;  // top of box in pdf-lib (from bottom)
-    const bh  = 40;
+    const bx = LM + i * (colW + 14);
 
     // Signer label
-    ctx.page.drawText(sigCount === 1 ? "Petitioner:" : `Petitioner ${i + 1}:`, {
-      x: bx, y: ctx.y, size: 8.5, font: bold, color: rgb(0.3, 0.3, 0.3),
+    page.drawText(sigCount === 1 ? "Petitioner:" : `Petitioner ${i + 1}:`, {
+      x: bx, y: NAME_LABEL_Y, size: 8.5, font: bold, color: rgb(0.3, 0.3, 0.3),
     });
 
-    // Outlined box
-    ctx.page.drawRectangle({
-      x: bx, y: by, width: colW, height: bh,
-      borderColor: rgb(0.4, 0.4, 0.4), borderWidth: 0.6,
+    // Outlined signature box
+    page.drawRectangle({
+      x: bx, y: BOX_BOTTOM_Y, width: colW, height: BOX_H,
+      borderColor: rgb(0.35, 0.35, 0.35), borderWidth: 0.7,
     });
 
-    // Signature hint inside box
-    ctx.page.drawText("(Sign here)", {
-      x: bx + 6, y: by + 6, size: 7.5, font: italic, color: rgb(0.65, 0.65, 0.65),
+    // Hint inside box
+    page.drawText("(Sign here)", {
+      x: bx + 8, y: BOX_BOTTOM_Y + 8, size: 8, font: italic,
+      color: rgb(0.6, 0.6, 0.6),
     });
 
-    // SignFlow coords: x left→right (0–1), y top→bottom (0–1)
-    const sfX = parseFloat((bx / W).toFixed(4));
-    const sfY = parseFloat((1 - ((by + bh) / H)).toFixed(4)); // top of box from top of page
+    // SignFlow normalised coords:
+    //   x: left→right  (0–1)  → bx / W
+    //   y: top→bottom  (0–1)  → 1 - (BOX_TOP_Y / H)
     signaturePositions.push({
-      x:         sfX,
-      y:         sfY,
+      x:         parseFloat((bx / W).toFixed(4)),
+      y:         parseFloat((1 - (BOX_TOP_Y / H)).toFixed(4)),
       pageIndex: 0,
       width:     parseFloat((colW / W).toFixed(4)),
-      height:    parseFloat((bh / H).toFixed(4)),
+      height:    parseFloat((BOX_H / H).toFixed(4)),
     });
   }
 
-  ctx.y = ctx.y - 46 - 40 - 10;
-  draw(ctx, `Date: ${filedStr}   ·   Place: ${data.locality}, ${data.district}`, { size: 8.5, gap: 0 });
+  // Date & Place line under the boxes
+  page.drawText(`Date: ${filedStr}   ·   Place: ${data.locality}, ${data.district}`, {
+    x: LM, y: DATE_Y, size: 8.5, font, color: rgb(0.2, 0.2, 0.2),
+  });
 
   /* ── Footer ── */
   ctx.page.drawLine({ start: { x: LM, y: 54 }, end: { x: W - RM, y: 54 }, thickness: 0.5, color: rgb(0.75, 0.75, 0.75) });
