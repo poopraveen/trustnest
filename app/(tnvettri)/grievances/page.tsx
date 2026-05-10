@@ -49,6 +49,7 @@ export default function GrievancesPage() {
   const [localitySearch, setLocalitySearch] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [ticketNo, setTicketNo] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const blocks     = form.district ? getBlocks(form.district) : [];
   const localities = form.block    ? getLocalities(form.district, form.block) : [];
@@ -65,11 +66,25 @@ export default function GrievancesPage() {
     setLocalitySearch("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const ticket = "TN" + Date.now().toString().slice(-8);
-    setTicketNo(ticket);
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      const res  = await fetch("/api/grievance/submit", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Submission failed");
+      setTicketNo(data.ticketNo);
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      alert("Submission failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -307,9 +322,9 @@ export default function GrievancesPage() {
                     <Shield className="w-3.5 h-3.5 text-emerald-500" />
                     Data used only for grievance resolution · SLA: 30 days
                   </p>
-                  <button type="submit" disabled={!form.category}
+                  <button type="submit" disabled={!form.category || submitting}
                     className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
-                    <Send className="w-4 h-4" /> Submit Grievance
+                    <Send className="w-4 h-4" /> {submitting ? "Submitting…" : "Submit Grievance"}
                   </button>
                 </div>
               </form>
