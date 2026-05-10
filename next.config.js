@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // pdfkit is a Node.js-only package — keep it server-side, never bundle for the browser
+  serverExternalPackages: ["pdfkit"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.amazonaws.com" },
