@@ -71,11 +71,16 @@ export async function generateGrievancePdf(data: LegalPdfInput): Promise<string 
   };
 
   try {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 25_000); // 25 s max
+
     const res = await fetch(LEGAL_API, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(payload),
+      signal:  controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       console.error("[legal-pdf] API error", res.status, await res.text());

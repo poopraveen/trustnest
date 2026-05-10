@@ -636,7 +636,10 @@ export default function GrievancesPage() {
                   ) : (
                     <button type="button" onClick={handleSubmit} disabled={submitting}
                       className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors shadow-sm">
-                      <Send className="w-4 h-4" /> {submitting ? "Submitting…" : "Submit Grievance"}
+                      {submitting
+                      ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Generating PDF…</>
+                      : <><Send className="w-4 h-4" /> Submit Grievance</>
+                    }
                     </button>
                   )}
                 </div>

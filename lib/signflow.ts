@@ -39,6 +39,9 @@ export async function createSignFlowEnvelope(
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 15_000); // 15 s max
+
     const res = await fetch(SIGNFLOW_API, {
       method:  "POST",
       headers: {
@@ -51,7 +54,9 @@ export async function createSignFlowEnvelope(
         signers:             input.signers,
         send:                input.send ?? true,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const json = await res.json();
 
