@@ -73,18 +73,27 @@ export async function POST(req: NextRequest) {
     }
 
     /* ── 4. Create SignFlow envelope ──────────────────────────────── */
-    let envelopeId: string | null = null;
-    let signLinks:  { email: string; link: string }[] = [];
-    let emailSent   = false;
+    let envelopeId:    string | null = null;
+    let signLinks:     { email: string; link: string }[] = [];
+    let emailSent      = false;
+    let signflowError: string | null = null;
 
+    const sfKeySet = !!process.env.SIGNFLOW_API_KEY;
     const signersForEnvelope = allPetitioners
       .filter(s => s.email?.trim())
       .map((s, i) => ({ email: s.email, name: s.name, routingOrder: i + 1 }));
 
-    if (pdfBase64 && signersForEnvelope.length > 0) {
+    if (!sfKeySet) {
+      signflowError = "SIGNFLOW_API_KEY not configured";
+      console.warn("[grievance/submit] SIGNFLOW_API_KEY not set in env — skipping envelope");
+    } else if (!pdfBase64) {
+      signflowError = "PDF generation failed";
+    } else if (signersForEnvelope.length === 0) {
+      signflowError = "No signer email provided";
+    } else {
       try {
         const envelope = await createSignFlowEnvelope({
-          title:              `Grievance Acknowledgment – ${ticketNo}`,
+          title:              `Grievance Petition – ${ticketNo} – ${title}`,
           documentPdfBase64:  pdfBase64,
           signers:            signersForEnvelope,
           signaturePositions: signaturePositions.slice(0, signersForEnvelope.length),
@@ -95,12 +104,14 @@ export async function POST(req: NextRequest) {
           emailSent  = envelope.gmailConfigured;
           signLinks  = envelope.inviteLinks ?? [];
           console.log("[grievance/submit] SignFlow ok | id:", envelopeId,
-            "| links:", signLinks.length, "| gmailConfigured:", emailSent,
-            "| raw:", JSON.stringify(envelope.rawResponse).slice(0, 400));
+            "| links:", signLinks.length, "| gmail:", emailSent,
+            "| raw:", JSON.stringify(envelope.rawResponse).slice(0, 500));
         } else {
-          console.warn("[grievance/submit] SignFlow returned null (check SIGNFLOW_API_KEY and logs above)");
+          signflowError = "SignFlow API returned null";
+          console.warn("[grievance/submit] SignFlow returned null");
         }
       } catch (sfErr) {
+        signflowError = "SignFlow request failed";
         console.error("[grievance/submit] SignFlow failed:", sfErr);
       }
     }
@@ -128,12 +139,13 @@ export async function POST(req: NextRequest) {
     /* ── 6. Respond ───────────────────────────────────────────────── */
     return NextResponse.json({
       ticketNo,
-      filedAt:      filedAt.toISOString(),
-      pdfGenerated: pdfBase64 !== null,
-      pdfBase64,          // ← client uses this for viewer + download
+      filedAt:       filedAt.toISOString(),
+      pdfGenerated:  pdfBase64 !== null,
+      pdfBase64,
       envelopeId,
-      signLinks,          // [{ email, link }] per signer
+      signLinks,
       emailSent,
+      signflowError, // null = ok, string = reason it was skipped
     });
 
   } catch (err) {
