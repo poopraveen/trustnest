@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendTelegramMessage, buildGrievanceMessage } from "@/lib/telegram";
 import { generateGrievancePdf }                       from "@/lib/legal-pdf";
 import { createSignFlowEnvelope }                     from "@/lib/signflow";
+import { sendSigningInvite }                          from "@/lib/mailer";
 import { getLocalities, TN_DISTRICTS }                from "@/lib/tn-areas";
 
 export async function POST(req: NextRequest) {
@@ -116,7 +117,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    /* ── 5. Telegram notification ─────────────────────────────────── */
+    /* ── 5. Direct email fallback when SignFlow doesn't send ────────── */
+    // SignFlow returns gmailConfigured=false when its server email isn't set up.
+    // In that case we send the signing link directly from TrustNest via Gmail SMTP.
+    if (pdfBase64 && !emailSent) {
+      const primarySigner = allPetitioners.find(p => p.email?.trim());
+      if (primarySigner?.email) {
+        const signerLinks = signLinks.length > 0
+          ? signLinks
+          : signersForEnvelope.map(s => ({ email: s.email, link: "" }));
+
+        for (const sl of signerLinks) {
+          if (!sl.email) continue;
+          const petitioner = allPetitioners.find(p => p.email === sl.email);
+          await sendSigningInvite({
+            to:         sl.email,
+            toName:     petitioner?.name ?? sl.email,
+            ticketNo,
+            title,
+            signLink:   sl.link || undefined,
+            pdfBase64,
+          }).catch(e => console.error("[submit] mailer failed:", e));
+        }
+      }
+    }
+
+    /* ── 6. Telegram notification ─────────────────────────────────── */
     const telegramMsg = buildGrievanceMessage({
       ticketNo,
       name,
