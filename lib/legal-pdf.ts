@@ -1,27 +1,29 @@
 /**
- * Legal PDF generator
+ * Legal PDF generator — uses pdf-lib (pure JS, works in any serverless env)
  *
  * Strategy:
- *   1. Always build a base PDF from form data using pdfkit (never fails)
+ *   1. Build a styled A4 PDF from form data using pdf-lib — always succeeds
  *   2. Optionally call the AI legal-tech API for enriched draft text
- *      — if API is unavailable the base PDF is returned unchanged
- *
- * Base PDF is generated immediately from the grievance form fields,
- * so SignFlow always receives a document even when the AI API is cold/down.
+ *      — embedded in the PDF when available, skipped when not
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PDFDocument = require("pdfkit") as typeof import("pdfkit");
+import {
+  PDFDocument,
+  rgb,
+  StandardFonts,
+  PDFFont,
+  PDFPage,
+} from "pdf-lib";
 
 const LEGAL_API_BASE =
   process.env.LEGAL_TECH_API_URL ?? "https://payrollsystem-2w0h.onrender.com";
 const LEGAL_API = `${LEGAL_API_BASE}/legal-tech/generate-public`;
 
-/* ── Category → Respondent Department ───────────────────────── */
+/* ── Category maps ───────────────────────────────────────────── */
 const DEPT_MAP: Record<string, string> = {
   "roads-&-infrastructure": "Tamil Nadu Highways Department",
   "roads-infrastructure":   "Tamil Nadu Highways Department",
-  electricity:              "Tamil Nadu Generation and Distribution Corporation (TANGEDCO)",
+  electricity:              "TANGEDCO – Tamil Nadu Generation and Distribution Corporation",
   "water-supply":           "Tamil Nadu Water Supply and Drainage Board (TWAD)",
   "health-services":        "Tamil Nadu Health and Family Welfare Department",
   education:                "Tamil Nadu School Education Department",
@@ -62,148 +64,196 @@ export interface LegalPdfInput {
   filedAt:      Date;
 }
 
-/* ── Divider helper ──────────────────────────────────────────── */
-function divider(doc: InstanceType<typeof PDFDocument>, color = "#d1d5db") {
-  doc
-    .moveTo(60, doc.y)
-    .lineTo(doc.page.width - 60, doc.y)
-    .strokeColor(color).lineWidth(0.8).stroke();
-  doc.moveDown(0.6);
+/* ── Text layout helpers ─────────────────────────────────────── */
+interface DrawCtx {
+  page:     PDFPage;
+  font:     PDFFont;
+  bold:     PDFFont;
+  y:        number;
+  size:     number;
+  lMargin:  number;
+  rMargin:  number;
+  lineH:    number;
 }
 
-/* ── Build a styled A4 PDF from form data ────────────────────── */
-async function buildBasePdf(data: LegalPdfInput, aiDraft?: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 60, size: "A4" });
-    const chunks: Buffer[] = [];
-    doc.on("data", (c: Buffer) => chunks.push(c));
-    doc.on("end",  () => resolve(Buffer.concat(chunks).toString("base64")));
-    doc.on("error", reject);
-
-    const dept   = DEPT_MAP[data.category]   ?? DEFAULT_DEPT;
-    const relief = RELIEF_MAP[data.category] ?? DEFAULT_RELIEF;
-    const location = [data.address, data.locality, data.block, data.district]
-      .filter(Boolean).join(", ");
-    const filedStr = data.filedAt.toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata", year: "numeric", month: "long", day: "numeric",
-    });
-
-    /* ── Page header ── */
-    doc.rect(0, 0, doc.page.width, 80).fill("#14532d");
-    doc.fillColor("#ffffff").fontSize(14).font("Helvetica-Bold")
-       .text("GOVERNMENT OF TAMIL NADU", 60, 18, { align: "center" });
-    doc.fontSize(10).font("Helvetica")
-       .text("Citizen Grievance Portal  ·  TN Vettri", 60, 38, { align: "center" });
-    doc.fontSize(9).fillColor("#bbf7d0")
-       .text("tamilnadu.gov.in  ·  pgportal.gov.in", 60, 54, { align: "center" });
-
-    doc.fillColor("#111827").moveDown(0.5);
-    doc.y = 96;
-
-    /* ── Ticket badge ── */
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#15803d")
-       .text(`TICKET NO:  ${data.ticketNo}    ·    FILED ON:  ${filedStr}`, {
-         align: "center",
-       });
-    doc.moveDown(0.5);
-    divider(doc, "#15803d");
-
-    /* ── Subject ── */
-    doc.fontSize(13).font("Helvetica-Bold").fillColor("#111827")
-       .text("GRIEVANCE NOTICE", { align: "center" });
-    doc.fontSize(11).font("Helvetica")
-       .text(`RE: ${data.title}`, { align: "center" });
-    doc.moveDown(0.6);
-    divider(doc);
-
-    /* ── Parties ── */
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
-       .text("FROM (PETITIONER)");
-    doc.moveDown(0.2);
-    doc.fontSize(10).font("Helvetica-Bold").fillColor("#111827")
-       .text(data.name);
-    doc.font("Helvetica").fillColor("#374151");
-    if (data.phone) doc.text(`Phone: ${data.phone}`);
-    if (data.email) doc.text(`Email: ${data.email}`);
-    if (location)   doc.text(`Address: ${location}`);
-
-    doc.moveDown(0.6);
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
-       .text("TO (RESPONDENT)");
-    doc.moveDown(0.2);
-    doc.fontSize(10).font("Helvetica-Bold").fillColor("#111827")
-       .text(dept);
-    doc.font("Helvetica").fillColor("#374151")
-       .text(`District Collectorate, ${data.district} District, Tamil Nadu`);
-
-    doc.moveDown(0.6);
-    divider(doc);
-
-    /* ── Category & SLA ── */
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("CATEGORY");
-    doc.moveDown(0.15);
-    doc.fontSize(10).font("Helvetica").fillColor("#111827")
-       .text(data.category.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
-    doc.moveDown(0.5);
-
-    /* ── Facts ── */
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("FACTS OF THE CASE");
-    doc.moveDown(0.2);
-    doc.fontSize(10).font("Helvetica").fillColor("#111827")
-       .text(data.description || data.title, { align: "justify", lineGap: 2 });
-    doc.moveDown(0.5);
-
-    /* ── Relief ── */
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280").text("RELIEF SOUGHT");
-    doc.moveDown(0.2);
-    doc.fontSize(10).font("Helvetica").fillColor("#111827")
-       .text(relief, { align: "justify", lineGap: 2 });
-    doc.moveDown(0.8);
-    divider(doc);
-
-    /* ── AI draft body (if available) ── */
-    if (aiDraft) {
-      doc.fontSize(9).font("Helvetica-Bold").fillColor("#6b7280")
-         .text("AI-GENERATED LEGAL DRAFT (for reference)");
-      doc.moveDown(0.3);
-      doc.fontSize(9.5).font("Helvetica").fillColor("#111827")
-         .text(aiDraft, { align: "justify", lineGap: 3, paragraphGap: 5 });
-      doc.moveDown(0.8);
-      divider(doc);
+function wordWrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
+  const lines: string[] = [];
+  for (const paragraph of text.split("\n")) {
+    const words = paragraph.split(" ");
+    let line = "";
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (font.widthOfTextAtSize(test, size) > maxW && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
     }
-
-    /* ── Declaration & signature space ── */
-    doc.fontSize(10).font("Helvetica").fillColor("#111827")
-       .text(
-         "I, the undersigned, hereby declare that the facts stated above are true and correct " +
-         "to the best of my knowledge and belief, and request the concerned authority to take " +
-         "immediate action in accordance with the Tamil Nadu Grievance Redressal Act.",
-         { align: "justify", lineGap: 2 }
-       );
-
-    doc.moveDown(2);
-    doc.fontSize(10).font("Helvetica")
-       .text("Petitioner Signature: ___________________________", { align: "left" });
-    doc.moveDown(0.5);
-    doc.text(`Date: ${filedStr}`, { align: "left" });
-    doc.moveDown(0.5);
-    doc.text(`Place: ${data.locality}, ${data.district}`, { align: "left" });
-
-    /* ── Footer ── */
-    const footerY = doc.page.height - 45;
-    doc.y = footerY;
-    doc.fontSize(7.5).fillColor("#9ca3af")
-       .text(
-         `Generated by TN Vettri Citizen Grievance Portal  ·  Ticket: ${data.ticketNo}  ·  ` +
-         "This is a computer-generated document.",
-         { align: "center" }
-       );
-
-    doc.end();
-  });
+    if (line) lines.push(line);
+    lines.push(""); // paragraph break
+  }
+  // remove trailing empty
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  return lines;
 }
 
-/* ── Try AI API for enriched draft text ─────────────────────── */
+function drawText(
+  ctx: DrawCtx,
+  text: string,
+  opts: { bold?: boolean; size?: number; color?: [number, number, number]; indent?: number } = {}
+): number {
+  const f    = opts.bold ? ctx.bold : ctx.font;
+  const sz   = opts.size ?? ctx.size;
+  const col  = opts.color ? rgb(...(opts.color as [number, number, number])) : rgb(0.07, 0.07, 0.07);
+  const lh   = sz * 1.5;
+  const x    = ctx.lMargin + (opts.indent ?? 0);
+  const maxW = ctx.page.getWidth() - ctx.rMargin - x;
+  const lines = wordWrap(text, f, sz, maxW);
+
+  for (const line of lines) {
+    if (ctx.y < 80) return ctx.y; // stop at bottom margin
+    ctx.page.drawText(line, { x, y: ctx.y, size: sz, font: f, color: col });
+    ctx.y -= lh;
+  }
+  return ctx.y;
+}
+
+function drawHRule(ctx: DrawCtx, color: [number, number, number] = [0.82, 0.82, 0.82]) {
+  ctx.page.drawLine({
+    start: { x: ctx.lMargin, y: ctx.y + 4 },
+    end:   { x: ctx.page.getWidth() - ctx.rMargin, y: ctx.y + 4 },
+    thickness: 0.6,
+    color: rgb(...color),
+  });
+  ctx.y -= 10;
+}
+
+function drawLabel(ctx: DrawCtx, label: string) {
+  drawText(ctx, label.toUpperCase(), { bold: true, size: 7.5, color: [0.42, 0.42, 0.42] });
+  ctx.y -= 2;
+}
+
+/* ── Build the PDF ───────────────────────────────────────────── */
+async function buildPdf(data: LegalPdfInput, aiDraft?: string): Promise<string> {
+  const pdfDoc = await PDFDocument.create();
+  const page   = pdfDoc.addPage([595, 842]); // A4
+
+  const font  = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const bold  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const W     = page.getWidth();
+  const LM    = 50, RM = 50;
+
+  const dept   = DEPT_MAP[data.category]   ?? DEFAULT_DEPT;
+  const relief = RELIEF_MAP[data.category] ?? DEFAULT_RELIEF;
+  const location = [data.address, data.locality, data.block, data.district]
+    .filter(Boolean).join(", ");
+  const filedStr = data.filedAt.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "long", day: "numeric",
+  });
+  const catLabel = data.category
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, l => l.toUpperCase());
+
+  /* ── Green header banner ── */
+  page.drawRectangle({ x: 0, y: 782, width: W, height: 60, color: rgb(0.08, 0.32, 0.17) });
+  page.drawText("GOVERNMENT OF TAMIL NADU", {
+    x: LM, y: 820, size: 13, font: bold, color: rgb(1, 1, 1),
+  });
+  page.drawText("Citizen Grievance Portal  ·  TN Vettri  ·  tamilnadu.gov.in", {
+    x: LM, y: 800, size: 8.5, font, color: rgb(0.73, 0.97, 0.80),
+  });
+
+  const ctx: DrawCtx = { page, font, bold, y: 770, size: 10, lMargin: LM, rMargin: RM, lineH: 15 };
+
+  /* ── Ticket / date line ── */
+  ctx.y -= 6;
+  drawText(ctx, `Ticket No: ${data.ticketNo}   ·   Filed: ${filedStr}`, {
+    bold: true, size: 8.5, color: [0.08, 0.47, 0.22],
+  });
+  ctx.y -= 4;
+  drawHRule(ctx, [0.08, 0.47, 0.22]);
+  ctx.y -= 4;
+
+  /* ── Subject ── */
+  drawText(ctx, "GRIEVANCE NOTICE", { bold: true, size: 13, color: [0.07, 0.07, 0.07] });
+  ctx.y -= 2;
+  drawText(ctx, `RE: ${data.title}`, { size: 11 });
+  ctx.y -= 6;
+  drawHRule(ctx);
+  ctx.y -= 4;
+
+  /* ── Petitioner ── */
+  drawLabel(ctx, "From (Petitioner)");
+  drawText(ctx, data.name, { bold: true });
+  if (data.phone) drawText(ctx, `Phone: ${data.phone}`);
+  if (data.email) drawText(ctx, `Email: ${data.email}`);
+  if (location)   drawText(ctx, `Address: ${location}`);
+  ctx.y -= 8;
+
+  /* ── Respondent ── */
+  drawLabel(ctx, "To (Respondent)");
+  drawText(ctx, dept, { bold: true });
+  drawText(ctx, `District Collectorate, ${data.district} District, Tamil Nadu`);
+  ctx.y -= 8;
+  drawHRule(ctx);
+  ctx.y -= 4;
+
+  /* ── Category ── */
+  drawLabel(ctx, "Category");
+  drawText(ctx, catLabel);
+  ctx.y -= 8;
+
+  /* ── Facts ── */
+  drawLabel(ctx, "Facts of the Case");
+  drawText(ctx, data.description || data.title, { size: 9.5 });
+  ctx.y -= 8;
+
+  /* ── Relief ── */
+  drawLabel(ctx, "Relief Sought");
+  drawText(ctx, relief, { size: 9.5 });
+  ctx.y -= 8;
+  drawHRule(ctx);
+  ctx.y -= 4;
+
+  /* ── AI draft section (optional) ── */
+  if (aiDraft) {
+    drawLabel(ctx, "AI-Generated Legal Draft (for reference)");
+    ctx.y -= 2;
+    drawText(ctx, aiDraft, { size: 8.5 });
+    ctx.y -= 8;
+    drawHRule(ctx);
+    ctx.y -= 4;
+  }
+
+  /* ── Declaration ── */
+  drawText(ctx,
+    "I, the undersigned, hereby declare that the facts stated above are true and correct " +
+    "to the best of my knowledge and belief, and request the concerned authority to take " +
+    "immediate action in accordance with the Tamil Nadu Grievance Redressal Act.",
+    { size: 9.5 }
+  );
+  ctx.y -= 24;
+
+  /* ── Signature block ── */
+  drawText(ctx, "Petitioner Signature: ___________________________", { size: 10 });
+  ctx.y -= 6;
+  drawText(ctx, `Date: ${filedStr}`, { size: 10 });
+  ctx.y -= 6;
+  drawText(ctx, `Place: ${[data.locality, data.district].filter(Boolean).join(", ")}`, { size: 10 });
+
+  /* ── Footer ── */
+  page.drawLine({ start: { x: LM, y: 42 }, end: { x: W - RM, y: 42 }, thickness: 0.4, color: rgb(0.8, 0.8, 0.8) });
+  page.drawText(
+    `Generated by TN Vettri Citizen Grievance Portal  ·  Ticket: ${data.ticketNo}  ·  Computer generated document`,
+    { x: LM, y: 30, size: 7, font, color: rgb(0.6, 0.6, 0.6) }
+  );
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes).toString("base64");
+}
+
+/* ── Optional AI API call ────────────────────────────────────── */
 async function fetchAiDraft(data: LegalPdfInput): Promise<string | null> {
   const apiKey = process.env.LEGAL_TECH_API_TOKEN;
   if (!apiKey) return null;
@@ -213,42 +263,36 @@ async function fetchAiDraft(data: LegalPdfInput): Promise<string | null> {
   const location = [data.address, data.locality, data.block, data.district]
     .filter(Boolean).join(", ");
 
-  const payload = {
-    caseType:          "grievance-notice",
-    jurisdiction:      `District Collectorate – ${data.district}`,
-    petitionerName:    data.name,
-    respondentName:    dept,
-    factsOfCase:       `Ticket: ${data.ticketNo}. ${data.title}. ${data.description ?? ""}`.trim(),
-    reliefSought:      relief,
-    additionalDetails: `Location: ${location}. Phone: ${data.phone}. Email: ${data.email || "Not provided"}. Filed: ${data.filedAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}.`,
-  };
-
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 20_000);
+    const tid = setTimeout(() => controller.abort(), 18_000);
 
     const res = await fetch(LEGAL_API, {
       method:  "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-      body:    JSON.stringify(payload),
-      signal:  controller.signal,
+      body:    JSON.stringify({
+        caseType:          "grievance-notice",
+        jurisdiction:      `District Collectorate – ${data.district}`,
+        petitionerName:    data.name,
+        respondentName:    dept,
+        factsOfCase:       `${data.title}. ${data.description ?? ""}`.trim(),
+        reliefSought:      relief,
+        additionalDetails: `Ticket: ${data.ticketNo}. Location: ${location}. Phone: ${data.phone}. Filed: ${data.filedAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}.`,
+      }),
+      signal: controller.signal,
     });
     clearTimeout(tid);
 
     if (!res.ok) {
-      console.warn(`[legal-pdf] AI API returned ${res.status} — using base PDF only`);
+      console.warn(`[legal-pdf] AI API ${res.status} — skipping draft`);
       return null;
     }
-
-    const ct = res.headers.get("content-type") ?? "";
-    if (ct.includes("application/pdf")) return null; // binary, skip
 
     const json = await res.json() as Record<string, unknown>;
     const text = (json.draft ?? json.text ?? json.content) as string | undefined;
     return typeof text === "string" && text.length > 20 ? text : null;
-  } catch (err: unknown) {
-    const isTimeout = (err as { name?: string }).name === "AbortError";
-    console.warn(`[legal-pdf] AI API ${isTimeout ? "timed out" : "failed"} — using base PDF only`);
+  } catch {
+    console.warn("[legal-pdf] AI API unavailable — generating base PDF");
     return null;
   }
 }
@@ -256,19 +300,12 @@ async function fetchAiDraft(data: LegalPdfInput): Promise<string | null> {
 /* ── Main export ─────────────────────────────────────────────── */
 export async function generateGrievancePdf(data: LegalPdfInput): Promise<string | null> {
   try {
-    /* Always attempt AI draft — but PDF is generated regardless */
-    const aiDraft = await fetchAiDraft(data);
-    if (aiDraft) {
-      console.log("[legal-pdf] AI draft received, embedding in PDF");
-    } else {
-      console.log("[legal-pdf] No AI draft — generating base PDF from form data");
-    }
-
-    const pdfBase64 = await buildBasePdf(data, aiDraft ?? undefined);
-    console.log("[legal-pdf] PDF generated, base64 length:", pdfBase64.length);
-    return pdfBase64;
+    const aiDraft  = await fetchAiDraft(data);
+    const base64   = await buildPdf(data, aiDraft ?? undefined);
+    console.log(`[legal-pdf] PDF ready (${base64.length} b64 chars) aiDraft=${!!aiDraft}`);
+    return base64;
   } catch (err) {
-    console.error("[legal-pdf] pdfkit build failed:", err);
+    console.error("[legal-pdf] build failed:", err);
     return null;
   }
 }
