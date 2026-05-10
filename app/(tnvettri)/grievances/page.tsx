@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GRIEVANCES, DATA_SOURCES } from "@/lib/tn-official-data";
+import { TN_DISTRICTS, getBlocks, getLocalities, LOCALITY_TYPE_LABELS } from "@/lib/tn-areas";
 import DataFreshnessBar from "@/components/DataFreshnessBar";
 import GovHeroBackground from "@/components/GovHeroBackground";
 
@@ -40,9 +41,29 @@ const SLA_COMPLIANCE = GRIEVANCES.byDept.slice(0, 6).map(d => ({
 }));
 
 export default function GrievancesPage() {
-  const [form, setForm] = useState({ name: "", phone: "", district: "", category: "", title: "", description: "" });
+  const [form, setForm] = useState({
+    name: "", phone: "", email: "",
+    district: "", block: "", locality: "", address: "",
+    category: "", title: "", description: "",
+  });
+  const [localitySearch, setLocalitySearch] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [ticketNo, setTicketNo] = useState("");
+
+  const blocks     = form.district ? getBlocks(form.district) : [];
+  const localities = form.block    ? getLocalities(form.district, form.block) : [];
+  const filteredLocalities = localitySearch.trim()
+    ? localities.filter(l => l.name.toLowerCase().includes(localitySearch.toLowerCase()) || l.nameTa.includes(localitySearch))
+    : localities;
+
+  function handleDistrictChange(districtId: string) {
+    setForm(f => ({ ...f, district: districtId, block: "", locality: "" }));
+    setLocalitySearch("");
+  }
+  function handleBlockChange(blockId: string) {
+    setForm(f => ({ ...f, block: blockId, locality: "" }));
+    setLocalitySearch("");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -136,56 +157,158 @@ export default function GrievancesPage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+                {/* ── Personal Details ──────────────────────────────── */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name *</label>
-                  <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                    placeholder="Enter your name" />
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold flex items-center justify-center">1</span>
+                    Personal Details
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name *</label>
+                      <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                        placeholder="உங்கள் பெயர் / Your name" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number *</label>
+                      <input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                        placeholder="+91 98765 43210" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Email (optional)</label>
+                      <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                        placeholder="For status updates" />
+                    </div>
+                  </div>
                 </div>
+
+                {/* ── Area Drill-Down ───────────────────────────────── */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number *</label>
-                  <input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                    placeholder="+91 98765 43210" />
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold flex items-center justify-center">2</span>
+                    Location — District → Block → Locality
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {/* District */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">District / மாவட்டம் *</label>
+                      <select required value={form.district} onChange={e => handleDistrictChange(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white">
+                        <option value="">— Select District —</option>
+                        {TN_DISTRICTS.map(d => (
+                          <option key={d.id} value={d.id}>{d.name} — {d.nameTa}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Block */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        Block / Taluk / Zone *
+                        {!form.district && <span className="text-slate-400 font-normal ml-1">(select district first)</span>}
+                      </label>
+                      <select required value={form.block} onChange={e => handleBlockChange(e.target.value)}
+                        disabled={!form.district}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">— Select Block —</option>
+                        {blocks.map(b => (
+                          <option key={b.id} value={b.id}>{b.name} — {b.nameTa}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Locality with search */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        Locality / Village / Ward *
+                        {!form.block && <span className="text-slate-400 font-normal ml-1">(select block first)</span>}
+                      </label>
+                      {form.block && (
+                        <input value={localitySearch} onChange={e => setLocalitySearch(e.target.value)}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 mb-1.5"
+                          placeholder="🔍 Search locality / ஊர் தேடுக..." />
+                      )}
+                      <select required value={form.locality} onChange={e => setForm({...form, locality: e.target.value})}
+                        disabled={!form.block}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">— Select Locality —</option>
+                        {filteredLocalities.map(l => (
+                          <option key={l.id} value={l.id}>
+                            {l.name} — {l.nameTa}  [{LOCALITY_TYPE_LABELS[l.type]}]
+                          </option>
+                        ))}
+                      </select>
+                      {form.block && filteredLocalities.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">No results — try a different spelling or clear the search.</p>
+                      )}
+                    </div>
+
+                    {/* Landmark / Address */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Street / Landmark (optional)</label>
+                      <input value={form.address} onChange={e => setForm({...form, address: e.target.value})}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                        placeholder="House no., street name, landmark…" />
+                    </div>
+                  </div>
                 </div>
+
+                {/* ── Complaint Details ─────────────────────────────── */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">District *</label>
-                  <select required value={form.district} onChange={e => setForm({...form, district: e.target.value})}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-                    <option value="">Select district</option>
-                    {["Chennai","Coimbatore","Madurai","Tiruchirappalli","Salem","Erode","Tiruppur","Vellore","Thanjavur","Tirunelveli"].map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold flex items-center justify-center">3</span>
+                    Complaint Details
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Category *</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {CATEGORIES.map(c => (
+                          <button key={c.id} type="button"
+                            onClick={() => setForm({...form, category: c.id})}
+                            className={cn(
+                              "flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-3 text-xs font-semibold transition-all",
+                              form.category === c.id
+                                ? "border-green-600 bg-green-50 text-green-800"
+                                : "border-slate-200 text-slate-600 hover:border-green-300 hover:bg-green-50/50"
+                            )}>
+                            <span className={cn("w-2 h-2 rounded-full", c.color)} />
+                            {c.label}
+                            <span className="font-tamil text-[9px] opacity-70">{c.labelTa}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {!form.category && <p className="text-xs text-slate-400 mt-1">Select a category above</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Subject *</label>
+                      <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                        placeholder="Brief one-line description of the issue" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Detailed Description</label>
+                      <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+                        placeholder="Describe the issue in detail — when it started, severity, any previous complaints filed…" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Category *</label>
-                  <select required value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-                    <option value="">Select category</option>
-                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Subject *</label>
-                  <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-                    placeholder="Brief description of your grievance" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Detailed Description</label>
-                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
-                    placeholder="Provide more details about the issue..." />
-                </div>
-                <div className="sm:col-span-2 flex items-center justify-between">
+
+                {/* ── Submit ────────────────────────────────────────── */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                   <p className="text-xs text-slate-400 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                    Your data is protected and used only for grievance resolution
+                    Data used only for grievance resolution · SLA: 30 days
                   </p>
-                  <button type="submit"
-                    className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                  <button type="submit" disabled={!form.category}
+                    className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
                     <Send className="w-4 h-4" /> Submit Grievance
                   </button>
                 </div>
