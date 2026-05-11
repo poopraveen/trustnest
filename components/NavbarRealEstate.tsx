@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link, usePathname, useRouter } from "@/navigation";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Home, Heart, LayoutDashboard, Settings,
-  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink,
+  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandWordmark } from "@/components/BrandWordmark";
@@ -15,17 +15,24 @@ import { BrandWordmark } from "@/components/BrandWordmark";
 export default function NavbarRealEstate() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("navRe");
+  const tc = useTranslations("common");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+  const switchLocale = () => {
+    router.replace(pathname, { locale: locale === "en" ? "ta" : "en" });
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-nav border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 bg-hero-gradient rounded-lg flex items-center justify-center">
               <Home className="w-4 h-4 text-white" />
@@ -33,24 +40,30 @@ export default function NavbarRealEstate() {
             <BrandWordmark className="text-xl text-primary-900" prefixClassName="text-primary-900" />
           </Link>
 
-          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            <NavLink href="/properties?listingType=BUY"  active={false}>Buy</NavLink>
-            <NavLink href="/properties?listingType=RENT" active={false}>Rent</NavLink>
-            <NavLink href="/properties" active={isActive("/properties")}>All Properties</NavLink>
-            <NavLink href="/projects"   active={isActive("/projects")}>New Projects</NavLink>
+            <NavLink href="/properties?listingType=BUY"  active={false}>{t("buy")}</NavLink>
+            <NavLink href="/properties?listingType=RENT" active={false}>{t("rent")}</NavLink>
+            <NavLink href="/properties" active={isActive("/properties")}>{t("allProperties")}</NavLink>
+            <NavLink href="/projects"   active={isActive("/projects")}>{t("newProjects")}</NavLink>
           </div>
 
-          {/* Right side */}
           <div className="hidden md:flex items-center gap-2">
 
-            {/* TN Govt Portal switch button */}
+            <button
+              type="button"
+              onClick={switchLocale}
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 transition-colors"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {locale === "en" ? tc("languageTamil") : tc("languageEnglish")}
+            </button>
+
             <Link
               href="/tnvettri"
               className="flex items-center gap-1.5 text-xs font-semibold text-primary-700 border border-primary-200 bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100 transition-colors"
             >
               <Shield className="w-3.5 h-3.5" />
-              TN Govt Portal
+              {t("tnGovtPortal")}
               <ExternalLink className="w-3 h-3 opacity-60" />
             </Link>
 
@@ -59,7 +72,7 @@ export default function NavbarRealEstate() {
                 {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
                   <Link href="/seller/properties/new" className="btn-orange text-sm py-2">
                     <Plus className="w-4 h-4" />
-                    Post Property
+                    {t("postProperty")}
                   </Link>
                 )}
 
@@ -69,12 +82,13 @@ export default function NavbarRealEstate() {
 
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-primary-100 overflow-hidden flex items-center justify-center">
                       {session.user.image ? (
-                        <Image src={session.user.image} alt="avatar" width={32} height={32} className="object-cover" />
+                        <Image src={session.user.image} alt="" width={32} height={32} className="object-cover" />
                       ) : (
                         <span className="text-sm font-semibold text-primary-700">
                           {session.user.name?.charAt(0) ?? session.user.email?.charAt(0) ?? "U"}
@@ -89,7 +103,7 @@ export default function NavbarRealEstate() {
                       <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 animate-fade-in">
                         <div className="px-4 py-3 border-b border-slate-100">
-                          <p className="font-semibold text-sm text-slate-800 truncate">{session.user.name ?? "User"}</p>
+                          <p className="font-semibold text-sm text-slate-800 truncate">{session.user.name ?? tc("user")}</p>
                           <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
                           <span className={cn(
                             "mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-medium",
@@ -100,20 +114,21 @@ export default function NavbarRealEstate() {
                             {session.user.role}
                           </span>
                         </div>
-                        <MenuLink href="/profile"          icon={Settings}       onClick={() => setUserMenuOpen(false)}>My Profile</MenuLink>
-                        <MenuLink href="/saved"            icon={Heart}          onClick={() => setUserMenuOpen(false)}>Saved Properties</MenuLink>
+                        <MenuLink href="/profile"          icon={Settings}       onClick={() => setUserMenuOpen(false)}>{t("myProfile")}</MenuLink>
+                        <MenuLink href="/saved"            icon={Heart}          onClick={() => setUserMenuOpen(false)}>{t("savedProperties")}</MenuLink>
                         {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
-                          <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>Seller Dashboard</MenuLink>
+                          <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("sellerDashboard")}</MenuLink>
                         )}
                         {session.user.role === "ADMIN" && (
-                          <MenuLink href="/admin" icon={Shield} onClick={() => setUserMenuOpen(false)}>Admin Panel</MenuLink>
+                          <MenuLink href="/admin" icon={Shield} onClick={() => setUserMenuOpen(false)}>{t("adminPanel")}</MenuLink>
                         )}
                         <div className="border-t border-slate-100 mt-1 pt-1">
                           <button
+                            type="button"
                             onClick={() => signOut({ callbackUrl: "/" })}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <LogOut className="w-4 h-4" />Sign Out
+                            <LogOut className="w-4 h-4" />{tc("signOut")}
                           </button>
                         </div>
                       </div>
@@ -123,47 +138,55 @@ export default function NavbarRealEstate() {
               </>
             ) : (
               <>
-                <Link href="/login"    className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">Sign In</Link>
-                <Link href="/register" className="btn-primary text-sm py-2">Get Started</Link>
+                <Link href="/login"    className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">{tc("signIn")}</Link>
+                <Link href="/register" className="btn-primary text-sm py-2">{tc("getStarted")}</Link>
               </>
             )}
           </div>
 
-          <button className="md:hidden p-2 text-slate-600" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              type="button"
+              onClick={switchLocale}
+              className="text-xs font-medium text-slate-600 border border-slate-200 rounded-lg px-2 py-1"
+            >
+              {locale === "en" ? tc("languageShortTa") : tc("languageShortEn")}
+            </button>
+            <button type="button" className="p-2 text-slate-600" onClick={() => setMobileOpen(!mobileOpen)}>
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-slate-100 px-4 py-4 flex flex-col gap-2 animate-fade-in">
-          <MobileLink href="/properties?listingType=BUY"  onClick={() => setMobileOpen(false)}>Buy</MobileLink>
-          <MobileLink href="/properties?listingType=RENT" onClick={() => setMobileOpen(false)}>Rent</MobileLink>
-          <MobileLink href="/properties"                  onClick={() => setMobileOpen(false)}>All Properties</MobileLink>
-          {/* TN Portal switch */}
+          <MobileLink href="/properties?listingType=BUY"  onClick={() => setMobileOpen(false)}>{t("buy")}</MobileLink>
+          <MobileLink href="/properties?listingType=RENT" onClick={() => setMobileOpen(false)}>{t("rent")}</MobileLink>
+          <MobileLink href="/properties"                  onClick={() => setMobileOpen(false)}>{t("allProperties")}</MobileLink>
           <Link href="/tnvettri" onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-primary-700 bg-primary-50 rounded-lg">
-            <Shield className="w-4 h-4" /> TN Govt Portal
+            <Shield className="w-4 h-4" /> {t("tnGovtPortal")}
           </Link>
           <div className="border-t border-slate-100 pt-3 mt-2">
             {session ? (
               <>
-                <MobileLink href="/profile"          onClick={() => setMobileOpen(false)}>My Profile</MobileLink>
-                <MobileLink href="/saved"            onClick={() => setMobileOpen(false)}>Saved Properties</MobileLink>
+                <MobileLink href="/profile"          onClick={() => setMobileOpen(false)}>{t("myProfile")}</MobileLink>
+                <MobileLink href="/saved"            onClick={() => setMobileOpen(false)}>{t("savedProperties")}</MobileLink>
                 {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
-                  <MobileLink href="/seller/dashboard" onClick={() => setMobileOpen(false)}>Seller Dashboard</MobileLink>
+                  <MobileLink href="/seller/dashboard" onClick={() => setMobileOpen(false)}>{t("sellerDashboard")}</MobileLink>
                 )}
                 {session.user.role === "ADMIN" && (
-                  <MobileLink href="/admin" onClick={() => setMobileOpen(false)}>Admin Panel</MobileLink>
+                  <MobileLink href="/admin" onClick={() => setMobileOpen(false)}>{t("adminPanel")}</MobileLink>
                 )}
-                <button onClick={() => signOut({ callbackUrl: "/" })} className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50">
-                  Sign Out
+                <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50">
+                  {tc("signOut")}
                 </button>
               </>
             ) : (
               <>
-                <MobileLink href="/login"    onClick={() => setMobileOpen(false)}>Sign In</MobileLink>
-                <MobileLink href="/register" onClick={() => setMobileOpen(false)}>Register</MobileLink>
+                <MobileLink href="/login"    onClick={() => setMobileOpen(false)}>{tc("signIn")}</MobileLink>
+                <MobileLink href="/register" onClick={() => setMobileOpen(false)}>{tc("register")}</MobileLink>
               </>
             )}
           </div>
@@ -180,7 +203,7 @@ function NavLink({ href, children, active }: { href: string; children: React.Rea
     </Link>
   );
 }
-function MenuLink({ href, icon: Icon, children, onClick }: { href: string; icon: any; children: React.ReactNode; onClick?: () => void }) {
+function MenuLink({ href, icon: Icon, children, onClick }: { href: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; onClick?: () => void }) {
   return (
     <Link href={href} onClick={onClick} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
       <Icon className="w-4 h-4 text-slate-400" />{children}

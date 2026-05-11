@@ -19,6 +19,15 @@ interface KpiTileProps {
   methodologyHref?: string;
   icon?: React.ReactNode;
   className?: string;
+  /** Overrides built-in English status pill text (use translated string). */
+  badgeStatusText?: string;
+  /** Overrides "{progress}% of target" line. */
+  progressLineText?: string;
+  /** Prefix before lastUpdated date (e.g. "Updated" / "புதுப்பிப்பு"). */
+  updatedPrefix?: string;
+  auditLinkText?: string;
+  dataLinkText?: string;
+  howLinkText?: string;
 }
 
 const statusConfig: Record<SLAStatus, {
@@ -39,6 +48,8 @@ export default function KpiTile({
   label, labelTamil, value, target, progress, delta, deltaLabel,
   status = "neutral", source, lastUpdated, auditHref,
   downloadHref, methodologyHref, icon, className,
+  badgeStatusText, progressLineText, updatedPrefix,
+  auditLinkText, dataLinkText, howLinkText,
 }: KpiTileProps) {
   const cfg = statusConfig[status];
   const isUp   = delta !== undefined && delta > 0;
@@ -74,7 +85,7 @@ export default function KpiTile({
               "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 whitespace-nowrap",
               cfg.bg, cfg.fg
             )}>
-              {cfg.label}
+              {badgeStatusText ?? cfg.label}
             </span>
           )}
         </div>
@@ -98,7 +109,9 @@ export default function KpiTile({
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
               />
             </div>
-            <p className="text-xs text-slate-400">{progress}% of target</p>
+            <p className="text-xs text-slate-400">
+              {progressLineText ?? `${progress}% of target`}
+            </p>
           </div>
         )}
 
@@ -127,20 +140,22 @@ export default function KpiTile({
                 {source}
               </span>
             )}
-            {lastUpdated && <span>Updated {lastUpdated}</span>}
+            {lastUpdated && (
+              <span>{updatedPrefix ?? "Updated"} {lastUpdated}</span>
+            )}
             {auditHref && (
               <a href={auditHref} className="flex items-center gap-0.5 hover:text-primary-600 transition-colors font-medium">
-                <ExternalLink className="w-3 h-3" /> Audit
+                <ExternalLink className="w-3 h-3" /> {auditLinkText ?? "Audit"}
               </a>
             )}
             {downloadHref && (
               <a href={downloadHref} className="flex items-center gap-0.5 hover:text-primary-600 transition-colors font-medium">
-                <Download className="w-3 h-3" /> Data
+                <Download className="w-3 h-3" /> {dataLinkText ?? "Data"}
               </a>
             )}
             {methodologyHref && (
               <a href={methodologyHref} className="flex items-center gap-0.5 hover:text-primary-600 transition-colors font-medium">
-                <HelpCircle className="w-3 h-3" /> How?
+                <HelpCircle className="w-3 h-3" /> {howLinkText ?? "How?"}
               </a>
             )}
           </div>

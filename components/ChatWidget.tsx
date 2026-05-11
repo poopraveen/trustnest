@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/navigation";
 import {
   MessageCircle, Send, X, Loader2, User, ChevronDown,
 } from "lucide-react";

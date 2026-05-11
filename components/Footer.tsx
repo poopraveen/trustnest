@@ -1,31 +1,35 @@
-import Link from "next/link";
+import { Link } from "@/navigation";
+import { getTranslations } from "next-intl/server";
 import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Youtube, ExternalLink } from "lucide-react";
 import { brand } from "@/lib/brand";
 
-export default function Footer() {
-  const navLinks = [
-    ["Expenditure",  "/expenditure"],
-    ["Scorecards",   "/scorecards"],
-    ["Projects",     "/projects"],
-    ["Schemes",      "/schemes"],
-    ["Grievances",   "/grievances"],
-    ["Tenders",      "/tenders"],
-  ];
+const NAV_HREFS = [
+  ["/expenditure", "expenditure"],
+  ["/scorecards", "scorecards"],
+  ["/projects", "projects"],
+  ["/schemes", "schemes"],
+  ["/grievances", "grievances"],
+  ["/tenders", "tenders"],
+] as const;
 
-  const openData = [
-    ["Budget Data",       "https://tnbudget.tn.gov.in"],
-    ["PFMS Portal",       "https://pfms.nic.in"],
-    ["Grievance Portal",  "https://pgportal.gov.in"],
-    ["TN Tenders",        "https://tenders.tn.gov.in"],
-    ["e-GramSwaraj",      "https://egramswaraj.gov.in"],
-  ];
+const OPEN_DATA = [
+  ["budgetData", "https://tnbudget.tn.gov.in"],
+  ["pfmsPortal", "https://pfms.nic.in"],
+  ["grievancePortal", "https://pgportal.gov.in"],
+  ["tnTenders", "https://tenders.tn.gov.in"],
+  ["eGramSwaraj", "https://egramswaraj.gov.in"],
+] as const;
+
+export default async function Footer() {
+  const t = await getTranslations("footerGov");
+  const tn = await getTranslations("navGov");
+  const year = new Date().getFullYear();
 
   return (
     <footer className="bg-primary-950 text-slate-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
-          {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-hero-gradient rounded-lg flex items-center justify-center">
@@ -36,10 +40,10 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-4 max-w-xs">
-              {brand.footerDescription}
+              {t("description")}
             </p>
             <p className="text-xs text-slate-500 font-tamil">
-              தமிழ்நாடு வெளிப்படைத்தன்மை தளம்
+              {t("taglineTamil")}
             </p>
             <div className="flex gap-3 mt-4">
               {brand.social.facebook && brand.social.facebook !== "" && (
@@ -60,44 +64,41 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Navigation */}
           <div>
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
-              Explore
+              {t("explore")}
             </h3>
             <ul className="space-y-2.5">
-              {navLinks.map(([label, href]) => (
+              {NAV_HREFS.map(([href, key]) => (
                 <li key={href}>
                   <Link href={href} className="text-sm text-slate-400 hover:text-white transition-colors">
-                    {label}
+                    {tn(key)}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Open Data Sources */}
           <div>
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
-              Open Data Sources
+              {t("openDataSources")}
             </h3>
             <ul className="space-y-2.5">
-              {openData.map(([label, href]) => (
+              {OPEN_DATA.map(([key, href]) => (
                 <li key={href}>
                   <a href={href} target="_blank" rel="noopener noreferrer"
                      className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
                     <ExternalLink className="w-3 h-3" />
-                    {label}
+                    {t(key)}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
-              Contact
+              {t("contact")}
             </h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
@@ -122,12 +123,16 @@ export default function Footer() {
 
         <div className="border-t border-primary-900 mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} {brand.name}. Government of Tamil Nadu. All data from official sources.
+            {t("copyright", { year, brand: brand.name })}
           </p>
           <div className="flex gap-6">
-            {[["Privacy", "/privacy"], ["Terms", "/terms"], ["Open Data", "/opendata"]].map(([label, href]) => (
+            {[
+              ["privacy", "/privacy"],
+              ["terms", "/terms"],
+              ["openData", "/opendata"],
+            ].map(([key, href]) => (
               <Link key={href} href={href} className="text-xs text-slate-500 hover:text-white transition-colors">
-                {label}
+                {t(key)}
               </Link>
             ))}
           </div>

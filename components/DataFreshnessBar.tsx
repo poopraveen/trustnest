@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/navigation";
 import { RefreshCw, Clock, ExternalLink, ChevronDown, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AVAILABLE_YEARS } from "@/lib/tn-official-data";

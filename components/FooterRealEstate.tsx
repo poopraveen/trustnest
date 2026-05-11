@@ -1,10 +1,10 @@
-import Link from "next/link";
+import { Link } from "@/navigation";
+import { getTranslations } from "next-intl/server";
 import { Home, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react";
 import { BrandWordmark } from "@/components/BrandWordmark";
 
 const BRAND = {
   name: "TrustNest",
-  footerDescription: "Find your dream property with TrustNest. Browse thousands of verified listings across Tamil Nadu's top cities.",
   supportEmail: "support@trustnest.in",
   phone: "+91 99400 00000",
   officeAddress: "No. 1, Anna Salai, Chennai 600002, Tamil Nadu",
@@ -18,13 +18,24 @@ const BRAND = {
   },
 };
 
-export default function FooterRealEstate() {
+export default async function FooterRealEstate() {
+  const t = await getTranslations("footerRe");
+  const year = new Date().getFullYear();
+
   const socialLinks = [
-    [Facebook,  BRAND.social.facebook],
-    [Twitter,   BRAND.social.twitter],
+    [Facebook, BRAND.social.facebook],
+    [Twitter, BRAND.social.twitter],
     [Instagram, BRAND.social.instagram],
-    [Linkedin,  BRAND.social.linkedin],
-    [Youtube,   BRAND.social.youtube],
+    [Linkedin, BRAND.social.linkedin],
+    [Youtube, BRAND.social.youtube],
+  ] as const;
+
+  const quickLinks = [
+    ["buyProperty", "/properties?listingType=BUY"],
+    ["rentProperty", "/properties?listingType=RENT"],
+    ["newProjects", "/projects"],
+    ["postPropertyFree", "/seller/properties/new"],
+    ["allProperties", "/properties"],
   ] as const;
 
   return (
@@ -32,7 +43,6 @@ export default function FooterRealEstate() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
 
-          {/* Brand */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-hero-gradient rounded-lg flex items-center justify-center">
@@ -41,7 +51,7 @@ export default function FooterRealEstate() {
               <BrandWordmark className="text-xl text-white" prefixClassName="text-white" />
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-6 max-w-xs">
-              {BRAND.footerDescription}
+              {t("trustnestDescription")}
             </p>
             <div className="flex gap-3">
               {socialLinks.filter(([, href]) => href && href !== "").map(([Icon, href], i) => (
@@ -53,41 +63,32 @@ export default function FooterRealEstate() {
             </div>
           </div>
 
-          {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Quick Links</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">{t("quickLinks")}</h3>
             <ul className="space-y-2.5">
-              {[
-                ["Buy Property",       "/properties?listingType=BUY"],
-                ["Rent Property",      "/properties?listingType=RENT"],
-                ["New Projects",       "/projects"],
-                ["Post Property Free", "/seller/properties/new"],
-                ["All Properties",     "/properties"],
-              ].map(([label, href]) => (
+              {quickLinks.map(([key, href]) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-slate-400 hover:text-white transition-colors">{label}</Link>
+                  <Link href={href} className="text-sm text-slate-400 hover:text-white transition-colors">{t(key)}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Top Cities */}
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Top Cities</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">{t("topCities")}</h3>
             <ul className="space-y-2.5">
               {BRAND.footerCities.map((city) => (
                 <li key={city}>
                   <Link href={`/properties?city=${city}`} className="text-sm text-slate-400 hover:text-white transition-colors">
-                    Properties in {city}
+                    {t("propertiesInCity", { city })}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Contact Us</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">{t("contactUs")}</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-brand-orange flex-shrink-0 mt-0.5" />
@@ -111,12 +112,16 @@ export default function FooterRealEstate() {
 
         <div className="border-t border-primary-900 mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+            {t("copyright", { year })}
           </p>
           <div className="flex gap-6">
-            {[["Privacy Policy", "/privacy"], ["Terms of Service", "/terms"], ["Cookie Policy", "/cookies"]].map(([label, href]) => (
+            {[
+              ["privacyPolicy", "/privacy"],
+              ["termsOfService", "/terms"],
+              ["cookiePolicy", "/cookies"],
+            ].map(([key, href]) => (
               <Link key={href} href={href} className="text-xs text-slate-500 hover:text-white transition-colors">
-                {label}
+                {t(key)}
               </Link>
             ))}
           </div>

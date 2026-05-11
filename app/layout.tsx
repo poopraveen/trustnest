@@ -3,6 +3,9 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { brand, pageTitleWithTagline } from "@/lib/brand";
 import { OrganizationJsonLd } from "@/components/JsonLd";
+import { getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: siteUrl,
     siteName: brand.name,
     title: pageTitleWithTagline(),
     description: `Buy, sell, or rent verified properties across India with ${brand.name}.`,
@@ -30,14 +33,16 @@ export const metadata: Metadata = {
     description: brand.metaDescription.slice(0, 200),
   },
   robots: { index: true, follow: true },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(siteUrl),
+  icons: {
+    icon: "/images/tn-govt-emblem.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>

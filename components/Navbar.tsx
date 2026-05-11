@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link, usePathname, useRouter } from "@/navigation";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
@@ -12,39 +12,44 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const NAV_KEYS = [
+  { href: "/expenditure", key: "expenditure" as const, icon: BarChart3 },
+  { href: "/scorecards", key: "scorecards" as const, icon: MapPin },
+  { href: "/projects", key: "projects" as const, icon: Briefcase },
+  { href: "/schemes", key: "schemes" as const, icon: Users },
+  { href: "/grievances", key: "grievances" as const, icon: MessageSquare },
+  { href: "/tenders", key: "tenders" as const, icon: FileSearch },
+  { href: "/data-sources", key: "dataSources" as const, icon: Info },
+];
+
 export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("navGov");
+  const tc = useTranslations("common");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [lang, setLang] = useState<"en" | "ta">("en");
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  const navLinks = [
-    { href: "/expenditure",  label: "Expenditure",   labelTa: "செலவினம்",       icon: BarChart3     },
-    { href: "/scorecards",   label: "Scorecards",    labelTa: "மதிப்பீடு",        icon: MapPin        },
-    { href: "/projects",     label: "Projects",      labelTa: "திட்டங்கள்",       icon: Briefcase     },
-    { href: "/schemes",      label: "Schemes",       labelTa: "நலத்திட்டங்கள்",   icon: Users         },
-    { href: "/grievances",   label: "Grievances",    labelTa: "குறைகள்",          icon: MessageSquare },
-    { href: "/tenders",      label: "Tenders",       labelTa: "டெண்டர்",          icon: FileSearch    },
-    { href: "/data-sources", label: "Data Sources",  labelTa: "தரவு மூலங்கள்",   icon: Info          },
-  ];
+  const switchLocale = () => {
+    router.replace(pathname, { locale: locale === "en" ? "ta" : "en" });
+  };
 
   return (
     <header className="sticky top-0 z-50">
 
-      {/* ── Government identity bar ────────────────────────────────── */}
       <div className="bg-white border-b border-green-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 py-2">
 
-            {/* TN Govt emblem */}
             <div className="flex-shrink-0 w-12 h-12 relative">
               <Image
                 src="/images/tn-emblem.svg"
-                alt="Government of Tamil Nadu Emblem"
+                alt={t("emblemAlt")}
                 width={48}
                 height={48}
                 className="object-contain"
@@ -52,48 +57,45 @@ export default function Navbar() {
               />
             </div>
 
-            {/* Department text */}
             <div className="flex flex-col leading-tight">
               <span className="text-[11px] font-semibold text-green-800 uppercase tracking-widest hidden sm:block">
-                Government of Tamil Nadu
+                {t("govtOfTn")}
               </span>
               <span className="text-base sm:text-lg font-extrabold text-slate-900 leading-none tracking-tight">
-                Finance Department
+                {t("financeDept")}
               </span>
               <span className="text-[10px] text-green-700 font-medium mt-0.5 hidden sm:block">
-                Public Financial Transparency Platform
+                {t("publicFinancialTransparency")}
               </span>
             </div>
 
-            {/* Divider */}
             <div className="hidden md:block w-px h-10 bg-green-200 mx-2" />
 
-            {/* Platform badge */}
             <div className="hidden md:flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Platform</span>
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{t("platform")}</span>
               <span className="text-sm font-bold text-primary-700">
                 TN<span className="text-primary-500">Vettri</span>
               </span>
-              <span className="text-[10px] text-slate-400 font-tamil">வெட்டி — வெளிப்படைத்தன்மை</span>
+              <span className="text-[10px] text-slate-400 font-tamil">{t("vettriTagline")}</span>
             </div>
 
             <div className="flex-1" />
 
-            {/* Right — language + back to TrustNest */}
             <div className="hidden sm:flex items-center gap-2">
               <button
-                onClick={() => setLang(lang === "en" ? "ta" : "en")}
+                type="button"
+                onClick={switchLocale}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
               >
                 <Globe className="w-3.5 h-3.5" />
-                {lang === "en" ? "தமிழ்" : "English"}
+                {locale === "en" ? tc("languageTamil") : tc("languageEnglish")}
               </button>
               <Link
                 href="/"
                 className="flex items-center gap-1.5 text-xs font-semibold text-brand-orange border border-orange-200 bg-orange-50 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors"
               >
                 <Home className="w-3.5 h-3.5" />
-                TrustNest
+                {t("trustNest")}
                 <ExternalLink className="w-3 h-3 opacity-60" />
               </Link>
             </div>
@@ -101,32 +103,30 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── Navigation bar ────────────────────────────────────────── */}
       <nav className="bg-green-800 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-11">
 
-            {/* Desktop nav links */}
             <div className="hidden lg:flex items-center gap-0.5 h-full">
-              {navLinks.map((link) => (
+              {NAV_KEYS.map((link) => (
                 <GovNavLink key={link.href} href={link.href} active={isActive(link.href)}>
                   <link.icon className="w-3.5 h-3.5" />
-                  {lang === "ta" ? link.labelTa : link.label}
+                  {t(link.key)}
                 </GovNavLink>
               ))}
             </div>
 
-            {/* Right — session */}
             <div className="hidden lg:flex items-center gap-2">
               {session ? (
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   >
                     <div className="w-6 h-6 rounded-full bg-white/20 overflow-hidden flex items-center justify-center text-white text-[11px] font-bold">
                       {session.user.image ? (
-                        <Image src={session.user.image} alt="avatar" width={24} height={24} className="object-cover" />
+                        <Image src={session.user.image} alt="" width={24} height={24} className="object-cover" />
                       ) : (
                         session.user.name?.charAt(0) ?? "U"
                       )}
@@ -139,23 +139,24 @@ export default function Navbar() {
                       <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
                       <div className="absolute right-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20">
                         <div className="px-4 py-3 border-b border-slate-100">
-                          <p className="font-semibold text-sm text-slate-800 truncate">{session.user.name ?? "User"}</p>
+                          <p className="font-semibold text-sm text-slate-800 truncate">{session.user.name ?? tc("user")}</p>
                           <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
-                          <RoleBadge role={(session.user as any).role ?? "CITIZEN"} />
+                          <RoleBadge role={(session.user as { role?: string }).role ?? "CITIZEN"} />
                         </div>
-                        <MenuLink href="/profile" icon={Settings} onClick={() => setUserMenuOpen(false)}>My Profile</MenuLink>
-                        {["OFFICER", "ADMIN"].includes((session.user as any).role) && (
-                          <MenuLink href="/admin" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>Command Center</MenuLink>
+                        <MenuLink href="/profile" icon={Settings} onClick={() => setUserMenuOpen(false)}>{t("myProfile")}</MenuLink>
+                        {["OFFICER", "ADMIN"].includes((session.user as { role?: string }).role ?? "") && (
+                          <MenuLink href="/admin" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("commandCenter")}</MenuLink>
                         )}
-                        {(session.user as any).role === "ADMIN" && (
-                          <MenuLink href="/admin/anomalies" icon={Shield} onClick={() => setUserMenuOpen(false)}>Anomaly Queue</MenuLink>
+                        {(session.user as { role?: string }).role === "ADMIN" && (
+                          <MenuLink href="/admin/anomalies" icon={Shield} onClick={() => setUserMenuOpen(false)}>{t("anomalyQueue")}</MenuLink>
                         )}
                         <div className="border-t border-slate-100 mt-1 pt-1">
                           <button
+                            type="button"
                             onClick={() => signOut({ callbackUrl: "/" })}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <LogOut className="w-4 h-4" /> Sign Out
+                            <LogOut className="w-4 h-4" /> {tc("signOut")}
                           </button>
                         </div>
                       </div>
@@ -165,34 +166,33 @@ export default function Navbar() {
               ) : (
                 <div className="flex items-center gap-2">
                   <Link href="/login" className="text-xs font-medium text-white/80 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                    Sign In
+                    {tc("signIn")}
                   </Link>
                   <Link href="/grievances" className="text-xs font-semibold bg-white text-green-800 hover:bg-green-50 px-3 py-1.5 rounded-lg transition-colors">
-                    File Grievance
+                    {t("fileGrievance")}
                   </Link>
                 </div>
               )}
             </div>
 
-            {/* Mobile menu button */}
             <div className="lg:hidden flex items-center gap-2 ml-auto">
               <button
-                onClick={() => setLang(lang === "en" ? "ta" : "en")}
+                type="button"
+                onClick={switchLocale}
                 className="text-white/80 text-xs px-2 py-1 border border-white/30 rounded"
               >
-                {lang === "en" ? "த" : "EN"}
+                {locale === "en" ? tc("languageShortTa") : tc("languageShortEn")}
               </button>
-              <button className="p-2 text-white" onClick={() => setMobileOpen(!mobileOpen)}>
+              <button type="button" className="p-2 text-white" onClick={() => setMobileOpen(!mobileOpen)}>
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden bg-green-900 border-t border-green-700 px-4 py-3 flex flex-col gap-0.5">
-            {navLinks.map((link) => (
+            {NAV_KEYS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -205,25 +205,26 @@ export default function Navbar() {
                 )}
               >
                 <link.icon className="w-4 h-4" />
-                {lang === "ta" ? link.labelTa : link.label}
+                {t(link.key)}
               </Link>
             ))}
             <div className="border-t border-green-700 mt-2 pt-2 flex flex-col gap-1">
               <Link href="/" onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-amber-300 rounded-lg hover:bg-white/10">
-                <Home className="w-4 h-4" /> Back to TrustNest
+                <Home className="w-4 h-4" /> {t("backToTrustNest")}
               </Link>
               {session ? (
                 <button
+                  type="button"
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-300 rounded-lg hover:bg-white/10"
                 >
-                  <LogOut className="w-4 h-4" /> Sign Out
+                  <LogOut className="w-4 h-4" /> {tc("signOut")}
                 </button>
               ) : (
                 <Link href="/login" onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/80 rounded-lg hover:bg-white/10">
-                  Sign In
+                  {tc("signIn")}
                 </Link>
               )}
             </div>
@@ -250,7 +251,7 @@ function GovNavLink({ href, children, active }: { href: string; children: React.
   );
 }
 
-function MenuLink({ href, icon: Icon, children, onClick }: { href: string; icon: any; children: React.ReactNode; onClick?: () => void }) {
+function MenuLink({ href, icon: Icon, children, onClick }: { href: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; onClick?: () => void }) {
   return (
     <Link href={href} onClick={onClick} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
       <Icon className="w-4 h-4 text-slate-400" />

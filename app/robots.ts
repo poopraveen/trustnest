@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
-import { brand } from "@/lib/brand";
+import { getSiteUrl } from "@/lib/site-url";
 
-const BASE = brand.domain || process.env.NEXT_PUBLIC_APP_URL || "https://trustnest-tsgz.vercel.app";
+const BASE = getSiteUrl();
+const ROBOTS_HOST = new URL(BASE).host;
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -13,13 +14,12 @@ export default function robots(): MetadataRoute.Robots {
           "/admin",
           "/seller/",
           "/api/",
-          "/_next/",
           "/login",
           "/register",
         ],
       },
     ],
     sitemap: `${BASE}/sitemap.xml`,
-    host: BASE,
+    host: ROBOTS_HOST,
   };
 }

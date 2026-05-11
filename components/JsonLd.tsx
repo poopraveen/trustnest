@@ -1,6 +1,5 @@
 import { brand } from "@/lib/brand";
-
-const BASE = brand.domain || process.env.NEXT_PUBLIC_APP_URL || "https://trustnest-tsgz.vercel.app";
+import { getSiteUrl } from "@/lib/site-url";
 
 interface PropertyJsonLdProps {
   property: {
@@ -35,12 +34,13 @@ interface PropertyJsonLdProps {
 }
 
 export function PropertyJsonLd({ property: p }: PropertyJsonLdProps) {
+  const base = getSiteUrl();
   const schema = {
     "@context": "https://schema.org",
     "@type": "RealEstateListing",
     name: p.title,
     description: p.description.slice(0, 500),
-    url: `${BASE}/properties/${p.id}`,
+    url: `${base}/properties/${p.id}`,
     image: p.images.slice(0, 5),
     datePosted: new Date(p.createdAt).toISOString(),
     dateModified: new Date(p.updatedAt).toISOString(),
@@ -90,7 +90,7 @@ export function PropertyJsonLd({ property: p }: PropertyJsonLdProps) {
     provider: {
       "@type": "Organization",
       name: brand.name,
-      url: BASE,
+      url: base,
     },
   };
 
@@ -103,12 +103,13 @@ export function PropertyJsonLd({ property: p }: PropertyJsonLdProps) {
 }
 
 export function OrganizationJsonLd() {
+  const base = getSiteUrl();
   const schema = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: brand.name,
-    url: BASE,
-    logo: `${BASE}/logo.png`,
+    url: base,
+    logo: `${base}/logo.png`,
     description: brand.metaDescription,
     contactPoint: {
       "@type": "ContactPoint",
@@ -137,6 +138,7 @@ export function BreadcrumbJsonLd({
 }: {
   items: { name: string; url: string }[];
 }) {
+  const base = getSiteUrl();
   const schema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -144,7 +146,7 @@ export function BreadcrumbJsonLd({
       "@type": "ListItem",
       position: i + 1,
       name: item.name,
-      item: item.url.startsWith("http") ? item.url : `${BASE}${item.url}`,
+      item: item.url.startsWith("http") ? item.url : `${base}${item.url}`,
     })),
   };
 
