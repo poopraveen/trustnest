@@ -17,6 +17,9 @@ function oauthErrorMessage(error: string | null, t: (key: string) => string): st
   if (error === "OAuthAccountNotLinked") {
     return t("oauthAccountNotLinked");
   }
+  if (error === "AccessDenied") {
+    return t("oauthAccessDenied");
+  }
   return t("oauthDefaultError");
 }
 

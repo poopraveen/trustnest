@@ -21,8 +21,12 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
-            // Link Google sign-in to an existing email/password account with the same email
             allowDangerousEmailAccountLinking: true,
+            authorization: {
+              params: {
+                prompt: "select_account",
+              },
+            },
           }),
         ]
       : []),
@@ -55,46 +59,34 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider !== "google") return true;
-
-      const email = user.email ?? profile?.email;
-      if (!email) return false;
-
-      try {
-        const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) {
-          await prisma.user.update({
-            where: { id: existing.id },
-            data: {
-              emailVerified: new Date(),
-              name: user.name ?? existing.name,
-              avatar: user.image ?? existing.avatar,
-            },
-          });
-        }
-        return true;
-      } catch (err) {
-        console.error("[auth] Google signIn callback failed:", err);
-        return false;
-      }
+    // Do not return false here — that causes error=AccessDenied on Vercel when DB is slow
+    async signIn() {
+      return true;
     },
     async jwt({ token, user, trigger, session }) {
       if (user?.id) {
         token.id = user.id;
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { role: true, name: true, avatar: true },
-        });
-        token.role = dbUser?.role ?? (user as { role?: string }).role ?? "BUYER";
-        if (dbUser?.name) token.name = dbUser.name;
-        if (dbUser?.avatar) token.picture = dbUser.avatar;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { role: true, name: true, avatar: true },
+          });
+          token.role = dbUser?.role ?? (user as { role?: string }).role ?? "BUYER";
+          if (dbUser?.name) token.name = dbUser.name;
+          if (dbUser?.avatar) token.picture = dbUser.avatar;
+        } catch {
+          token.role = (user as { role?: string }).role ?? "BUYER";
+        }
       } else if (token.id && !token.role) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true },
-        });
-        token.role = dbUser?.role ?? "BUYER";
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true },
+          });
+          token.role = dbUser?.role ?? "BUYER";
+        } catch {
+          token.role = "BUYER";
+        }
       }
       if (trigger === "update" && session) {
         token.name = session.name;
@@ -111,9 +103,19 @@ export const authOptions: NextAuthOptions = {
     },
   },
   events: {
-    async signIn({ user, account, isNewUser }) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[auth] signIn", { provider: account?.provider, userId: user.id, isNewUser });
+    async signIn({ user, account }) {
+      if (account?.provider !== "google" || !user.email) return;
+      try {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: {
+            emailVerified: new Date(),
+            ...(user.name ? { name: user.name } : {}),
+            ...(user.image ? { avatar: user.image } : {}),
+          },
+        });
+      } catch (err) {
+        console.error("[auth] optional Google profile sync failed:", err);
       }
     },
   },
