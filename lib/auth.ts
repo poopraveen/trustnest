@@ -5,6 +5,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? "";
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -13,10 +16,16 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-    }),
+    ...(googleClientId && googleClientSecret
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+            // Link Google sign-in to an existing email/password account with the same email
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -46,10 +55,46 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+
+      const email = user.email ?? profile?.email;
+      if (!email) return false;
+
+      try {
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+          await prisma.user.update({
+            where: { id: existing.id },
+            data: {
+              emailVerified: new Date(),
+              name: user.name ?? existing.name,
+              avatar: user.image ?? existing.avatar,
+            },
+          });
+        }
+        return true;
+      } catch (err) {
+        console.error("[auth] Google signIn callback failed:", err);
+        return false;
+      }
+    },
     async jwt({ token, user, trigger, session }) {
-      if (user) {
+      if (user?.id) {
         token.id = user.id;
-        token.role = (user as any).role;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, name: true, avatar: true },
+        });
+        token.role = dbUser?.role ?? (user as { role?: string }).role ?? "BUYER";
+        if (dbUser?.name) token.name = dbUser.name;
+        if (dbUser?.avatar) token.picture = dbUser.avatar;
+      } else if (token.id && !token.role) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? "BUYER";
       }
       if (trigger === "update" && session) {
         token.name = session.name;
@@ -58,12 +103,20 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = (token.role as string) ?? "BUYER";
       }
       return session;
     },
   },
+  events: {
+    async signIn({ user, account, isNewUser }) {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[auth] signIn", { provider: account?.provider, userId: user.id, isNewUser });
+      }
+    },
+  },
+  debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
 };

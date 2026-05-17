@@ -9,11 +9,24 @@ import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
 import { brand } from "@/lib/brand";
 
+function oauthErrorMessage(error: string | null, t: (key: string) => string): string | null {
+  if (!error) return null;
+  if (error === "Callback" || error === "OAuthCallback") {
+    return t("oauthCallbackError");
+  }
+  if (error === "OAuthAccountNotLinked") {
+    return t("oauthAccountNotLinked");
+  }
+  return t("oauthDefaultError");
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const oauthError = searchParams.get("error");
   const t = useTranslations("auth");
+  const authError = oauthErrorMessage(oauthError, t);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +67,15 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-slate-800">{t("loginTitle")}</h1>
           <p className="text-slate-500 mt-1 text-sm">{t("loginSubtitle", { brand: brand.name })}</p>
         </div>
+
+        {authError && (
+          <div
+            role="alert"
+            className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            {authError}
+          </div>
+        )}
 
         <button
           type="button"
