@@ -7,10 +7,11 @@ import { useSession, signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Home, Heart, LayoutDashboard, Settings,
-  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag,
+  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag, ShoppingCart, Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import { useCart } from "@/contexts/CartContext";
 
 export default function NavbarRealEstate() {
   const { data: session } = useSession();
@@ -19,6 +20,7 @@ export default function NavbarRealEstate() {
   const locale = useLocale();
   const t = useTranslations("navRe");
   const tc = useTranslations("common");
+  const { count: cartCount, openCart } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -84,6 +86,23 @@ export default function NavbarRealEstate() {
                 )}
 
                 <div className="flex items-center gap-1">
+                  {/* Cart button */}
+                  <button
+                    type="button"
+                    onClick={openCart}
+                    className="relative p-2 text-slate-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+                    title="Cart"
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-primary-700 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                        {cartCount > 9 ? "9+" : cartCount}
+                      </span>
+                    )}
+                  </button>
+                  <Link href="/orders" className="p-2 text-slate-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors" title="My Orders">
+                    <Package className="w-5 h-5" />
+                  </Link>
                   <Link href="/saved" className="p-2 text-slate-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors" title="Saved Properties">
                     <Heart className="w-5 h-5" />
                   </Link>
@@ -127,6 +146,7 @@ export default function NavbarRealEstate() {
                           </span>
                         </div>
                         <MenuLink href="/profile"          icon={Settings}       onClick={() => setUserMenuOpen(false)}>{t("myProfile")}</MenuLink>
+                        <MenuLink href="/orders"           icon={Package}        onClick={() => setUserMenuOpen(false)}>My Orders</MenuLink>
                         <MenuLink href="/saved"            icon={Heart}          onClick={() => setUserMenuOpen(false)}>{t("savedProperties")}</MenuLink>
                         <MenuLink href="/saved-products"   icon={ShoppingBag}    onClick={() => setUserMenuOpen(false)}>Saved Products</MenuLink>
                         {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
@@ -186,6 +206,7 @@ export default function NavbarRealEstate() {
             {session ? (
               <>
                 <MobileLink href="/profile"          onClick={() => setMobileOpen(false)}>{t("myProfile")}</MobileLink>
+                <MobileLink href="/orders"           onClick={() => setMobileOpen(false)}>My Orders</MobileLink>
                 <MobileLink href="/saved"            onClick={() => setMobileOpen(false)}>{t("savedProperties")}</MobileLink>
                 <MobileLink href="/saved-products"   onClick={() => setMobileOpen(false)}>Saved Products</MobileLink>
                 {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (

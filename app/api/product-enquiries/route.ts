@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendTelegramMessage, buildProductEnquiryMessage } from "@/lib/telegram";
+import { getProductCategoryLabel } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,15 +30,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Enquiry already submitted. The seller will contact you shortly." });
     }
 
-    const enquiry = await prisma.productEnquiry.create({
-      data: {
-        name: name.trim(),
-        phone: cleaned,
-        email: email?.trim() || null,
-        message: message?.trim() || null,
-        productId,
-      },
-    });
+    const [enquiry, product] = await Promise.all([
+      prisma.productEnquiry.create({
+        data: {
+          name: name.trim(),
+          phone: cleaned,
+          email: email?.trim() || null,
+          message: message?.trim() || null,
+          productId,
+        },
+      }),
+      prisma.product.findUnique({
+        where: { id: productId },
+        select: { title: true, category: true, price: true },
+      }),
+    ]);
+
+    if (product) {
+      sendTelegramMessage({
+        text: buildProductEnquiryMessage({
+          name: name.trim(),
+          phone: cleaned,
+          email: email?.trim() || null,
+          message: message?.trim() || null,
+          productTitle: product.title,
+          productId,
+          category: getProductCategoryLabel(product.category),
+          price: product.price,
+        }),
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true, id: enquiry.id });
   } catch (error) {

@@ -46,6 +46,7 @@ model User {
   // Marketplace relations
   products         Product[]
   savedProducts    SavedProduct[]
+  orders           Order[]
   // TN relations
   grievances       Grievance[]
   auditLogs        AuditLog[]
@@ -666,6 +667,7 @@ model Product {
   seller          User             @relation(fields: [sellerId], references: [id])
   savedBy         SavedProduct[]
   enquiries       ProductEnquiry[]
+  orderItems      OrderItem[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -699,6 +701,46 @@ model ProductEnquiry {
 
   @@index([productId])
   @@index([createdAt])
+}
+
+// ─── ORDERS ──────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  phone       String
+  address     String?
+  totalAmount Float
+  status      OrderStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  title     String
+  image     String?
 }
 
 // ─── PROCUREMENT ─────────────────────────────────────────────────────────────

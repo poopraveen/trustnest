@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Link } from "@/navigation";
 import Image from "next/image";
-import { Heart, Package, Tag, Eye, Share2, CheckCircle, ShoppingBag } from "lucide-react";
+import { Heart, Package, Tag, Eye, Share2, CheckCircle, ShoppingBag, ShoppingCart } from "lucide-react";
 import { cn, formatPrice, getProductCategoryLabel, getConditionLabel, timeAgo } from "@/lib/utils";
 import type { Product } from "@/types";
+import { useCart } from "@/contexts/CartContext";
 
 interface ProductCardProps {
   product: Product;
@@ -23,6 +24,20 @@ export default function ProductCard({
   const [imgError, setImgError] = useState(false);
   const [isSaved, setIsSaved] = useState(saved);
   const [sharing, setSharing] = useState(false);
+  const { addItem } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock <= 0) return;
+    addItem({
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.images[0] ?? null,
+      stock: product.stock,
+    });
+  };
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -220,6 +235,21 @@ export default function ProductCard({
               {product.views}
             </div>
           </div>
+
+          {/* Add to Cart */}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            className={cn(
+              "mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors",
+              product.stock > 0
+                ? "bg-primary-700 hover:bg-primary-800 text-white"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            )}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+          </button>
         </div>
       </div>
     </Link>
