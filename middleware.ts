@@ -49,6 +49,8 @@ export default async function middleware(req: NextRequest) {
   const needsAuth =
     path === "/saved" ||
     path.startsWith("/saved/") ||
+    path === "/saved-products" ||
+    path.startsWith("/saved-products/") ||
     path.startsWith("/profile");
 
   if (needsAuth && !token) {

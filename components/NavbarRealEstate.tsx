@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Home, Heart, LayoutDashboard, Settings,
-  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe,
+  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandWordmark } from "@/components/BrandWordmark";
@@ -44,6 +44,7 @@ export default function NavbarRealEstate() {
             <NavLink href="/properties?listingType=BUY"  active={false}>{t("buy")}</NavLink>
             <NavLink href="/properties?listingType=RENT" active={false}>{t("rent")}</NavLink>
             <NavLink href="/properties" active={isActive("/properties")}>{t("allProperties")}</NavLink>
+            <NavLink href="/marketplace" active={isActive("/marketplace")}>Marketplace</NavLink>
             <NavLink href="/projects"   active={isActive("/projects")}>{t("newProjects")}</NavLink>
           </div>
 
@@ -70,15 +71,26 @@ export default function NavbarRealEstate() {
             {session ? (
               <>
                 {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
-                  <Link href="/seller/properties/new" className="btn-orange text-sm py-2">
-                    <Plus className="w-4 h-4" />
-                    {t("postProperty")}
-                  </Link>
+                  <div className="flex items-center gap-1">
+                    <Link href="/seller/properties/new" className="btn-orange text-sm py-2">
+                      <Plus className="w-4 h-4" />
+                      {t("postProperty")}
+                    </Link>
+                    <Link href="/seller/products/new" className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+                      <Plus className="w-4 h-4" />
+                      Post Product
+                    </Link>
+                  </div>
                 )}
 
-                <Link href="/saved" className="p-2 text-slate-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
-                  <Heart className="w-5 h-5" />
-                </Link>
+                <div className="flex items-center gap-1">
+                  <Link href="/saved" className="p-2 text-slate-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors" title="Saved Properties">
+                    <Heart className="w-5 h-5" />
+                  </Link>
+                  <Link href="/saved-products" className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Saved Products">
+                    <ShoppingBag className="w-5 h-5" />
+                  </Link>
+                </div>
 
                 <div className="relative">
                   <button
@@ -116,6 +128,7 @@ export default function NavbarRealEstate() {
                         </div>
                         <MenuLink href="/profile"          icon={Settings}       onClick={() => setUserMenuOpen(false)}>{t("myProfile")}</MenuLink>
                         <MenuLink href="/saved"            icon={Heart}          onClick={() => setUserMenuOpen(false)}>{t("savedProperties")}</MenuLink>
+                        <MenuLink href="/saved-products"   icon={ShoppingBag}    onClick={() => setUserMenuOpen(false)}>Saved Products</MenuLink>
                         {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
                           <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("sellerDashboard")}</MenuLink>
                         )}
@@ -164,6 +177,7 @@ export default function NavbarRealEstate() {
           <MobileLink href="/properties?listingType=BUY"  onClick={() => setMobileOpen(false)}>{t("buy")}</MobileLink>
           <MobileLink href="/properties?listingType=RENT" onClick={() => setMobileOpen(false)}>{t("rent")}</MobileLink>
           <MobileLink href="/properties"                  onClick={() => setMobileOpen(false)}>{t("allProperties")}</MobileLink>
+          <MobileLink href="/marketplace"                 onClick={() => setMobileOpen(false)}>Marketplace</MobileLink>
           <Link href="/tnvettri" onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-primary-700 bg-primary-50 rounded-lg">
             <Shield className="w-4 h-4" /> {t("tnGovtPortal")}
@@ -173,8 +187,12 @@ export default function NavbarRealEstate() {
               <>
                 <MobileLink href="/profile"          onClick={() => setMobileOpen(false)}>{t("myProfile")}</MobileLink>
                 <MobileLink href="/saved"            onClick={() => setMobileOpen(false)}>{t("savedProperties")}</MobileLink>
+                <MobileLink href="/saved-products"   onClick={() => setMobileOpen(false)}>Saved Products</MobileLink>
                 {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
-                  <MobileLink href="/seller/dashboard" onClick={() => setMobileOpen(false)}>{t("sellerDashboard")}</MobileLink>
+                  <>
+                    <MobileLink href="/seller/dashboard"     onClick={() => setMobileOpen(false)}>{t("sellerDashboard")}</MobileLink>
+                    <MobileLink href="/seller/products/new"  onClick={() => setMobileOpen(false)}>Post a Product</MobileLink>
+                  </>
                 )}
                 {session.user.role === "ADMIN" && (
                   <MobileLink href="/admin" onClick={() => setMobileOpen(false)}>{t("adminPanel")}</MobileLink>
