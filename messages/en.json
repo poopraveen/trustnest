@@ -49,7 +49,29 @@
     "postProperty": "Post Property",
     "savedProperties": "Saved Properties",
     "sellerDashboard": "Seller Dashboard",
-    "adminPanel": "Admin Panel"
+    "adminPanel": "Admin Panel",
+    "marketplace": "Marketplace",
+    "savedProducts": "Saved Products",
+    "postProduct": "Post Product"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Shop home & garden products from verified sellers",
+    "postProduct": "Post a Product",
+    "savedProducts": "Saved Products",
+    "contactSeller": "Contact Seller",
+    "whatsappSeller": "WhatsApp Seller",
+    "condition": "Condition",
+    "brand": "Brand",
+    "material": "Material",
+    "dimensions": "Dimensions",
+    "weight": "Weight",
+    "shippingInfo": "Shipping & Delivery",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "newCondition": "New",
+    "usedCondition": "Used",
+    "refurbishedCondition": "Refurbished"
   },
   "footerGov": {
     "description": "Track Tamil Nadu government spending, project progress, scheme benefits, and grievance resolution in real time. Open data for every citizen.",

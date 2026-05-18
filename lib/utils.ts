@@ -98,3 +98,43 @@ export const PRICE_RANGES = [
   { label: "₹2Cr - ₹5Cr", min: 20000000, max: 50000000 },
   { label: "Above ₹5Cr", min: 50000000, max: Infinity },
 ];
+
+// ─── MARKETPLACE ─────────────────────────────────────────────────────────────
+
+export const PRODUCT_CATEGORIES = [
+  { value: "GARDEN_DECOR", label: "Garden Decor" },
+  { value: "PLANTS", label: "Plants" },
+  { value: "FURNITURE", label: "Furniture" },
+  { value: "LIGHTING", label: "Lighting" },
+  { value: "TOOLS", label: "Tools & Equipment" },
+  { value: "STORAGE", label: "Storage" },
+  { value: "TEXTILES", label: "Textiles" },
+  { value: "KITCHENWARE", label: "Kitchenware" },
+  { value: "ELECTRONICS", label: "Electronics" },
+  { value: "SPORTS", label: "Sports & Outdoors" },
+  { value: "TOYS", label: "Toys & Games" },
+  { value: "BOOKS", label: "Books" },
+  { value: "CLOTHING", label: "Clothing" },
+  { value: "OTHER", label: "Other" },
+] as const;
+
+export function getProductCategoryLabel(v: string): string {
+  return PRODUCT_CATEGORIES.find((c) => c.value === v)?.label ?? v;
+}
+
+export function getConditionLabel(v: string): string {
+  const map: Record<string, string> = {
+    NEW: "New",
+    USED: "Used",
+    REFURBISHED: "Refurbished",
+  };
+  return map[v] ?? v;
+}
+
+export const PRODUCT_PRICE_RANGES = [
+  { label: "Under ₹500", min: 0, max: 500 },
+  { label: "₹500 – ₹2,000", min: 500, max: 2000 },
+  { label: "₹2,000 – ₹10,000", min: 2000, max: 10000 },
+  { label: "₹10,000 – ₹50,000", min: 10000, max: 50000 },
+  { label: "Above ₹50,000", min: 50000, max: Infinity },
+];

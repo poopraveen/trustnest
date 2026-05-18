@@ -108,6 +108,61 @@ export interface ChatRoom {
   updatedAt: Date;
 }
 
+// ─── MARKETPLACE ─────────────────────────────────────────────────────────────
+
+export type ProductStatus = "PENDING" | "APPROVED" | "REJECTED" | "SOLD_OUT";
+export type ProductCondition = "NEW" | "USED" | "REFURBISHED";
+export type ProductCategory =
+  | "GARDEN_DECOR"
+  | "PLANTS"
+  | "FURNITURE"
+  | "LIGHTING"
+  | "TOOLS"
+  | "STORAGE"
+  | "TEXTILES"
+  | "KITCHENWARE"
+  | "ELECTRONICS"
+  | "SPORTS"
+  | "TOYS"
+  | "BOOKS"
+  | "CLOTHING"
+  | "OTHER";
+
+export interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  priceNegotiable: boolean;
+  images: string[];
+  category: ProductCategory;
+  condition: ProductCondition;
+  stock: number;
+  brand: string | null;
+  material: string | null;
+  dimensions: string | null;
+  weight: string | null;
+  shippingInfo: string | null;
+  status: ProductStatus;
+  featured: boolean;
+  views: number;
+  sellerId: string;
+  seller: Pick<User, "id" | "name" | "email" | "phone" | "avatar" | "isVerified">;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductFilters {
+  category?: ProductCategory;
+  condition?: ProductCondition;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+  sortBy?: "price_asc" | "price_desc" | "newest" | "oldest";
+  page?: number;
+  limit?: number;
+}
+
 declare module "next-auth" {
   interface Session {
     user: {

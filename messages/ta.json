@@ -49,7 +49,29 @@
     "postProperty": "சொத்து பதிவு",
     "savedProperties": "சேமித்த சொத்துகள்",
     "sellerDashboard": "விற்பனையாளர் டாஷ்போர்டு",
-    "adminPanel": "நிர்வாக பலகை"
+    "adminPanel": "நிர்வாக பலகை",
+    "marketplace": "சந்தை",
+    "savedProducts": "சேமித்த பொருட்கள்",
+    "postProduct": "பொருள் பதிவு"
+  },
+  "marketplace": {
+    "title": "சந்தை",
+    "subtitle": "சரிபார்க்கப்பட்ட விற்பனையாளர்களிடமிருந்து வீட்டு பொருட்களை வாங்கவும்",
+    "postProduct": "பொருள் பதிவு செய்",
+    "savedProducts": "சேமித்த பொருட்கள்",
+    "contactSeller": "விற்பனையாளரை தொடர்பு கொள்",
+    "whatsappSeller": "WhatsApp மூலம் தொடர்பு",
+    "condition": "நிலை",
+    "brand": "பிராண்ட்",
+    "material": "மூலப்பொருள்",
+    "dimensions": "அளவுகள்",
+    "weight": "எடை",
+    "shippingInfo": "ஷிப்பிங் & டெலிவரி",
+    "inStock": "கையிருப்பு உள்ளது",
+    "outOfStock": "கையிருப்பு இல்லை",
+    "newCondition": "புதியது",
+    "usedCondition": "பயன்படுத்தப்பட்டது",
+    "refurbishedCondition": "புதுப்பிக்கப்பட்டது"
   },
   "footerGov": {
     "description": "தமிழ்நாடு அரசின் செலவினம், திட்ட முன்னேற்றம், நலத்திட்ட நன்மைகள், குறை தீர்வு ஆகியவற்றை நேரடியாக கண்காணிக்கவும். ஒவ்வொரு குடிமகனுக்கும் திறந்த தரவு.",

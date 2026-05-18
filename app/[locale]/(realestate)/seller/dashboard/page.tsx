@@ -9,9 +9,9 @@ import { routing } from "@/i18n/routing";
 import { Link } from "@/navigation";
 import {
   Building2, Eye, MessageCircle, TrendingUp, PlusCircle,
-  CheckCircle, Clock, XCircle, AlertCircle, ArrowUpRight,
+  CheckCircle, Clock, XCircle, AlertCircle, ArrowUpRight, ShoppingBag, Package,
 } from "lucide-react";
-import { formatPrice, timeAgo } from "@/lib/utils";
+import { formatPrice, getProductCategoryLabel, timeAgo } from "@/lib/utils";
 
 export default async function SellerDashboard() {
   const session = await getServerSession(authOptions);
@@ -21,13 +21,22 @@ export default async function SellerDashboard() {
     redirect(`${prefix}/login`);
   }
 
-  const [properties, totalViews] = await Promise.all([
+  const [properties, totalViews, recentProducts, productViewsAgg] = await Promise.all([
     prisma.property.findMany({
       where: { sellerId: session.user.id },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
     prisma.property.aggregate({
+      where: { sellerId: session.user.id },
+      _sum: { views: true },
+    }),
+    prisma.product.findMany({
+      where: { sellerId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.product.aggregate({
       where: { sellerId: session.user.id },
       _sum: { views: true },
     }),
@@ -46,6 +55,11 @@ export default async function SellerDashboard() {
     orderBy: { createdAt: "desc" },
   });
 
+  const allProducts = await prisma.product.findMany({
+    where: { sellerId: session.user.id },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -56,10 +70,16 @@ export default async function SellerDashboard() {
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">Here's your property overview</p>
         </div>
-        <Link href="/seller/properties/new" className="btn-orange">
-          <PlusCircle className="w-4 h-4" />
-          Post New Property
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/seller/properties/new" className="btn-orange">
+            <PlusCircle className="w-4 h-4" />
+            Post Property
+          </Link>
+          <Link href="/seller/products/new" className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+            <ShoppingBag className="w-4 h-4" />
+            Post Product
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -91,6 +111,20 @@ export default async function SellerDashboard() {
           value={allProperties.filter((p) => p.status === "PENDING").length}
           color="bg-amber-50 text-amber-700"
           iconColor="text-amber-600"
+        />
+        <StatCard
+          icon={ShoppingBag}
+          label="Products Listed"
+          value={allProducts.length}
+          color="bg-emerald-50 text-emerald-700"
+          iconColor="text-emerald-600"
+        />
+        <StatCard
+          icon={Eye}
+          label="Product Views"
+          value={productViewsAgg._sum.views ?? 0}
+          color="bg-teal-50 text-teal-700"
+          iconColor="text-teal-600"
         />
       </div>
 
@@ -151,6 +185,61 @@ export default async function SellerDashboard() {
               <Link href="/seller/properties/new" className="btn-primary mt-4 inline-flex">
                 <PlusCircle className="w-4 h-4" />
                 Post Property
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Products */}
+      <div className="card">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-emerald-600" />
+            Recent Products
+          </h2>
+          <Link href="/seller/products" className="text-sm text-primary-600 hover:text-primary-800 flex items-center gap-1">
+            View all <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        </div>
+        <div className="divide-y divide-slate-50">
+          {allProducts.slice(0, 5).map((product) => (
+            <div key={product.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors">
+              <div className="w-14 h-12 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+                {product.images[0] ? (
+                  <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-5 h-5 text-slate-300" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-slate-800 truncate">{product.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {getProductCategoryLabel(product.category)} · {formatPrice(product.price)} · {timeAgo(product.createdAt)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <Eye className="w-3.5 h-3.5" />
+                  {product.views}
+                </div>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  product.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" :
+                  product.status === "PENDING" ? "bg-amber-50 text-amber-700" :
+                  "bg-red-50 text-red-600"
+                }`}>{product.status}</span>
+              </div>
+            </div>
+          ))}
+          {allProducts.length === 0 && (
+            <div className="py-10 text-center">
+              <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium text-sm">No products listed yet</p>
+              <Link href="/seller/products/new" className="btn-primary mt-3 inline-flex text-sm">
+                <PlusCircle className="w-4 h-4" />
+                Post Product
               </Link>
             </div>
           )}

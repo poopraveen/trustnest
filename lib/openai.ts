@@ -102,3 +102,33 @@ Keep it professional, highlight key features, and end with a call to action.`,
 
   return response.choices[0].message.content ?? "";
 }
+
+export async function generateProductDescription(data: {
+  title: string;
+  category: string;
+  condition: string;
+  brand?: string | null;
+  price: number;
+}): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) return "";
+
+  const response = await getClient().chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "user",
+        content: `Write a compelling 3-4 sentence product listing description for an e-commerce marketplace.
+Title: ${data.title}
+Category: ${data.category.replace(/_/g, " ")}
+Condition: ${data.condition}
+Brand: ${data.brand ?? "N/A"}
+Price: ₹${data.price.toLocaleString("en-IN")}
+
+Keep it engaging, highlight key benefits, and end with a call to action for buyers to contact the seller.`,
+      },
+    ],
+    max_tokens: 200,
+  });
+
+  return response.choices[0].message.content ?? "";
+}
