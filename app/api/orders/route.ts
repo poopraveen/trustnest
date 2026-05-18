@@ -49,26 +49,24 @@ export async function POST(req: NextRequest) {
 
     const totalAmount = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
-    const order = await prisma.order.create({
-      data: {
-        userId: session?.user?.id ?? null,
-        name: name.trim(),
-        phone: cleaned,
-        address: address ?? null,
-        notes: notes ?? null,
-        totalAmount,
-        items: {
-          create: items.map(i => ({
-            productId: i.productId,
-            quantity: i.quantity,
-            price: i.price,
-            title: i.title,
-            image: i.image ?? null,
-          })),
-        },
+    const orderData: any = {
+      userId: session?.user?.id ?? null,
+      name: name.trim(),
+      phone: cleaned,
+      address: address ?? null,
+      notes: notes ?? null,
+      totalAmount,
+      items: {
+        create: items.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          price: i.price,
+          title: i.title,
+          image: i.image ?? null,
+        })),
       },
-      include: { items: true },
-    });
+    };
+    const order = await prisma.order.create({ data: orderData, include: { items: true } });
 
     // Telegram notification (fire-and-forget)
     sendTelegramMessage({
