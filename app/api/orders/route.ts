@@ -8,6 +8,7 @@ import { sendTelegramMessage, buildOrderMessage } from "@/lib/telegram";
 import { z } from "zod";
 
 const OrderSchema = z.object({
+  name: z.string().min(2).max(100),
   phone: z.string().min(10).max(15),
   address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -21,15 +22,15 @@ const OrderSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // No auth required — guests can checkout
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await req.json();
     const parsed = OrderSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
-    const { phone, address, notes, items } = parsed.data;
+    const { name, phone, address, notes, items } = parsed.data;
 
     const cleaned = phone.replace(/\s+/g, "").replace(/^(\+91|91|0)/, "");
     if (!/^\d{10}$/.test(cleaned)) {
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
 
     const order = await prisma.order.create({
       data: {
-        userId: session.user.id,
+        userId: session?.user?.id ?? null,
+        name: name.trim(),
         phone: cleaned,
         address: address ?? null,
         notes: notes ?? null,
@@ -68,19 +70,19 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     });
 
-    // Telegram notification
-    await sendTelegramMessage({
+    // Telegram notification (fire-and-forget)
+    sendTelegramMessage({
       text: buildOrderMessage({
         orderId: order.id,
-        buyerName: session.user.name ?? "—",
-        buyerEmail: session.user.email ?? "—",
+        buyerName: name.trim(),
+        buyerEmail: session?.user?.email ?? "guest",
         phone: cleaned,
         address,
         notes,
         items,
         totalAmount,
       }),
-    });
+    }).catch(() => {});
 
     return NextResponse.json({ success: true, orderId: order.id }, { status: 201 });
   } catch (err) {

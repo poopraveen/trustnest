@@ -2,25 +2,19 @@
 
 import { useCart } from "@/contexts/CartContext";
 import { useRouter } from "@/navigation";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { X, ShoppingCart, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQty, total, count } = useCart();
-  const { data: session } = useSession();
   const router = useRouter();
 
   if (!isOpen) return null;
 
   const handleCheckout = () => {
     closeCart();
-    if (!session) {
-      router.push("/login?callbackUrl=/checkout");
-    } else {
-      router.push("/checkout");
-    }
+    router.push("/checkout");
   };
 
   return (
@@ -126,7 +120,7 @@ export default function CartDrawer() {
               <ArrowRight className="w-4 h-4" />
             </button>
             <p className="text-xs text-center text-slate-400">
-              {session ? "" : "You'll be asked to sign in before checkout"}
+              No account needed — seller will call you directly
             </p>
           </div>
         )}

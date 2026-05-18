@@ -2,7 +2,6 @@
 
 import { useCart } from "@/contexts/CartContext";
 import { useRouter } from "@/navigation";
-import { useSession } from "next-auth/react";
 import { ShoppingCart, Zap } from "lucide-react";
 
 interface Props {
@@ -15,7 +14,6 @@ interface Props {
 
 export default function AddToCartButton({ productId, title, price, image, stock }: Props) {
   const { addItem, openCart } = useCart();
-  const { data: session } = useSession();
   const router = useRouter();
 
   if (stock <= 0) {
@@ -35,11 +33,7 @@ export default function AddToCartButton({ productId, title, price, image, stock 
 
   const handleBuyNow = () => {
     addItem({ productId, title, price, image, stock });
-    if (!session) {
-      router.push("/login?callbackUrl=/checkout");
-    } else {
-      router.push("/checkout");
-    }
+    router.push("/checkout");
   };
 
   return (
