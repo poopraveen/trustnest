@@ -109,7 +109,7 @@
     "registerLink": "Create one",
     "invalidCredentials": "Invalid email or password",
     "welcomeBackToast": "Welcome back!",
-    "oauthCallbackError": "Google sign-in failed. Check that NEXTAUTH_URL and Google redirect URIs match your site URL, then try again.",
+    "oauthCallbackError": "Google sign-in failed. Add the redirect URI from the yellow setup box (local) or your site URL plus /api/auth/callback/google in Google Cloud. If the app is in Testing mode, add your Gmail as a Test user, then try again.",
     "oauthAccountNotLinked": "This email is already registered with a password. Sign in with email, or use the same Google account.",
     "oauthAccessDenied": "Google sign-in was blocked. Try again, pick a Google account with an email address, or sign in with email and password.",
     "oauthDefaultError": "Sign-in failed. Please try again or use email instead.",

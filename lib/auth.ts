@@ -104,10 +104,10 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user, account }) {
-      if (account?.provider !== "google" || !user.email) return;
+      if (account?.provider !== "google" || !user.id) return;
       try {
         await prisma.user.update({
-          where: { email: user.email },
+          where: { id: user.id },
           data: {
             emailVerified: new Date(),
             ...(user.name ? { name: user.name } : {}),

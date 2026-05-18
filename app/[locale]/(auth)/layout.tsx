@@ -2,6 +2,7 @@ import { Link } from "@/navigation";
 import { getTranslations } from "next-intl/server";
 import { Home } from "lucide-react";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import OAuthSetupHint from "@/components/OAuthSetupHint";
 import { brand } from "@/lib/brand";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,8 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex-1 flex flex-col items-center justify-center p-4">
+        <OAuthSetupHint />
         {children}
       </main>
 

@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+const SEED_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@trustnest.local";
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD?.trim() || "TrustNest@Admin1";
 
 // ─── DISTRICTS (all 38, real data from Wikipedia / tn.gov.in) ────────────────
 const DISTRICTS = [
@@ -289,8 +293,32 @@ async function main() {
   }
   console.log(`   ✅ ${slaData.length} SLA records seeded`);
 
+  console.log("👤 Seeding admin user (email/password login)...");
+  const adminHash = await bcrypt.hash(SEED_ADMIN_PASSWORD, 12);
+  await prisma.user.upsert({
+    where: { email: SEED_ADMIN_EMAIL },
+    update: {
+      role: "ADMIN",
+      password: adminHash,
+      name: "Platform Admin",
+      emailVerified: new Date(),
+      isVerified: true,
+    },
+    create: {
+      email: SEED_ADMIN_EMAIL,
+      name: "Platform Admin",
+      password: adminHash,
+      role: "ADMIN",
+      emailVerified: new Date(),
+      isVerified: true,
+    },
+  });
+  console.log(`   ✅ Admin user: ${SEED_ADMIN_EMAIL}`);
+  console.log("      Sign in at /login with email + password (not Google).");
+  console.log("      Override via SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD in .env");
+
   console.log("\n✅ Database seeded successfully!");
-  console.log("   38 districts · 43 departments · 10 budgets · 6 schemes · 5 scores · 5 SLA records");
+  console.log("   38 districts · 43 departments · 10 budgets · 6 schemes · 5 scores · 5 SLA records · 1 admin");
 }
 
 main()
