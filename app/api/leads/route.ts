@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendTelegramMessage, buildLeadMessage } from "@/lib/telegram";
 
 // POST /api/leads — submit a lead (contact seller enquiry)
 export async function POST(req: NextRequest) {
@@ -31,16 +32,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Enquiry already submitted. The seller will contact you shortly." });
     }
 
-    const lead = await prisma.lead.create({
-      data: {
-        name: name.trim(),
-        phone: cleaned,
-        email: email?.trim() || null,
-        message: message?.trim() || null,
-        propertyId,
-        source: source ?? "website",
-      },
-    });
+    const [lead, property] = await Promise.all([
+      prisma.lead.create({
+        data: {
+          name: name.trim(),
+          phone: cleaned,
+          email: email?.trim() || null,
+          message: message?.trim() || null,
+          propertyId,
+          source: source ?? "website",
+        },
+      }),
+      prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { title: true, city: true, listingType: true, price: true },
+      }),
+    ]);
+
+    // Fire-and-forget Telegram notification
+    if (property) {
+      sendTelegramMessage({
+        text: buildLeadMessage({
+          name: name.trim(),
+          phone: cleaned,
+          email: email?.trim() || null,
+          message: message?.trim() || null,
+          propertyTitle: property.title,
+          propertyId,
+          city: property.city,
+          listingType: property.listingType,
+          price: property.price,
+        }),
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true, id: lead.id });
   } catch (error) {

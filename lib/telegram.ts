@@ -52,6 +52,96 @@ export function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Build an order placed notification (HTML format) */
+export function buildOrderMessage(data: {
+  orderId: string;
+  buyerName: string;
+  buyerEmail: string;
+  phone: string;
+  address?: string | null;
+  notes?: string | null;
+  items: { title: string; quantity: number; price: number }[];
+  totalAmount: number;
+}): string {
+  const e = escapeHtml;
+  const itemList = data.items
+    .map(i => `  • ${e(i.title)} ×${i.quantity} — ₹${(i.price * i.quantity).toLocaleString("en-IN")}`)
+    .join("\n");
+  return [
+    `🛒 <b>NEW ORDER — #${e(data.orderId.slice(-8).toUpperCase())}</b>`,
+    ``,
+    `👤 <b>Buyer:</b> ${e(data.buyerName)} (${e(data.buyerEmail)})`,
+    `📞 <b>Phone:</b> ${e(data.phone)}`,
+    data.address ? `📍 <b>Address:</b> ${e(data.address)}` : null,
+    ``,
+    `📦 <b>Items:</b>`,
+    itemList,
+    ``,
+    `💰 <b>Total: ₹${data.totalAmount.toLocaleString("en-IN")}</b>`,
+    data.notes ? `📝 <b>Notes:</b> ${e(data.notes)}` : null,
+    ``,
+    `🕐 ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST`,
+  ].filter(Boolean).join("\n");
+}
+
+/** Build a product enquiry notification (HTML format) */
+export function buildProductEnquiryMessage(data: {
+  name: string;
+  phone: string;
+  email?: string | null;
+  message?: string | null;
+  productTitle: string;
+  productId: string;
+  category: string;
+  price: number;
+}): string {
+  const e = escapeHtml;
+  return [
+    `📩 <b>PRODUCT ENQUIRY</b>`,
+    ``,
+    `🛍️ <b>Product:</b> ${e(data.productTitle)}`,
+    `🏷️ <b>Category:</b> ${e(data.category)}`,
+    `💰 <b>Price:</b> ₹${data.price.toLocaleString("en-IN")}`,
+    ``,
+    `👤 <b>Name:</b> ${e(data.name)}`,
+    `📞 <b>Phone:</b> ${e(data.phone)}`,
+    data.email ? `📧 <b>Email:</b> ${e(data.email)}` : null,
+    data.message ? `💬 <b>Message:</b> ${e(data.message)}` : null,
+    ``,
+    `🕐 ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST`,
+  ].filter(Boolean).join("\n");
+}
+
+/** Build a property enquiry/lead notification (HTML format) */
+export function buildLeadMessage(data: {
+  name: string;
+  phone: string;
+  email?: string | null;
+  message?: string | null;
+  propertyTitle: string;
+  propertyId: string;
+  city: string;
+  listingType: string;
+  price: number;
+}): string {
+  const e = escapeHtml;
+  return [
+    `🏠 <b>PROPERTY ENQUIRY</b>`,
+    ``,
+    `🏡 <b>Property:</b> ${e(data.propertyTitle)}`,
+    `📍 <b>City:</b> ${e(data.city)}`,
+    `🏷️ <b>Type:</b> ${e(data.listingType)}`,
+    `💰 <b>Price:</b> ₹${data.price.toLocaleString("en-IN")}`,
+    ``,
+    `👤 <b>Name:</b> ${e(data.name)}`,
+    `📞 <b>Phone:</b> ${e(data.phone)}`,
+    data.email ? `📧 <b>Email:</b> ${e(data.email)}` : null,
+    data.message ? `💬 <b>Message:</b> ${e(data.message)}` : null,
+    ``,
+    `🕐 ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST`,
+  ].filter(Boolean).join("\n");
+}
+
 /** Build the grievance notification message (HTML format) */
 export function buildGrievanceMessage(data: {
   ticketNo:    string;

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import PropertyGallery from "@/components/PropertyGallery";
 import ContactSellerCard from "@/components/ContactSellerCard";
+import AddToCartButton from "@/components/AddToCartButton";
 import { formatPrice, getProductCategoryLabel, getConditionLabel, timeAgo } from "@/lib/utils";
 import { Tag, Package, Ruler, Weight, Truck, CheckCircle, Eye, BadgeCheck, Star, Calendar } from "lucide-react";
 import Image from "next/image";
@@ -126,6 +127,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-2">{timeAgo(product.createdAt)}</p>
+
+              {/* Cart actions */}
+              <AddToCartButton
+                productId={product.id}
+                title={product.title}
+                price={product.price}
+                image={product.images[0] ?? null}
+                stock={product.stock}
+              />
             </div>
 
             {/* Contact seller */}
