@@ -51,7 +51,6 @@ export default async function middleware(req: NextRequest) {
     path.startsWith("/saved/") ||
     path === "/saved-products" ||
     path.startsWith("/saved-products/") ||
-    path === "/checkout" ||
     path === "/orders" ||
     path.startsWith("/orders/") ||
     path.startsWith("/profile");
