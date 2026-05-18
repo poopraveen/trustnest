@@ -69,11 +69,12 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { role: true, name: true, avatar: true },
+            select: { role: true, name: true, avatar: true, image: true },
           });
           token.role = dbUser?.role ?? (user as { role?: string }).role ?? "BUYER";
           if (dbUser?.name) token.name = dbUser.name;
-          if (dbUser?.avatar) token.picture = dbUser.avatar;
+          const pic = dbUser?.avatar ?? dbUser?.image;
+          if (pic) token.picture = pic;
         } catch {
           token.role = (user as { role?: string }).role ?? "BUYER";
         }
@@ -111,7 +112,7 @@ export const authOptions: NextAuthOptions = {
           data: {
             emailVerified: new Date(),
             ...(user.name ? { name: user.name } : {}),
-            ...(user.image ? { avatar: user.image } : {}),
+            ...(user.image ? { avatar: user.image, image: user.image } : {}),
           },
         });
       } catch (err) {

@@ -26,6 +26,7 @@ model User {
   password      String?
   phone         String?
   avatar        String?
+  image         String?   // NextAuth PrismaAdapter requires this field name
   role          UserRole  @default(BUYER)
   districtId    String?
   district      District? @relation(fields: [districtId], references: [id])
