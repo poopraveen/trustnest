@@ -157,6 +157,7 @@ enum PropertyStatus {
   REJECTED
   SOLD
   RENTED
+  DECOMMISSIONED
 }
 
 enum Furnishing {

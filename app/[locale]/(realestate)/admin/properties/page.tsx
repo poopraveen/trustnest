@@ -30,6 +30,8 @@ export default function AdminPropertiesPage() {
   const [filter, setFilter] = useState("PENDING");
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDecommission, setConfirmDecommission] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProperties();
@@ -82,6 +84,38 @@ export default function AdminPropertiesPage() {
       }
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  async function decommissionProperty(id: string) {
+    setActionLoading(id + "decommission");
+    try {
+      const res = await fetch(`/api/admin/properties/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DECOMMISSIONED" }),
+      });
+      if (res.ok) {
+        toast("Property decommissioned", "warning");
+        setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: "DECOMMISSIONED" } : p));
+      }
+    } finally {
+      setActionLoading(null);
+      setConfirmDecommission(null);
+    }
+  }
+
+  async function deleteProperty(id: string) {
+    setActionLoading(id + "delete");
+    try {
+      const res = await fetch(`/api/admin/properties/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast("Property deleted permanently", "error");
+        setProperties((prev) => prev.filter((p) => p.id !== id));
+      }
+    } finally {
+      setActionLoading(null);
+      setConfirmDelete(null);
     }
   }
 
@@ -190,7 +224,9 @@ export default function AdminPropertiesPage() {
                       <span className={`badge text-xs ${
                         prop.status === "APPROVED" ? "badge-green" :
                         prop.status === "PENDING" ? "badge-orange" :
-                        prop.status === "REJECTED" ? "badge-red" : "badge-gray"
+                        prop.status === "REJECTED" ? "badge-red" :
+                        prop.status === "DECOMMISSIONED" ? "bg-slate-100 text-slate-600 border border-slate-200" :
+                        "badge-gray"
                       }`}>
                         {prop.status}
                       </span>
@@ -250,6 +286,24 @@ export default function AdminPropertiesPage() {
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </a>
+                      {prop.status === "APPROVED" && (
+                        <button
+                          onClick={() => setConfirmDecommission(prop.id)}
+                          disabled={!!actionLoading}
+                          className="p-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50"
+                          title="Decommission property"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setConfirmDelete(prop.id)}
+                        disabled={!!actionLoading}
+                        className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                        title="Delete permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -258,6 +312,68 @@ export default function AdminPropertiesPage() {
           </table>
         )}
       </div>
+
+      {/* Decommission confirm modal */}
+      {confirmDecommission && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDecommission(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Decommission Property?</h3>
+              <p className="text-sm text-slate-500 text-center mb-6">
+                The listing will be hidden from public view immediately. The record is kept for reference. You can re-approve it later.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDecommission(null)} className="flex-1 btn-secondary py-2.5">Cancel</button>
+                <button
+                  onClick={() => decommissionProperty(confirmDecommission)}
+                  disabled={actionLoading === confirmDecommission + "decommission"}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionLoading === confirmDecommission + "decommission"
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <XCircle className="w-4 h-4" />}
+                  Decommission
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete confirm modal */}
+      {confirmDelete && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Delete Property?</h3>
+              <p className="text-sm text-slate-500 text-center mb-6">
+                This permanently removes the property, all leads, and chat history. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDelete(null)} className="flex-1 btn-secondary py-2.5">Cancel</button>
+                <button
+                  onClick={() => deleteProperty(confirmDelete)}
+                  disabled={actionLoading === confirmDelete + "delete"}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionLoading === confirmDelete + "delete"
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Trash2 className="w-4 h-4" />}
+                  Delete Forever
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

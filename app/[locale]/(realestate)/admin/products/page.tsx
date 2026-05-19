@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { formatPrice, getProductCategoryLabel, getConditionLabel, timeAgo } from "@/lib/utils";
-import { CheckCircle, XCircle, Eye, Package, Loader2, Star } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Package, Loader2, Star, Trash2 } from "lucide-react";
 import { Link } from "@/navigation";
 
 interface ProductWithSeller {
@@ -27,6 +27,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<StatusFilter>("PENDING");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -50,6 +51,14 @@ export default function AdminProductsPage() {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, status } : p))
     );
+    setActionId(null);
+  }
+
+  async function deleteProduct(id: string) {
+    setActionId(id);
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setConfirmDelete(null);
     setActionId(null);
   }
 
@@ -150,7 +159,7 @@ export default function AdminProductsPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {product.status === "PENDING" && (
                         <>
                           <button
@@ -185,6 +194,14 @@ export default function AdminProductsPage() {
                           </Link>
                         </>
                       )}
+                      <button
+                        onClick={() => setConfirmDelete(product.id)}
+                        disabled={actionId === product.id}
+                        className="p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                        title="Delete product"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -192,6 +209,40 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Delete confirm modal */}
+      {confirmDelete && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Delete Product?</h3>
+              <p className="text-sm text-slate-500 text-center mb-6">
+                This will permanently remove the product and all its enquiries. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 btn-secondary py-2.5"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteProduct(confirmDelete)}
+                  disabled={actionId === confirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionId === confirmDelete ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

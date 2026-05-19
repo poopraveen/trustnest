@@ -34,3 +34,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const product = await prisma.product.update({ where: { id: params.id }, data });
   return NextResponse.json(product);
 }
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    await prisma.product.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  }
+}
