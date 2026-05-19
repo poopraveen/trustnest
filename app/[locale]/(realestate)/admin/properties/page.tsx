@@ -42,10 +42,8 @@ export default function AdminPropertiesPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (filter !== "ALL") params.set("status", filter);
-    // For admin, we bypass status filter — in production you'd add an admin API
-    const res = await fetch(`/api/properties?limit=50&${params.toString()}`);
-    // Since we need all properties for admin, we'll use a different approach
-    // For now, simulate with the public API
+    params.set("limit", "50");
+    const res = await fetch(`/api/admin/properties?${params.toString()}`);
     const data = await res.json();
     setProperties(data.data ?? []);
     setLoading(false);

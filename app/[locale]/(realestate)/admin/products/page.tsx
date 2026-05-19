@@ -41,8 +41,7 @@ export default function AdminProductsPage() {
     const params = new URLSearchParams();
     if (filter !== "ALL") params.set("status", filter);
     params.set("limit", "50");
-    params.set("page", "1");
-    const res = await fetch(`/api/products?${params.toString()}`);
+    const res = await fetch(`/api/admin/products?${params.toString()}`);
     const data = await res.json();
     setProducts(data.data ?? []);
     setLoading(false);
