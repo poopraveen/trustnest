@@ -622,6 +622,7 @@ enum ProductStatus {
   APPROVED
   REJECTED
   SOLD_OUT
+  DECOMMISSIONED
 }
 
 enum ProductCondition {

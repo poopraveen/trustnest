@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { formatPrice, getProductCategoryLabel, getConditionLabel, timeAgo } from "@/lib/utils";
-import { CheckCircle, XCircle, Eye, Package, Loader2, Star, Trash2, EyeOff } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Package, Loader2, Star, Trash2, EyeOff, RotateCcw } from "lucide-react";
 import { Link } from "@/navigation";
+import { toast } from "@/components/ui/Toaster";
 
 interface ProductWithSeller {
   id: string;
@@ -21,7 +22,7 @@ interface ProductWithSeller {
   seller: { name: string | null; email: string };
 }
 
-type StatusFilter = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
+type StatusFilter = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "DECOMMISSIONED";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductWithSeller[]>([]);
@@ -29,30 +30,43 @@ export default function AdminProductsPage() {
   const [filter, setFilter] = useState<StatusFilter>("PENDING");
   const [actionId, setActionId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDecommission, setConfirmDecommission] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [filter]);
 
   async function fetchProducts() {
     setLoading(true);
-    const res = await fetch(`/api/products?${filter !== "ALL" ? `status=${filter}&` : ""}limit=50&page=1`);
+    const params = new URLSearchParams();
+    if (filter !== "ALL") params.set("status", filter);
+    params.set("limit", "50");
+    params.set("page", "1");
+    const res = await fetch(`/api/products?${params.toString()}`);
     const data = await res.json();
     setProducts(data.data ?? []);
     setLoading(false);
   }
 
-  async function updateStatus(id: string, status: "APPROVED" | "REJECTED") {
+  async function updateStatus(id: string, status: string) {
     setActionId(id);
-    await fetch(`/api/admin/products/${id}`, {
+    const res = await fetch(`/api/admin/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status } : p))
-    );
+    if (res.ok) {
+      toast(
+        status === "APPROVED" ? "Product approved!" :
+        status === "REJECTED" ? "Product rejected" :
+        status === "DECOMMISSIONED" ? "Product decommissioned" :
+        "Status updated",
+        status === "APPROVED" ? "success" : "warning"
+      );
+      setProducts((prev) => prev.map((p) => p.id === id ? { ...p, status } : p));
+    }
     setActionId(null);
+    setConfirmDecommission(null);
   }
 
   async function toggleDisabled(id: string, current: boolean) {
@@ -61,13 +75,17 @@ export default function AdminProductsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ disabled: !current }),
     });
+    toast(!current ? "Product disabled temporarily" : "Product enabled", !current ? "warning" : "success");
     setProducts((prev) => prev.map((p) => p.id === id ? { ...p, disabled: !current } : p));
   }
 
   async function deleteProduct(id: string) {
     setActionId(id);
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast("Product deleted permanently", "error");
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    }
     setConfirmDelete(null);
     setActionId(null);
   }
@@ -78,18 +96,16 @@ export default function AdminProductsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ featured: !current }),
     });
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, featured: !current } : p))
-    );
+    toast(!current ? "Product featured!" : "Removed from featured", "success");
+    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, featured: !current } : p));
   }
-
-  const filtered = filter === "ALL" ? products : products.filter((p) => p.status === filter);
 
   const statusColors: Record<string, string> = {
     PENDING: "bg-amber-50 text-amber-700",
     APPROVED: "bg-emerald-50 text-emerald-700",
     REJECTED: "bg-red-50 text-red-600",
     SOLD_OUT: "bg-slate-50 text-slate-600",
+    DECOMMISSIONED: "bg-slate-100 text-slate-600 border border-slate-200",
   };
 
   return (
@@ -102,8 +118,8 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2">
-        {(["ALL", "PENDING", "APPROVED", "REJECTED"] as StatusFilter[]).map((s) => (
+      <div className="flex flex-wrap gap-2">
+        {(["ALL", "PENDING", "APPROVED", "REJECTED", "DECOMMISSIONED"] as StatusFilter[]).map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
@@ -120,7 +136,7 @@ export default function AdminProductsPage() {
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="card p-12 text-center">
           <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
           <p className="text-slate-500">No products in this category.</p>
@@ -138,7 +154,7 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map((product) => (
+              {products.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -165,7 +181,7 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[product.status]}`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[product.status] ?? "bg-slate-50 text-slate-600"}`}>
                         {product.status}
                       </span>
                       {product.disabled && (
@@ -176,7 +192,7 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {product.status === "PENDING" && (
                         <>
                           <button
@@ -197,6 +213,7 @@ export default function AdminProductsPage() {
                           </button>
                         </>
                       )}
+
                       {product.status === "APPROVED" && (
                         <>
                           <button
@@ -209,21 +226,40 @@ export default function AdminProductsPage() {
                           <Link href={`/products/${product.id}`} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" title="View">
                             <Eye className="w-4 h-4" />
                           </Link>
+                          <button
+                            onClick={() => toggleDisabled(product.id, product.disabled)}
+                            title={product.disabled ? "Enable listing" : "Disable temporarily"}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              product.disabled
+                                ? "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
+                                : "bg-orange-50 text-orange-600 hover:bg-orange-100"
+                            }`}
+                          >
+                            {product.disabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDecommission(product.id)}
+                            disabled={actionId === product.id}
+                            className="p-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
+                            title="Decommission product"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
                         </>
                       )}
-                      {product.status === "APPROVED" && (
+
+                      {product.status === "DECOMMISSIONED" && (
                         <button
-                          onClick={() => toggleDisabled(product.id, product.disabled)}
-                          title={product.disabled ? "Enable listing" : "Disable temporarily"}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            product.disabled
-                              ? "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
-                              : "bg-orange-50 text-orange-600 hover:bg-orange-100"
-                          }`}
+                          onClick={() => updateStatus(product.id, "APPROVED")}
+                          disabled={actionId === product.id}
+                          className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors flex items-center gap-1 text-xs font-medium px-2"
+                          title="Commission back (make live again)"
                         >
-                          {product.disabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          {actionId === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                          Commission Back
                         </button>
                       )}
+
                       <button
                         onClick={() => setConfirmDelete(product.id)}
                         disabled={actionId === product.id}
@@ -239,6 +275,35 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Decommission confirm modal */}
+      {confirmDecommission && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDecommission(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Decommission Product?</h3>
+              <p className="text-sm text-slate-500 text-center mb-6">
+                The listing will be hidden from public view immediately. You can commission it back later.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDecommission(null)} className="flex-1 btn-secondary py-2.5">Cancel</button>
+                <button
+                  onClick={() => updateStatus(confirmDecommission, "DECOMMISSIONED")}
+                  disabled={actionId === confirmDecommission}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionId === confirmDecommission ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Decommission
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Delete confirm modal */}

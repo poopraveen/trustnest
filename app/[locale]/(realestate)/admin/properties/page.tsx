@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Building2, CheckCircle, XCircle, Eye, Trash2, Shield,
-  Search, Star, Loader2, EyeOff,
+  Search, Star, Loader2, EyeOff, RotateCcw,
 } from "lucide-react";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { toast } from "@/components/ui/Toaster";
@@ -172,8 +172,8 @@ export default function AdminPropertiesPage() {
             className="input-base pl-10"
           />
         </div>
-        <div className="flex gap-2">
-          {["ALL", "PENDING", "APPROVED", "REJECTED"].map((s) => (
+        <div className="flex flex-wrap gap-2">
+          {["ALL", "PENDING", "APPROVED", "REJECTED", "DECOMMISSIONED"].map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -332,6 +332,21 @@ export default function AdminPropertiesPage() {
                             <XCircle className="w-3.5 h-3.5" />
                           </button>
                         </>
+                      )}
+                      {prop.status === "DECOMMISSIONED" && (
+                        <button
+                          onClick={() => updateStatus(prop.id, "APPROVED")}
+                          disabled={!!actionLoading}
+                          className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors disabled:opacity-50 flex items-center gap-1 text-xs font-medium px-2"
+                          title="Commission back (make live again)"
+                        >
+                          {actionLoading === prop.id + "APPROVED" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          )}
+                          Commission Back
+                        </button>
                       )}
                       <button
                         onClick={() => setConfirmDelete(prop.id)}
