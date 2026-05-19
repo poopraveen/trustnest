@@ -47,6 +47,7 @@ model User {
   products         Product[]
   savedProducts    SavedProduct[]
   orders           Order[]
+  layoutProjects   LayoutProject[]
   // TN relations
   grievances       Grievance[]
   auditLogs        AuditLog[]
@@ -746,6 +747,33 @@ model OrderItem {
   price     Float
   title     String
   image     String?
+}
+
+// ─── LAYOUT PROJECTS ─────────────────────────────────────────────────────────
+
+enum LayoutProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  ARCHIVED
+}
+
+model LayoutProject {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  totalArea   String?
+  imageUrl    String?
+  status      LayoutProjectStatus @default(ACTIVE)
+  plots       Json                @default("[]")
+  ownerId     String
+  owner       User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
 }
 
 // ─── PROCUREMENT ─────────────────────────────────────────────────────────────

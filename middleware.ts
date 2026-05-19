@@ -53,7 +53,9 @@ export default async function middleware(req: NextRequest) {
     path.startsWith("/saved-products/") ||
     path === "/orders" ||
     path.startsWith("/orders/") ||
-    path.startsWith("/profile");
+    path.startsWith("/profile") ||
+    path === "/layout-projects" ||
+    path.startsWith("/layout-projects/");
 
   if (needsAuth && !token) {
     const login = new URL(`${localePrefix}/login`, req.url);

@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Home, Heart, LayoutDashboard, Settings,
-  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag, ShoppingCart, Package, Map,
+  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag, ShoppingCart, Package, Map, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandWordmark } from "@/components/BrandWordmark";
@@ -150,12 +150,15 @@ export default function NavbarRealEstate() {
                         <MenuLink href="/saved"            icon={Heart}          onClick={() => setUserMenuOpen(false)}>{t("savedProperties")}</MenuLink>
                         <MenuLink href="/saved-products"   icon={ShoppingBag}    onClick={() => setUserMenuOpen(false)}>Saved Products</MenuLink>
                         {(session.user.role === "SELLER" || session.user.role === "ADMIN") && (
-                          <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("sellerDashboard")}</MenuLink>
+                          <>
+                            <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("sellerDashboard")}</MenuLink>
+                            <MenuLink href="/layout-projects" icon={LayoutGrid} onClick={() => setUserMenuOpen(false)}>Layout Projects</MenuLink>
+                          </>
                         )}
                         {session.user.role === "ADMIN" && (
                           <>
                             <MenuLink href="/admin" icon={Shield} onClick={() => setUserMenuOpen(false)}>{t("adminPanel")}</MenuLink>
-                            <MenuLink href="/layout-viewer" icon={Map} onClick={() => setUserMenuOpen(false)}>Layout Viewer</MenuLink>
+                            <MenuLink href="/layout-projects" icon={Map} onClick={() => setUserMenuOpen(false)}>Layout Projects</MenuLink>
                           </>
                         )}
                         <div className="border-t border-slate-100 mt-1 pt-1">
@@ -216,6 +219,7 @@ export default function NavbarRealEstate() {
                   <>
                     <MobileLink href="/seller/dashboard"     onClick={() => setMobileOpen(false)}>{t("sellerDashboard")}</MobileLink>
                     <MobileLink href="/seller/products/new"  onClick={() => setMobileOpen(false)}>Post a Product</MobileLink>
+                    <MobileLink href="/layout-projects"      onClick={() => setMobileOpen(false)}>Layout Projects</MobileLink>
                   </>
                 )}
                 {session.user.role === "ADMIN" && (
