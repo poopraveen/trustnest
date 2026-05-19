@@ -25,11 +25,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const { status, featured } = body;
+  const { status, featured, disabled } = body;
 
   const data: any = {};
   if (status) data.status = status;
   if (typeof featured === "boolean") data.featured = featured;
+  if (typeof disabled === "boolean") data.disabled = disabled;
 
   const product = await prisma.product.update({ where: { id: params.id }, data });
   return NextResponse.json(product);

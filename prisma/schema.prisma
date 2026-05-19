@@ -110,6 +110,7 @@ model Property {
   propertyType    PropertyType
   listingType     ListingType
   status          PropertyStatus @default(PENDING)
+  disabled        Boolean        @default(false)
   furnishing      Furnishing     @default(UNFURNISHED)
   parking         Boolean        @default(false)
   images          String[]
@@ -662,6 +663,7 @@ model Product {
   weight          String?
   shippingInfo    String?
   status          ProductStatus    @default(PENDING)
+  disabled        Boolean          @default(false)
   featured        Boolean          @default(false)
   views           Int              @default(0)
   sellerId        String

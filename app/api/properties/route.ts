@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const limit = Number(searchParams.get("limit") ?? 12);
   const skip = (page - 1) * limit;
 
-  const where: any = { status: "APPROVED" };
+  const where: any = { status: "APPROVED", disabled: false };
 
   const city = searchParams.get("city");
   const listingType = searchParams.get("listingType");

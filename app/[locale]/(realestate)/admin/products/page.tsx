@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { formatPrice, getProductCategoryLabel, getConditionLabel, timeAgo } from "@/lib/utils";
-import { CheckCircle, XCircle, Eye, Package, Loader2, Star, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Package, Loader2, Star, Trash2, EyeOff } from "lucide-react";
 import { Link } from "@/navigation";
 
 interface ProductWithSeller {
@@ -14,6 +14,7 @@ interface ProductWithSeller {
   condition: string;
   status: string;
   featured: boolean;
+  disabled: boolean;
   views: number;
   images: string[];
   createdAt: string;
@@ -52,6 +53,15 @@ export default function AdminProductsPage() {
       prev.map((p) => (p.id === id ? { ...p, status } : p))
     );
     setActionId(null);
+  }
+
+  async function toggleDisabled(id: string, current: boolean) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ disabled: !current }),
+    });
+    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, disabled: !current } : p));
   }
 
   async function deleteProduct(id: string) {
@@ -154,9 +164,16 @@ export default function AdminProductsPage() {
                     <span className="font-semibold text-slate-800 text-sm">{formatPrice(product.price)}</span>
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[product.status]}`}>
-                      {product.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[product.status]}`}>
+                        {product.status}
+                      </span>
+                      {product.disabled && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" /> Disabled
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
@@ -193,6 +210,19 @@ export default function AdminProductsPage() {
                             <Eye className="w-4 h-4" />
                           </Link>
                         </>
+                      )}
+                      {product.status === "APPROVED" && (
+                        <button
+                          onClick={() => toggleDisabled(product.id, product.disabled)}
+                          title={product.disabled ? "Enable listing" : "Disable temporarily"}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            product.disabled
+                              ? "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
+                              : "bg-orange-50 text-orange-600 hover:bg-orange-100"
+                          }`}
+                        >
+                          {product.disabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
                       )}
                       <button
                         onClick={() => setConfirmDelete(product.id)}

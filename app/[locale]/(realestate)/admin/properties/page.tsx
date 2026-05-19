@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Building2, CheckCircle, XCircle, Eye, Trash2, Shield,
-  Search, Filter, Star, Loader2,
+  Search, Star, Loader2, EyeOff,
 } from "lucide-react";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { toast } from "@/components/ui/Toaster";
@@ -16,6 +16,7 @@ interface Property {
   status: string;
   verified: boolean;
   featured: boolean;
+  disabled: boolean;
   images: string[];
   bhk: number;
   propertyType: string;
@@ -81,6 +82,23 @@ export default function AdminPropertiesPage() {
       if (res.ok) {
         toast(!current ? "Property verified!" : "Verification removed", "success");
         setProperties((prev) => prev.map((p) => p.id === id ? { ...p, verified: !current } : p));
+      }
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function toggleDisabled(id: string, current: boolean) {
+    setActionLoading(id + "disable");
+    try {
+      const res = await fetch(`/api/admin/properties/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: !current }),
+      });
+      if (res.ok) {
+        toast(!current ? "Property disabled" : "Property enabled", !current ? "warning" : "success");
+        setProperties((prev) => prev.map((p) => p.id === id ? { ...p, disabled: !current } : p));
       }
     } finally {
       setActionLoading(null);
@@ -220,7 +238,7 @@ export default function AdminPropertiesPage() {
                     {prop.seller.name ?? prop.seller.email}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-wrap">
                       <span className={`badge text-xs ${
                         prop.status === "APPROVED" ? "badge-green" :
                         prop.status === "PENDING" ? "badge-orange" :
@@ -232,6 +250,11 @@ export default function AdminPropertiesPage() {
                       </span>
                       {prop.verified && <span className="badge-blue">✓</span>}
                       {prop.featured && <span className="badge-orange">★</span>}
+                      {prop.disabled && (
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-0.5">
+                          <EyeOff className="w-3 h-3" /> Off
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -287,14 +310,28 @@ export default function AdminPropertiesPage() {
                         <Eye className="w-3.5 h-3.5" />
                       </a>
                       {prop.status === "APPROVED" && (
-                        <button
-                          onClick={() => setConfirmDecommission(prop.id)}
-                          disabled={!!actionLoading}
-                          className="p-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50"
-                          title="Decommission property"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => toggleDisabled(prop.id, prop.disabled)}
+                            disabled={!!actionLoading}
+                            title={prop.disabled ? "Enable listing" : "Disable temporarily"}
+                            className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                              prop.disabled
+                                ? "bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-700"
+                                : "bg-orange-50 text-orange-600 hover:bg-orange-100"
+                            }`}
+                          >
+                            {prop.disabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDecommission(prop.id)}
+                            disabled={!!actionLoading}
+                            className="p-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50"
+                            title="Decommission property"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => setConfirmDelete(prop.id)}
