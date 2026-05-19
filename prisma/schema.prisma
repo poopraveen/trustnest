@@ -48,6 +48,7 @@ model User {
   savedProducts    SavedProduct[]
   orders           Order[]
   layoutProjects   LayoutProject[]
+  plotBookings     PlotBooking[]
   // TN relations
   grievances       Grievance[]
   auditLogs        AuditLog[]
@@ -769,11 +770,52 @@ model LayoutProject {
   plots       Json                @default("[]")
   ownerId     String
   owner       User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings    PlotBooking[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
   @@index([ownerId])
   @@index([status])
+}
+
+enum PlotBookingStatus {
+  ACTIVE
+  CONFIRMED
+  CANCELLED
+  CONVERTED
+}
+
+enum BuyerIdType {
+  AADHAAR
+  PAN
+  PASSPORT
+  DRIVING_LICENSE
+  VOTER_ID
+}
+
+model PlotBooking {
+  id            String            @id @default(cuid())
+  projectId     String
+  plotId        String
+  plotName      String
+  buyerName     String
+  buyerPhone    String
+  buyerEmail    String?
+  buyerAddress  String
+  buyerIdType   BuyerIdType
+  buyerIdNumber String
+  bookingAmount Float?
+  notes         String?           @db.Text
+  status        PlotBookingStatus @default(ACTIVE)
+  project       LayoutProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agentId       String
+  agent         User              @relation(fields: [agentId], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([projectId, plotId])
+  @@index([projectId, status])
+  @@index([agentId])
 }
 
 // ─── PROCUREMENT ─────────────────────────────────────────────────────────────
