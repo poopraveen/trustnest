@@ -24,12 +24,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (adminOnly(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { status, verified, featured } = body;
+  const { status, verified, featured, disabled } = body;
 
   const data: any = {};
   if (status) data.status = status;
   if (typeof verified === "boolean") data.verified = verified;
   if (typeof featured === "boolean") data.featured = featured;
+  if (typeof disabled === "boolean") data.disabled = disabled;
 
   try {
     const property = await prisma.property.update({ where: { id: params.id }, data });

@@ -48,7 +48,7 @@ async function fetchProperty(id: string, incrementViews: boolean): Promise<Prope
       },
     });
 
-    if (!row || row.status !== "APPROVED") {
+    if (!row || row.status !== "APPROVED" || (row as any).disabled) {
       return null;
     }
 

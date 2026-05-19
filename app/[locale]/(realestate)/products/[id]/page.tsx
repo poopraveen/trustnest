@@ -31,7 +31,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     },
   });
 
-  if (!product || product.status !== "APPROVED") notFound();
+  if (!product || product.status !== "APPROVED" || (product as any).disabled) notFound();
 
   await prisma.product.update({ where: { id: params.id }, data: { views: { increment: 1 } } });
 
