@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Home, Heart, LayoutDashboard, Settings,
-  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag, ShoppingCart, Package,
+  LogOut, Menu, X, ChevronDown, Plus, Shield, ExternalLink, Globe, ShoppingBag, ShoppingCart, Package, Map,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandWordmark } from "@/components/BrandWordmark";
@@ -153,7 +153,10 @@ export default function NavbarRealEstate() {
                           <MenuLink href="/seller/dashboard" icon={LayoutDashboard} onClick={() => setUserMenuOpen(false)}>{t("sellerDashboard")}</MenuLink>
                         )}
                         {session.user.role === "ADMIN" && (
-                          <MenuLink href="/admin" icon={Shield} onClick={() => setUserMenuOpen(false)}>{t("adminPanel")}</MenuLink>
+                          <>
+                            <MenuLink href="/admin" icon={Shield} onClick={() => setUserMenuOpen(false)}>{t("adminPanel")}</MenuLink>
+                            <MenuLink href="/layout-viewer" icon={Map} onClick={() => setUserMenuOpen(false)}>Layout Viewer</MenuLink>
+                          </>
                         )}
                         <div className="border-t border-slate-100 mt-1 pt-1">
                           <button
