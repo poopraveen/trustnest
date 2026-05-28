@@ -55,6 +55,7 @@ model User {
   // Dating relations
   courtCaseVerification CourtCaseVerification?
   datingProfile         DatingProfile?
+  datingNotifications   DatingNotification[]
 }
 
 model Account {
@@ -819,6 +820,30 @@ model PlotBooking {
   @@index([projectId, plotId])
   @@index([projectId, status])
   @@index([agentId])
+}
+
+// ─── DATING NOTIFICATIONS ────────────────────────────────────────────────────
+
+enum DatingNotificationType {
+  NEW_MATCH
+  NEW_MESSAGE
+  VERIFICATION_APPROVED
+  VERIFICATION_REJECTED
+}
+
+model DatingNotification {
+  id        String                 @id @default(cuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      DatingNotificationType
+  title     String
+  body      String
+  link      String?
+  read      Boolean                @default(false)
+  createdAt DateTime               @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 // ─── DATING APP ──────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Link } from "@/navigation";
 import { Heart, Menu, X, User, MessageCircle, LogOut, ChevronDown } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 export default function NavbarDating() {
   const { data: session } = useSession();
@@ -32,6 +33,8 @@ export default function NavbarDating() {
                 <MessageCircle className="w-4 h-4" />
                 Matches
               </Link>
+              <NotificationBell />
+
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
