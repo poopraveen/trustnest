@@ -846,6 +846,55 @@ model DatingNotification {
   @@index([userId, createdAt])
 }
 
+// ─── COMMUNITY SERVICE PORTAL ────────────────────────────────────────────────
+
+enum CommunityRequestStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum CommunityServiceCategory {
+  GOVT
+  DOCUMENTS
+  BANKING
+  EDUCATION
+  HEALTH
+  JOBS
+}
+
+model CommunityServiceRequest {
+  id          String                    @id @default(cuid())
+  ticketNo    String                    @unique
+  name        String
+  mobile      String
+  ward        String?
+  serviceKey  String
+  serviceName String
+  category    CommunityServiceCategory
+  details     String?                   @db.Text
+  status      CommunityRequestStatus    @default(PENDING)
+  acceptedBy  String?
+  notes       String?
+  locality    String                    @default("Veppampattu")
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([mobile])
+  @@index([createdAt])
+}
+
+model CommunityAnnouncement {
+  id        String   @id @default(cuid())
+  text      String
+  textTamil String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 // ─── DATING APP ──────────────────────────────────────────────────────────────
 
 enum DatingVerificationStatus {
