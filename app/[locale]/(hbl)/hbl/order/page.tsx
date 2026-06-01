@@ -89,25 +89,23 @@ export default function OrderPage() {
         <p className="font-mono font-bold text-green-700 text-lg">{success.orderNo}</p>
         {pickupTime && <p className="text-sm text-slate-500 mt-2">Pickup at {new Date(pickupTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>}
 
-        {/* Invoice download */}
+        {/* Invoice actions */}
         <div className="mt-5 bg-green-50 border border-green-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <FileText className="w-5 h-5 text-green-600" />
-            <p className="font-semibold text-slate-800 text-sm">Tax Invoice</p>
+            <p className="font-semibold text-slate-800 text-sm">Tax Invoice Ready</p>
           </div>
-          {downloading ? (
-            <div className="flex items-center justify-center gap-2 text-sm text-green-700">
-              <Loader2 className="w-4 h-4 animate-spin" /> Generating invoice…
-            </div>
-          ) : (
-            <button
-              onClick={() => downloadInvoice(success.orderId, success.orderNo)}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2.5 rounded-xl hover:bg-green-700 text-sm"
-            >
-              <Download className="w-4 h-4" /> Download Invoice PDF
+          <div className="flex gap-2">
+            <a href={`/api/hbl/orders/${success.orderId}/invoice?mode=view`} target="_blank" rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 rounded-xl hover:bg-blue-700 text-sm">
+              <FileText className="w-4 h-4" /> View
+            </a>
+            <button onClick={() => downloadInvoice(success.orderId, success.orderNo)} disabled={downloading}
+              className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2.5 rounded-xl hover:bg-green-700 text-sm disabled:opacity-60">
+              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download
             </button>
-          )}
-          <p className="text-xs text-slate-400 mt-2">Invoice auto-downloaded. Tap again if needed.</p>
+          </div>
         </div>
 
         <Link href="/hbl/dashboard" className="mt-4 block bg-slate-100 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-200">Back to Dashboard</Link>

@@ -106,6 +106,9 @@ export default function AdminDashboard() {
           {[
             { href: "/hbl/admin", label: "Dashboard" },
             { href: "/hbl/admin/members", label: "Members" },
+            { href: "/hbl/admin/new-joiners", label: "New Joiners" },
+            { href: "/hbl/admin/shake-tracker", label: "Shake Tracker" },
+            { href: "/hbl/admin/followup", label: "Follow-Ups" },
             { href: "/hbl/admin/products", label: "Products" },
             { href: "/hbl/admin/orders", label: "Orders" },
             { href: "/hbl/admin/reports", label: "Reports" },
@@ -216,9 +219,12 @@ export default function AdminDashboard() {
             {/* Quick links */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
               {[
-                { href: "/hbl/admin/members", icon: Users, label: "Manage Members", color: "bg-green-600" },
-                { href: "/hbl/admin/products", icon: Package, label: "Manage Products", color: "bg-emerald-600" },
-                { href: "/hbl/admin/orders", icon: ShoppingBag, label: "View Orders", color: "bg-teal-600" },
+                { href: "/hbl/admin/members", icon: Users, label: "Members", color: "bg-green-600" },
+                { href: "/hbl/admin/new-joiners", icon: Users, label: "New Joiners", color: "bg-blue-600" },
+                { href: "/hbl/admin/shake-tracker", icon: BarChart3, label: "Shake Tracker", color: "bg-teal-600" },
+                { href: "/hbl/admin/followup", icon: Bell, label: "Follow-Ups", color: "bg-amber-500" },
+                { href: "/hbl/admin/products", icon: Package, label: "Products", color: "bg-emerald-600" },
+                { href: "/hbl/admin/orders", icon: ShoppingBag, label: "Orders", color: "bg-purple-600" },
                 { href: "/hbl/admin/reports", icon: BarChart3, label: "Reports", color: "bg-cyan-600" },
               ].map(({ href, icon: Icon, label, color }) => (
                 <Link key={href} href={href} className={`${color} text-white rounded-2xl p-4 flex flex-col items-center gap-2 hover:opacity-90 transition-opacity text-center`}>

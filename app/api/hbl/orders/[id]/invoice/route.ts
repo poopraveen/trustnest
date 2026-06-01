@@ -14,7 +14,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const member = await getMember(req);
   if (!member) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const order = await prisma.hblOrder.findUnique({
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("mode") ?? "download"; // "view" opens inline in browser
+
+  const order = await prisma.hblOrder.findFirst({
     where: { id: params.id, memberId: member.id },
     include: { items: { include: { product: true } } },
   });
@@ -38,9 +41,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       address: `Ph: ${member.phone}${member.email ? " | " + member.email : ""}`,
     },
     items: order.items.map((item) => ({
-      sku: item.productId.slice(-6).toUpperCase(),
+      sku: (item.product as { sku?: string | null }).sku ?? item.productId.slice(-6).toUpperCase(),
       description: item.product.name,
-      mrpPerUnit: item.price * 1.15, // MRP = retail + ~15% markup for display
+      mrpPerUnit: (item.product as { mrp?: number | null }).mrp ?? item.price * 1.15,
       qty: item.qty,
       retailPricePerUnit: item.price,
     })),
@@ -48,12 +51,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   };
 
   const pdfBytes = await generateHblInvoice(invoiceData);
+  const disposition = mode === "view"
+    ? "inline"
+    : `attachment; filename="HBL-Invoice-${order.orderNo}.pdf"`;
 
   return new NextResponse(Buffer.from(pdfBytes), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="HBL-Invoice-${order.orderNo}.pdf"`,
+      "Content-Disposition": disposition,
       "Content-Length": pdfBytes.length.toString(),
     },
   });

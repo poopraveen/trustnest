@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShoppingBag, Star, Loader2, Clock, Download } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Star, Loader2, Clock, Download, Eye } from "lucide-react";
 import Link from "next/link";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -90,11 +90,17 @@ export default function HistoryPage() {
                       <Clock className="w-3 h-3" />
                       {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </div>
-                    <button onClick={() => downloadInvoice(o.id, o.orderNo)} disabled={dlId === o.id}
-                      className="flex items-center gap-1 text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 disabled:opacity-50">
-                      {dlId === o.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                      Invoice
-                    </button>
+                    <div className="flex gap-1.5">
+                      <a href={`/api/hbl/orders/${o.id}/invoice?mode=view`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100">
+                        <Eye className="w-3 h-3" /> View
+                      </a>
+                      <button onClick={() => downloadInvoice(o.id, o.orderNo)} disabled={dlId === o.id}
+                        className="flex items-center gap-1 text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 disabled:opacity-50">
+                        {dlId === o.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                        PDF
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

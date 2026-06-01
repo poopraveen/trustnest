@@ -1100,6 +1100,8 @@ model HblMember {
   payments    HblPayment[]
   loyaltyTxns HblLoyaltyTxn[]
   sessions    HblSession[]
+  shakeLogs   HblShakeLog[]
+  followUps   HblFollowUp[]
 
   @@index([phone])
   @@index([status])
@@ -1108,10 +1110,13 @@ model HblMember {
 
 model HblProduct {
   id        String             @id @default(cuid())
+  sku       String?            @unique
+  barcode   String?
   name      String
   nameTa    String?
   category  HblProductCategory
   price     Float
+  mrp       Float?
   stock     Int                @default(0)
   minStock  Int                @default(10)
   imageUrl  String?
@@ -1120,9 +1125,11 @@ model HblProduct {
   updatedAt DateTime           @updatedAt
 
   orderItems HblOrderItem[]
+  shakeLogs  HblShakeLog[]
 
   @@index([category])
   @@index([isActive])
+  @@index([sku])
 }
 
 model HblOrder {
@@ -1215,4 +1222,33 @@ model HblSession {
 
   @@index([token])
   @@index([memberId])
+}
+
+model HblShakeLog {
+  id         String     @id @default(cuid())
+  memberId   String
+  member     HblMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    HblProduct? @relation(fields: [productId], references: [id])
+  loggedAt   DateTime   @default(now())
+  notes      String?
+
+  @@index([memberId])
+  @@index([loggedAt])
+}
+
+model HblFollowUp {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    HblMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  reason    String
+  note      String?
+  dueDate   DateTime
+  done      Boolean   @default(false)
+  doneAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([memberId])
+  @@index([done])
+  @@index([dueDate])
 }

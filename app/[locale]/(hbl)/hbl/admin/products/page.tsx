@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Plus, Package, Loader2, X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Package, Loader2, X, CheckCircle2, AlertTriangle, Download } from "lucide-react";
 import Link from "next/link";
 
 interface Product {
@@ -19,6 +19,7 @@ export default function AdminProducts() {
   const [editStock, setEditStock] = useState<{ id: string; stock: number } | null>(null);
   const [form, setForm] = useState({ name: "", nameTa: "", category: "SHAKE", price: "", stock: "0", minStock: "10" });
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [msg, setMsg] = useState("");
 
   const fetchProducts = useCallback(async () => {
@@ -29,6 +30,16 @@ export default function AdminProducts() {
   }, [pin]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  async function seedDefaults() {
+    setSeeding(true);
+    const res = await fetch("/api/hbl/admin/seed-products", { method: "POST", headers: { "x-hbl-admin": pin } });
+    const d = await res.json();
+    setSeeding(false);
+    if (res.ok) { setMsg(`✅ Added ${d.created} products (${d.skipped} already existed)`); fetchProducts(); }
+    else setMsg("Seed failed");
+    setTimeout(() => setMsg(""), 4000);
+  }
 
   async function addProduct() {
     if (!form.name || !form.category || !form.price) return;
@@ -69,13 +80,18 @@ export default function AdminProducts() {
           <Link href="/hbl/admin" className="p-1.5 bg-white/10 rounded-lg"><ArrowLeft className="w-4 h-4" /></Link>
           <Package className="w-5 h-5 text-green-400" />
           <h1 className="font-bold flex-1">Products & Stock</h1>
+          <button onClick={seedDefaults} disabled={seeding} className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+            {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Load Defaults
+          </button>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 bg-green-600 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-green-700">
-            <Plus className="w-4 h-4" /> Add Product
+            <Plus className="w-4 h-4" /> Add
           </button>
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-4">
+        {msg && <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-sm text-blue-800 font-medium">{msg}</div>}
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-7 h-7 animate-spin text-green-600" /></div>
         ) : (
