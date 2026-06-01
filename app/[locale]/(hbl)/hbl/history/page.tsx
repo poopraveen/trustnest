@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShoppingBag, Star, Loader2, Clock } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Star, Loader2, Clock, Download } from "lucide-react";
 import Link from "next/link";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -19,6 +19,20 @@ export default function HistoryPage() {
   const [tab, setTab] = useState<"orders" | "points">("orders");
   const [points, setPoints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dlId, setDlId] = useState<string | null>(null);
+
+  async function downloadInvoice(orderId: string, orderNo: string) {
+    setDlId(orderId);
+    try {
+      const res = await fetch(`/api/hbl/orders/${orderId}/invoice`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `HBL-Invoice-${orderNo}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setDlId(null); }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -71,9 +85,16 @@ export default function HistoryPage() {
                       <p key={item.id} className="text-sm text-slate-600">{item.qty}× {item.product.name} <span className="text-slate-400">₹{item.price}</span></p>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
-                    <Clock className="w-3 h-3" />
-                    {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </div>
+                    <button onClick={() => downloadInvoice(o.id, o.orderNo)} disabled={dlId === o.id}
+                      className="flex items-center gap-1 text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 disabled:opacity-50">
+                      {dlId === o.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                      Invoice
+                    </button>
                   </div>
                 </div>
               ))}

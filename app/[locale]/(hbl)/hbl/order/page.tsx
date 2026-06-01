@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Plus, Minus, ArrowLeft, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { ShoppingBag, Plus, Minus, ArrowLeft, Clock, CheckCircle2, Loader2, Download, FileText } from "lucide-react";
 import Link from "next/link";
 
 interface Product { id: string; name: string; nameTa: string | null; category: string; price: number; stock: number; imageUrl: string | null; }
@@ -18,7 +18,8 @@ export default function OrderPage() {
   const [pickupTime, setPickupTime] = useState("");
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ orderNo: string; orderId: string } | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,7 +53,29 @@ export default function OrderPage() {
     });
     const data = await res.json();
     setPlacing(false);
-    if (res.ok) { setSuccess(data.order.orderNo); setCart({}); }
+    if (res.ok) {
+      setSuccess({ orderNo: data.order.orderNo, orderId: data.order.id });
+      setCart({});
+      // Auto-download invoice
+      setTimeout(() => downloadInvoice(data.order.id, data.order.orderNo), 800);
+    }
+  }
+
+  async function downloadInvoice(orderId: string, orderNo: string) {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/hbl/orders/${orderId}/invoice`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `HBL-Invoice-${orderNo}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (success) return (
@@ -63,9 +86,31 @@ export default function OrderPage() {
         </div>
         <h2 className="text-2xl font-black text-slate-800">Order Placed!</h2>
         <p className="text-slate-500 mt-2 mb-1">Order number</p>
-        <p className="font-mono font-bold text-green-700 text-lg">{success}</p>
+        <p className="font-mono font-bold text-green-700 text-lg">{success.orderNo}</p>
         {pickupTime && <p className="text-sm text-slate-500 mt-2">Pickup at {new Date(pickupTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>}
-        <Link href="/hbl/dashboard" className="mt-6 block bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700">Back to Dashboard</Link>
+
+        {/* Invoice download */}
+        <div className="mt-5 bg-green-50 border border-green-200 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-5 h-5 text-green-600" />
+            <p className="font-semibold text-slate-800 text-sm">Tax Invoice</p>
+          </div>
+          {downloading ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-green-700">
+              <Loader2 className="w-4 h-4 animate-spin" /> Generating invoice…
+            </div>
+          ) : (
+            <button
+              onClick={() => downloadInvoice(success.orderId, success.orderNo)}
+              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2.5 rounded-xl hover:bg-green-700 text-sm"
+            >
+              <Download className="w-4 h-4" /> Download Invoice PDF
+            </button>
+          )}
+          <p className="text-xs text-slate-400 mt-2">Invoice auto-downloaded. Tap again if needed.</p>
+        </div>
+
+        <Link href="/hbl/dashboard" className="mt-4 block bg-slate-100 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-200">Back to Dashboard</Link>
       </div>
     </div>
   );
