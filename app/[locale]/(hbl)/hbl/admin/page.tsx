@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users, TrendingUp, ShoppingBag, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Leaf, LogOut, BarChart3, Package, Bell, ScanLine, Settings, ChevronRight, Building2, Download, QrCode } from "lucide-react";
 import Link from "next/link";
 
@@ -20,6 +20,7 @@ function adminHeaders(pin: string, tenantId: string) {
 }
 
 export default function AdminDashboard() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<"tenant" | "pin" | "dash" | "setup">("tenant");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantsLoaded, setTenantsLoaded] = useState(false);
@@ -33,19 +34,27 @@ export default function AdminDashboard() {
   const [setupSaving, setSetupSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/hbl/admin/tenants").then(r => r.json()).then(d => {
-      const list = d.tenants ?? [];
-      setTenants(list);
-      setTenantsLoaded(true);
-    }).catch(() => setTenantsLoaded(true));
+    // Restore existing session first
     const saved = sessionStorage.getItem("hbl_admin_session");
     if (saved) {
       try {
         const { tenant: t, pin: p } = JSON.parse(saved);
-        setTenant(t); setPin(p); setStep("dash");
+        setTenant(t); setPin(p); setStep("dash"); return;
       } catch {}
     }
-  }, []);
+    // Fetch tenants, then honour ?t=slug deep-link (admin QR code)
+    fetch("/api/hbl/admin/tenants").then(r => r.json()).then(d => {
+      const list: Tenant[] = d.tenants ?? [];
+      setTenants(list);
+      setTenantsLoaded(true);
+      const slug = searchParams.get("t");
+      if (slug) {
+        const found = list.find(t => t.slug === slug);
+        if (found) { setTenant(found); setStep("pin"); return; }
+      }
+      if (list.length === 1) { setTenant(list[0]); setStep("pin"); }
+    }).catch(() => setTenantsLoaded(true));
+  }, [searchParams]);
 
   const fetchStats = useCallback(async (p: string, t: Tenant) => {
     setLoading(true);
