@@ -1084,6 +1084,7 @@ model HblTenant {
   id        String      @id @default(cuid())
   name      String      // branch / club display name
   slug      String      @unique // url-safe identifier
+  ownerName String      @default("") // FBO name for FSSAI certificate
   address   String      @default("")
   gstin     String      @default("")
   fssai     String      @default("")

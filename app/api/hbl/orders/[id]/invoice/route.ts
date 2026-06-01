@@ -32,6 +32,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Fetch tenant for this order so invoice shows correct FSSAI/GSTIN/address
+    const tenantId = order.tenantId ?? member.tenantId;
+    const tenant = tenantId
+      ? await prisma.hblTenant.findUnique({ where: { id: tenantId } })
+      : null;
+
     const invoiceData = {
       orderNo: order.orderNo,
       invoiceNo: `INV-${order.orderNo}`,
@@ -59,6 +65,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         };
       }),
       volumePoints: Math.round(order.totalAmount / 100),
+      clubName:      tenant?.name      ?? undefined,
+      clubAddress:   tenant?.address   ?? undefined,
+      clubFssai:     tenant?.fssai     ?? undefined,
+      clubGstin:     tenant?.gstin     ?? undefined,
+      clubPhone:     tenant?.phone     ?? undefined,
+      clubOwnerName: tenant?.ownerName ?? undefined,
     };
 
     // Generate PDF — returns Uint8Array

@@ -13,10 +13,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const { name, address, gstin, fssai, phone, adminPin, isActive } = body;
+  const { name, ownerName, address, gstin, fssai, phone, adminPin, isActive } = body;
 
   const data: Record<string, unknown> = {};
   if (name !== undefined) data.name = name;
+  if (ownerName !== undefined) data.ownerName = ownerName;
   if (address !== undefined) data.address = address;
   if (gstin !== undefined) data.gstin = gstin;
   if (fssai !== undefined) data.fssai = fssai;

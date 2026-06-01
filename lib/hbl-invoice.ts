@@ -18,6 +18,10 @@ export interface InvoiceData {
   volumePoints?: number;
   clubName?: string;
   clubAddress?: string;
+  clubFssai?: string;
+  clubGstin?: string;
+  clubPhone?: string;
+  clubOwnerName?: string;
 }
 
 // ── Colours ──────────────────────────────────────────────────────────────────
@@ -82,8 +86,11 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   const W = 595 - L * 2; // usable width
   let y = 842 - L; // cursor starts near top
 
-  const club = data.clubName    ?? "Herbalife Nutrition Club";
-  const addr = data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  const club     = data.clubName    ?? "Herbalife Nutrition Club";
+  const addr     = data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  const fssai    = data.clubFssai   ?? "";
+  const gstin    = data.clubGstin   ?? "";
+  const ownerName = data.clubOwnerName ?? "";
 
   // ── HEADER ────────────────────────────────────────────────────────────────
   rect(page, L, y - 50, W, 50, C.green);
@@ -97,7 +104,12 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   rect(page, L, y - 54, W, 54, C.lgray, C.border);
   txt(page, club.toUpperCase(), L + 6, y - 11, bold, 8, C.dark);
   txt(page, addr, L + 6, y - 22, reg, 7, C.gray);
-  txt(page, "GSTIN: 33AAACH8025R1ZA  |  FSSAI No: 10013043000639  |  Reverse Charge: No", L + 6, y - 32, reg, 6, C.gray);
+  const regLine = [
+    gstin  ? `GSTIN: ${gstin}` : "",
+    fssai  ? `FSSAI No: ${fssai}` : "",
+    "Reverse Charge: No",
+  ].filter(Boolean).join("  |  ");
+  txt(page, regLine, L + 6, y - 32, reg, 6, C.gray);
 
   const mX = L + W / 2 + 8;
   [
@@ -250,10 +262,10 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   // ── SIGNATURE ──────────────────────────────────────────────────────────────
   const sigX = L + W - 148;
   rect(page, sigX, y - 46, 148, 46, C.white, C.border);
-  txt(page, "Authorised Signatory",     sigX + 6, y - 12, reg,  6.5, C.gray);
-  txt(page, "Digitally Generated",      sigX + 6, y - 22, reg,  6.5, C.gray);
-  txt(page, club,                       sigX + 6, y - 33, bold, 6.5, C.dark, 136);
-  txt(page, `Date: ${data.orderDate}`,  sigX + 6, y - 43, reg,  6,   C.gray);
+  txt(page, "Authorised Signatory",                      sigX + 6, y - 12, reg,  6.5, C.gray);
+  txt(page, ownerName || "Digitally Generated",          sigX + 6, y - 22, bold, 6.5, C.dark, 136);
+  txt(page, club,                                        sigX + 6, y - 33, reg,  6.5, C.dark, 136);
+  txt(page, `Date: ${data.orderDate}`,                   sigX + 6, y - 43, reg,  6,   C.gray);
 
   // ── FOOTER ─────────────────────────────────────────────────────────────────
   const fy = L + 2;

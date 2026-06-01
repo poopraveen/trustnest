@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Users, TrendingUp, ShoppingBag, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Leaf, LogOut, BarChart3, Package, Bell, ScanLine, Settings, ChevronRight, Building2, Download } from "lucide-react";
+import { Users, TrendingUp, ShoppingBag, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Leaf, LogOut, BarChart3, Package, Bell, ScanLine, Settings, ChevronRight, Building2, Download, QrCode } from "lucide-react";
 import Link from "next/link";
 
 interface Tenant { id: string; name: string; slug: string; address: string; }
@@ -254,6 +254,7 @@ export default function AdminDashboard() {
     { href: "/hbl/admin", label: "Dashboard" },
     { href: "/hbl/admin/members", label: "Members" },
     { href: "/hbl/admin/scanner", label: "🔍 Scanner" },
+    { href: "/hbl/admin/branch-qr", label: "📲 Branch QR" },
     { href: "/hbl/admin/new-joiners", label: "New Joiners" },
     { href: "/hbl/admin/shake-tracker", label: "Shake Tracker" },
     { href: "/hbl/admin/followup", label: "Follow-Ups" },
@@ -386,6 +387,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
               {[
                 { href: "/hbl/admin/scanner", icon: ScanLine, label: "Scanner", color: "bg-teal-600" },
+                { href: "/hbl/admin/branch-qr", icon: QrCode, label: "Branch QR", color: "bg-cyan-700" },
                 { href: "/hbl/admin/members", icon: Users, label: "Members", color: "bg-green-600" },
                 { href: "/hbl/admin/new-joiners", icon: Users, label: "New Joiners", color: "bg-blue-600" },
                 { href: "/hbl/admin/shake-tracker", icon: BarChart3, label: "Shake Tracker", color: "bg-cyan-600" },
