@@ -127,8 +127,8 @@ export function buildWardElectionKnowledge(
     "Official elector counts come from ECI Electoral Roll 2026 (SIR), AC 5 Poonamallee (SC).",
     `Voter-level sample: ${ANALYTICS_META.totalAnalyzed} records total (Veppampattu: ${veppSample}, Perumalpattu: ${peruSample}).`,
     peruSample === 0
-      ? "Perumalpattu voter extract not loaded — chat uses official roll totals only for parts 188–197 until data/ward-election/perumalpattu/ward_members.json is filled and npm run ward:gen is run."
-      : "Perumalpattu voter sample is loaded — sampleAnalytics on those parts are available.",
+      ? "Perumalpattu voter extract not loaded — add data/ward-election/perumalpattu/ward_members.json and run npm run ward:gen."
+      : `Perumalpattu voter JSON loaded (${peruSample} records, parts 188, 191–197, 198).`,
     ANALYTICS_META.note,
     `Household canvassing routes: ${HOUSEHOLD_META.totalHouseholds} households (${HOUSEHOLDS_BY_AREA.veppampattu?.totalHouseholds ?? 0} Veppampattu, ${HOUSEHOLDS_BY_AREA.perumalpattu?.totalHouseholds ?? 0} Perumalpattu).`,
     "Veppampattu polling parts: 164–171, 173 (172 roll pending). Perumalpattu: 188, 191–197 (189–190 not in dataset).",

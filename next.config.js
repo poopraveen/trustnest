@@ -3,6 +3,15 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ensure voter JSON is bundled for ward-election API routes on Vercel
+  experimental: {
+    outputFileTracingIncludes: {
+      "/api/ward-election/voters": ["./data/ward-election/**/*.json"],
+      "/api/ward-election/chat": ["./data/ward-election/**/*.json"],
+      "/api/ward-election/households": ["./data/ward-election/**/*.json"],
+      "/api/ward-election/strategy": ["./data/ward-election/**/*.json"],
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.amazonaws.com" },
