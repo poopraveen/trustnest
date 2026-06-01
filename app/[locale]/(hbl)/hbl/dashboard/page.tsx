@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Leaf, CheckCircle2, ShoppingBag, History, Star, Calendar, AlertTriangle, LogOut, ChevronRight, Loader2, QrCode, ExternalLink } from "lucide-react";
+import { Leaf, CheckCircle2, ShoppingBag, History, Star, Calendar, AlertTriangle, LogOut, ChevronRight, Loader2, QrCode, ExternalLink, Download } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -183,6 +183,19 @@ export default function HblDashboard() {
             </Link>
           ))}
         </div>
+
+        {/* Brochure download */}
+        <a href="/TrustNest_HBL_Brochure.pdf" download
+          className="bg-indigo-50 text-indigo-700 rounded-2xl p-4 flex items-center gap-3 hover:bg-indigo-100 transition-colors border border-indigo-100">
+          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+            <Download className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-sm">Download Club Brochure</p>
+            <p className="text-xs text-indigo-500">TrustNest HBL — platform overview PDF</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-indigo-400" />
+        </a>
 
         {/* Loyalty points card */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Users, TrendingUp, ShoppingBag, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Leaf, LogOut, BarChart3, Package, Bell, ScanLine, Settings, ChevronRight, Building2 } from "lucide-react";
+import { Users, TrendingUp, ShoppingBag, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Leaf, LogOut, BarChart3, Package, Bell, ScanLine, Settings, ChevronRight, Building2, Download } from "lucide-react";
 import Link from "next/link";
 
 interface Tenant { id: string; name: string; slug: string; address: string; }
@@ -399,6 +399,10 @@ export default function AdminDashboard() {
                   <span className="text-xs font-bold">{label}</span>
                 </Link>
               ))}
+              <a href="/TrustNest_HBL_Brochure.pdf" download className="bg-indigo-600 text-white rounded-2xl p-4 flex flex-col items-center gap-2 hover:opacity-90 transition-opacity text-center">
+                <Download className="w-6 h-6" />
+                <span className="text-xs font-bold">Brochure PDF</span>
+              </a>
             </div>
           </>
         )}
