@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const ctx = await getAdminContext(req);
   if (!ctx?.isSuperAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, slug, address, gstin, fssai, phone, adminPin } = await req.json();
+  const { name, slug, legalName, address, email, gstin, fssai, phone, adminPin } = await req.json();
   if (!name || !slug) return NextResponse.json({ error: "name and slug required" }, { status: 400 });
 
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "-");
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (exists) return NextResponse.json({ error: "Slug already taken" }, { status: 409 });
 
   const tenant = await prisma.hblTenant.create({
-    data: { name, slug: cleanSlug, address: address ?? "", gstin: gstin ?? "", fssai: fssai ?? "", phone: phone ?? "", adminPin: adminPin ?? "9999" },
+    data: { name, slug: cleanSlug, legalName: legalName ?? "", address: address ?? "", email: email ?? "", gstin: gstin ?? "", fssai: fssai ?? "", phone: phone ?? "", adminPin: adminPin ?? "9999" },
   });
   return NextResponse.json({ tenant }, { status: 201 });
 }

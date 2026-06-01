@@ -1084,7 +1084,9 @@ model HblTenant {
   id        String      @id @default(cuid())
   name      String      // branch / club display name
   slug      String      @unique // url-safe identifier
+  legalName String      @default("") // FBO / proprietor name (for invoices)
   address   String      @default("")
+  email     String      @default("") // branch contact email (for invoices)
   gstin     String      @default("")
   fssai     String      @default("")
   phone     String      @default("")

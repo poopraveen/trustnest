@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Leaf, Save, Loader2, CheckCircle2, Building2, Lock } from "lucide-react";
+import { ArrowLeft, Leaf, Save, Loader2, CheckCircle2, Building2, Lock, QrCode } from "lucide-react";
 import Link from "next/link";
 
 interface Tenant {
-  id: string; name: string; slug: string; address: string;
-  gstin: string; fssai: string; phone: string; adminPin: string;
+  id: string; name: string; slug: string; legalName: string; address: string;
+  email: string; gstin: string; fssai: string; phone: string; adminPin: string;
 }
 
 export default function AdminSettings() {
   const router = useRouter();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [adminPin, setAdminPin] = useState("");
-  const [form, setForm] = useState({ name: "", address: "", gstin: "", fssai: "", phone: "", adminPin: "" });
+  const [form, setForm] = useState({ name: "", legalName: "", address: "", email: "", gstin: "", fssai: "", phone: "", adminPin: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ export default function AdminSettings() {
     try {
       const { tenant: t, pin: p } = JSON.parse(stored);
       setTenant(t); setAdminPin(p);
-      setForm({ name: t.name, address: t.address ?? "", gstin: t.gstin ?? "", fssai: t.fssai ?? "", phone: t.phone ?? "", adminPin: "" });
+      setForm({ name: t.name, legalName: t.legalName ?? "", address: t.address ?? "", email: t.email ?? "", gstin: t.gstin ?? "", fssai: t.fssai ?? "", phone: t.phone ?? "", adminPin: "" });
     } catch { router.replace("/hbl/admin"); }
   }, [router]);
 
@@ -40,7 +40,7 @@ export default function AdminSettings() {
     const res = await fetch(`/api/hbl/admin/tenants/${tenant.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-hbl-admin": adminPin, "x-hbl-tenant": tenant.id },
-      body: JSON.stringify({ name: form.name, address: form.address, gstin: form.gstin, fssai: form.fssai, phone: form.phone }),
+      body: JSON.stringify({ name: form.name, legalName: form.legalName, address: form.address, email: form.email, gstin: form.gstin, fssai: form.fssai, phone: form.phone }),
     });
 
     const data = await res.json();
@@ -121,6 +121,15 @@ export default function AdminSettings() {
               />
             </div>
             <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Proprietor / FBO Name</label>
+              <input
+                value={form.legalName} onChange={e => setForm(f => ({ ...f, legalName: e.target.value }))}
+                className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                placeholder="As per FSSAI licence (e.g. S K C Yoganathan)"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Shown as the seller name on invoices / bills of supply.</p>
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Address</label>
               <textarea
                 value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
@@ -143,11 +152,19 @@ export default function AdminSettings() {
                   placeholder="10013..." />
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Branch Phone / WhatsApp</label>
-              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
-                placeholder="10-digit number" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Branch Phone / WhatsApp</label>
+                <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                  placeholder="10-digit number" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Branch Email</label>
+                <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                  placeholder="branch@example.com" />
+              </div>
             </div>
 
             <div className="bg-slate-50 rounded-xl px-4 py-2.5">
@@ -162,6 +179,33 @@ export default function AdminSettings() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
           </button>
+        </div>
+
+        {/* Branch QR Code */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <QrCode className="w-5 h-5 text-slate-500" />
+            <h2 className="font-bold text-slate-800">Branch QR Code</h2>
+          </div>
+          <p className="text-sm text-slate-500 mb-4">
+            Print and display this at your club entrance. Members scan it to instantly open your branch portal.
+          </p>
+          <div className="flex items-center gap-4 bg-green-50 rounded-2xl p-4 border border-green-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent((typeof window !== "undefined" ? window.location.origin : "https://trustnest-tsgz.vercel.app") + "/hbl?t=" + tenant.slug)}&size=100x100&bgcolor=ffffff&color=14532d&qzone=1`}
+              alt="Branch QR" className="w-24 h-24 rounded-xl border-2 border-green-200 shrink-0"
+              style={{ imageRendering: "pixelated" }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-slate-800 text-sm">{tenant.name}</p>
+              <p className="text-xs text-slate-500 font-mono mt-0.5">/hbl?t={tenant.slug}</p>
+              <Link href="/hbl/admin/branch-qr"
+                className="inline-flex items-center gap-1.5 mt-3 bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-green-700">
+                <QrCode className="w-3.5 h-3.5" /> View Full Poster / Print
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Change PIN */}

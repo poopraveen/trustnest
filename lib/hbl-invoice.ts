@@ -8,6 +8,16 @@ export interface InvoiceItem {
   retailPricePerUnit: number;
 }
 
+export interface InvoiceSeller {
+  name?: string;       // club / branch display name
+  legalName?: string;  // FBO / proprietor name
+  address?: string;
+  gstin?: string;
+  fssai?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface InvoiceData {
   orderNo: string;
   invoiceNo: string;
@@ -16,6 +26,9 @@ export interface InvoiceData {
   shipTo: { name: string; address: string };
   items: InvoiceItem[];
   volumePoints?: number;
+  /** Seller / branch details — pulled from the tenant record. */
+  seller?: InvoiceSeller;
+  // Legacy aliases (still honoured if `seller` is not provided)
   clubName?: string;
   clubAddress?: string;
 }
@@ -45,6 +58,36 @@ function txt(page: PDFPage, s: string, x: number, y: number, font: PDFFont, size
     if (str !== String(s)) str = str.slice(0, -1) + "…";
   }
   page.drawText(str, { x, y, size, font, color });
+}
+
+/** Draw text right-aligned so it ends at xRight. */
+function txtRight(page: PDFPage, s: string, xRight: number, y: number, font: PDFFont, size: number, color = C.dark) {
+  if (!s) return;
+  const str = String(s);
+  const w = font.widthOfTextAtSize(str, size);
+  page.drawText(str, { x: xRight - w, y, size, font, color });
+}
+
+/** Draw text centred horizontally around xCenter. */
+function txtCenter(page: PDFPage, s: string, xCenter: number, y: number, font: PDFFont, size: number, color = C.dark) {
+  if (!s) return;
+  const str = String(s);
+  const w = font.widthOfTextAtSize(str, size);
+  page.drawText(str, { x: xCenter - w / 2, y, size, font, color });
+}
+
+/** Word-wrap a string into lines that each fit within maxW. */
+function wrapText(font: PDFFont, s: string, size: number, maxW: number): string[] {
+  const words = String(s).split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w;
+    if (cur && font.widthOfTextAtSize(test, size) > maxW) { lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 function hline(page: PDFPage, x: number, y: number, w: number, color = C.border) {
@@ -82,34 +125,69 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   const W = 595 - L * 2; // usable width
   let y = 842 - L; // cursor starts near top
 
-  const club = data.clubName    ?? "Herbalife Nutrition Club";
-  const addr = data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  // Resolve seller details (tenant record → legacy aliases → sensible defaults)
+  const seller = data.seller ?? {};
+  const club    = seller.name    ?? data.clubName    ?? "Herbalife Nutrition Club";
+  const addr    = seller.address ?? data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  const gstin   = (seller.gstin ?? "").trim();
+  const fssai   = (seller.fssai ?? "").trim();
+  const legal   = (seller.legalName ?? "").trim();
+  const sPhone  = (seller.phone ?? "").trim();
+  const sEmail  = (seller.email ?? "").trim();
+  const hasGst  = gstin.length > 0;
 
   // ── HEADER ────────────────────────────────────────────────────────────────
   rect(page, L, y - 50, W, 50, C.green);
   txt(page, "Herbalife", L + 8, y - 18, bold, 20, C.white);
   txt(page, "NUTRITION", L + 8, y - 30, reg, 7, C.tgreen);
-  txt(page, "TAX INVOICE", L + W - 85, y - 20, bold, 13, C.white);
-  txt(page, "Original for Recipient", L + W - 85, y - 32, reg, 6, C.tgreen);
+  const docTitle = hasGst ? "TAX INVOICE" : "BILL OF SUPPLY";
+  txtRight(page, docTitle, L + W - 10, y - 20, bold, 13, C.white);
+  txtRight(page, "Original for Recipient", L + W - 10, y - 32, reg, 6, C.tgreen);
   y -= 56;
 
   // ── SELLER BAR ─────────────────────────────────────────────────────────────
-  rect(page, L, y - 54, W, 54, C.lgray, C.border);
-  txt(page, club.toUpperCase(), L + 6, y - 11, bold, 8, C.dark);
-  txt(page, addr, L + 6, y - 22, reg, 7, C.gray);
-  txt(page, "GSTIN: 33AAACH8025R1ZA  |  FSSAI No: 10013043000639  |  Reverse Charge: No", L + 6, y - 32, reg, 6, C.gray);
+  // Left column = seller details; right column = invoice meta. They must not
+  // overlap, so the left text is wrapped/clamped to its own width.
+  const metaW   = 150;
+  const leftW   = W - metaW;
+  const leftInW = leftW - 12;
+  const mX      = L + leftW + 6;
 
-  const mX = L + W / 2 + 8;
-  [
+  const regLine = [
+    hasGst ? `GSTIN: ${gstin}` : "GST: Not Registered (Bill of Supply)",
+    fssai ? `FSSAI No: ${fssai}` : null,
+    "Reverse Charge: No",
+  ].filter(Boolean).join("  |  ");
+  const contactLine = [sPhone ? `Ph: ${sPhone}` : null, sEmail || null].filter(Boolean).join("  |  ");
+  const addrLines = wrapText(reg, addr, 6.5, leftInW).slice(0, 2);
+
+  // Bar height = whichever column is taller.
+  const leftCount = 1 + (legal ? 1 : 0) + addrLines.length + 1 + (contactLine ? 1 : 0);
+  const leftH  = 11 + (leftCount - 1) * 9 + 6;
+  const metaH  = 11 + 3 * 11 + 6;
+  const barH   = Math.max(leftH, metaH, 54);
+  rect(page, L, y - barH, W, barH, C.lgray, C.border);
+  vline(page, mX - 8, y, y - barH, C.border);
+
+  // Left column
+  let ly = y - 11;
+  txt(page, club.toUpperCase(), L + 6, ly, bold, 8, C.dark, leftInW); ly -= 10;
+  if (legal) { txt(page, `Prop: ${legal}`, L + 6, ly, reg, 6.5, C.gray, leftInW); ly -= 9; }
+  addrLines.forEach((line) => { txt(page, line, L + 6, ly, reg, 6.5, C.gray); ly -= 9; });
+  txt(page, regLine, L + 6, ly, reg, 6, C.gray, leftInW); ly -= 9;
+  if (contactLine) txt(page, contactLine, L + 6, ly, reg, 6, C.gray, leftInW);
+
+  // Right column (invoice meta) — labels left, values right-aligned to the edge
+  ([
     ["Invoice No:",   data.invoiceNo],
     ["Invoice Date:", data.orderDate],
     ["Order No:",     data.orderNo],
     ["Channel:",      "Online"],
-  ].forEach(([k, v], i) => {
-    txt(page, k,  mX,      y - 11 - i * 11, reg,  7, C.gray);
-    txt(page, v,  mX + 68, y - 11 - i * 11, bold, 7, C.dark);
+  ] as [string, string][]).forEach(([k, v], i) => {
+    txt(page, k, mX, y - 11 - i * 11, reg, 7, C.gray);
+    txtRight(page, v, L + W - 6, y - 11 - i * 11, bold, 7, C.dark);
   });
-  y -= 60;
+  y -= barH + 6;
 
   // ── PURCHASED BY / SHIP TO ─────────────────────────────────────────────────
   const half = (W - 4) / 2;
@@ -146,20 +224,33 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   y -= 20;
 
   // ── TABLE ──────────────────────────────────────────────────────────────────
-  // Column widths (must sum to W)
-  const CW = { sl: 18, sku: 34, desc: 110, mrp: 46, qty: 20, retail: 48, total: 50, disc: 44, tax: 50, sgst: 38, cgst: 40 };
+  // Column widths — MUST sum to W (523) so the grid fills the full table width.
+  const CW = { sl: 20, sku: 38, desc: 120, mrp: 47, qty: 22, retail: 49, total: 50, disc: 44, tax: 50, sgst: 41, cgst: 42 };
   const CWArr = Object.values(CW);
-  const colStarts = CWArr.reduce<number[]>((acc, w, i) => [...acc, (acc[i - 1] ?? L) + (i === 0 ? 0 : CWArr[i - 1])], []);
-  // colStarts[0] = L
-  colStarts[0] = L;
+  const colStarts: number[] = [L];
   for (let i = 1; i < CWArr.length; i++) colStarts[i] = colStarts[i - 1] + CWArr[i - 1];
 
-  const HEADS = ["SL", "SKU", "Description", "MRP/Unit", "Qty", "Retail/Unit", "Total", "Discount", "Taxable", "SGST\n2.5%", "CGST\n2.5%"];
-  const TH = 20;
+  // Per-column horizontal alignment.
+  const ALIGN: ("left" | "center" | "right")[] =
+    ["center", "left", "left", "right", "center", "right", "right", "right", "right", "right", "right"];
+  const PAD = 3;
+
+  // Draw a value into column `i` honouring its alignment.
+  const drawCell = (s: string, i: number, yy: number, font: PDFFont, size: number, color = C.dark) => {
+    const x0 = colStarts[i];
+    const cw = CWArr[i];
+    if (ALIGN[i] === "right") txtRight(page, s, x0 + cw - PAD, yy, font, size, color);
+    else if (ALIGN[i] === "center") txtCenter(page, s, x0 + cw / 2, yy, font, size, color);
+    else txt(page, s, x0 + PAD, yy, font, size, color, cw - PAD * 2);
+  };
+
+  const HEADS = ["SL", "SKU", "Description", "MRP/Unit", "Qty", "Retail/Unit", "Total", "Discount", "Taxable", hasGst ? "SGST\n2.5%" : "SGST", hasGst ? "CGST\n2.5%" : "CGST"];
+  const TH = 22;
   rect(page, L, y - TH, W, TH, C.green);
   HEADS.forEach((h, i) => {
     const lines = h.split("\n");
-    lines.forEach((line, li) => txt(page, line, colStarts[i] + 2, y - 8 - li * 8, bold, 5.8, C.white));
+    const ys = lines.length > 1 ? [y - 8.5, y - 16] : [y - 13.5];
+    lines.forEach((line, li) => drawCell(line, i, ys[li], bold, 5.8, C.white));
   });
   // header vlines
   for (let i = 1; i < HEADS.length; i++) vline(page, colStarts[i], y, y - TH, C.white);
@@ -177,9 +268,11 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
     const mrpTotal   = item.mrpPerUnit * item.qty;
     const retail     = item.retailPricePerUnit * item.qty;
     const disc       = mrpTotal - retail;
-    const taxable    = retail / 1.05;
-    const sgst       = taxable * 0.025;
-    const cgst       = taxable * 0.025;
+    // GST-registered sellers: price is inclusive of 5% GST (2.5% SGST + 2.5% CGST).
+    // Unregistered retailers (Bill of Supply): no tax is extracted.
+    const taxable    = hasGst ? retail / 1.05 : retail;
+    const sgst       = hasGst ? taxable * 0.025 : 0;
+    const cgst       = hasGst ? taxable * 0.025 : 0;
 
     totMrp    += mrpTotal;
     totRetail += retail;
@@ -194,44 +287,49 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
       retail.toFixed(2), disc.toFixed(2), taxable.toFixed(2),
       sgst.toFixed(2), cgst.toFixed(2),
     ];
-    cells.forEach((v, i) => {
-      txt(page, v, colStarts[i] + 2, y - 12, reg, 6.5, C.dark, CWArr[i] - 4);
-    });
+    cells.forEach((v, i) => drawCell(v, i, y - 12, reg, 6.5, C.dark));
     for (let i = 1; i < HEADS.length; i++) vline(page, colStarts[i], y, y - RH, C.border);
     hline(page, L, y - RH, W, C.border);
     y -= RH + 1;
   });
 
   // Totals row
-  rect(page, L, y - 18, W, 18, C.lgray);
-  txt(page, "Total", colStarts[2] + 2, y - 12, bold, 7, C.dark);
-  [
+  const TR = 18;
+  rect(page, L, y - TR, W, TR, C.lgray);
+  txt(page, "Total", colStarts[1] + PAD, y - 12, bold, 7, C.dark);
+  ([
     [3, totMrp], [6, totRetail], [7, totDisc], [8, totTax], [9, totSgst], [10, totCgst],
-  ].forEach(([ci, val]) => {
-    txt(page, (val as number).toFixed(2), colStarts[ci as number] + 2, y - 12, bold, 7, C.dark, CWArr[ci as number] - 4);
+  ] as [number, number][]).forEach(([ci, val]) => {
+    drawCell(val.toFixed(2), ci, y - 12, bold, 7, C.dark);
   });
-  for (let i = 1; i < HEADS.length; i++) vline(page, colStarts[i], y, y - 18, C.border);
-  hline(page, L, y - 18, W, C.border);
-  y -= 24;
+  for (let i = 1; i < HEADS.length; i++) vline(page, colStarts[i], y, y - TR, C.border);
+  hline(page, L, y - TR, W, C.border);
+  y -= TR + 6;
 
   // ── INVOICE SUMMARY ────────────────────────────────────────────────────────
   const invoiceTotal = totTax + totSgst + totCgst;
   const netSavings   = totMrp - invoiceTotal;
 
-  rect(page, L, y - 48, W, 48, C.white, C.border);
-  txt(page, "Invoice Value (in words):", L + 6, y - 10, bold, 7, C.dark);
-  const words = numWords(invoiceTotal);
-  const wLines = words.match(/.{1,52}/g) ?? [words];
-  wLines.slice(0, 2).forEach((line, i) => txt(page, line, L + 6, y - 20 - i * 10, reg, 7, C.dark));
+  const SH = 50;
+  rect(page, L, y - SH, W, SH, C.white, C.border);
 
-  const sX = L + W - 155;
-  txt(page, "MRP Total:",     sX,      y - 10, reg,  7.5, C.dark);
-  txt(page, `Rs. ${totMrp.toFixed(2)}`,  sX + 82, y - 10, reg,  7.5, C.dark);
-  txt(page, "Invoice Total:", sX,      y - 23, bold, 8,   C.green);
-  txt(page, `Rs. ${invoiceTotal.toFixed(2)}`, sX + 82, y - 23, bold, 8, C.green);
-  txt(page, "Net Savings:",   sX,      y - 36, reg,  7.5, C.dark);
-  txt(page, `Rs. ${netSavings.toFixed(2)}`, sX + 82, y - 36, reg, 7.5, C.dark);
-  y -= 54;
+  // Left: amount in words
+  txt(page, "Invoice Value (in words):", L + 6, y - 11, bold, 7, C.dark);
+  const words = numWords(invoiceTotal);
+  const wLines = words.match(/.{1,46}/g) ?? [words];
+  wLines.slice(0, 2).forEach((line, i) => txt(page, line, L + 6, y - 22 - i * 10, reg, 7, C.dark));
+
+  // Right: totals block (labels left, amounts right-aligned to a shared edge)
+  const sLabelX = L + W - 170;
+  const sValR   = L + W - 8;
+  vline(page, sLabelX - 12, y, y - SH, C.border);
+  txt(page,      "MRP Total:",     sLabelX, y - 12, reg,  7.5, C.dark);
+  txtRight(page, `Rs. ${totMrp.toFixed(2)}`,        sValR, y - 12, reg,  7.5, C.dark);
+  txt(page,      "Invoice Total:", sLabelX, y - 26, bold, 8.5, C.green);
+  txtRight(page, `Rs. ${invoiceTotal.toFixed(2)}`,  sValR, y - 26, bold, 8.5, C.green);
+  txt(page,      "Net Savings:",   sLabelX, y - 40, reg,  7.5, C.dark);
+  txtRight(page, `Rs. ${netSavings.toFixed(2)}`,    sValR, y - 40, reg,  7.5, C.dark);
+  y -= SH + 6;
 
   // ── VOLUME POINTS ──────────────────────────────────────────────────────────
   if (data.volumePoints !== undefined) {
@@ -242,9 +340,18 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
 
   // ── NOTES ──────────────────────────────────────────────────────────────────
   y -= 6;
+  if (!hasGst) {
+    txt(page, "Bill of Supply: Seller is not registered under GST (turnover within exemption limit). No tax is charged on this bill.", L, y, reg, 6.5, C.gray, W);
+    y -= 11;
+  }
   txt(page, "Thank you for your order. Products are prepared fresh at the nutrition club. Contact us for any queries.", L, y, reg, 6.5, C.gray, W);
   y -= 12;
-  txt(page, "Toll Free: 1800-102-2444  |  Email: preferredcustomer@herbalife.com  |  Web: www.myherbalife.com/en-in/", L, y, reg, 6.5, C.gray, W);
+  const footContact = [
+    sPhone ? `Ph: ${sPhone}` : null,
+    sEmail ? `Email: ${sEmail}` : "Email: preferredcustomer@herbalife.com",
+    "Web: www.myherbalife.com/en-in/",
+  ].filter(Boolean).join("  |  ");
+  txt(page, footContact, L, y, reg, 6.5, C.gray, W);
   y -= 20;
 
   // ── SIGNATURE ──────────────────────────────────────────────────────────────

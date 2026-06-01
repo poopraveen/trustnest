@@ -7,7 +7,11 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const email = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@trustnest.local";
+const emailArg = process.argv[2]?.trim();
+const email =
+  emailArg ||
+  process.env.SEED_ADMIN_EMAIL?.trim() ||
+  "admin@trustnest.in";
 const password = process.env.SEED_ADMIN_PASSWORD?.trim() || "TrustNest@Admin1";
 
 async function main() {
@@ -34,8 +38,10 @@ async function main() {
   console.log("\nAdmin account ready:");
   console.log(`  Email:    ${user.email}`);
   console.log(`  Password: ${password}`);
-  console.log("\nSign in at http://localhost:3000/login (email + password, not Google).");
-  console.log("Admin panel: http://localhost:3000/admin\n");
+  console.log("  Role:     ADMIN (can post marketplace products + /admin panel)");
+  console.log("\nSign out and sign in again with email + password (not Google).");
+  console.log("  Post product: /seller/products/new");
+  console.log("  Admin panel:  /admin\n");
 }
 
 main()
