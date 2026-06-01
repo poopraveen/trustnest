@@ -10,6 +10,7 @@ export default function HblLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenantsLoaded, setTenantsLoaded] = useState(false);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -22,14 +23,14 @@ export default function HblLoginPage() {
     fetch("/api/hbl/admin/tenants").then(r => r.json()).then(d => {
       const list: Tenant[] = d.tenants ?? [];
       setTenants(list);
-      // Auto-select if ?t=slug or only one tenant
+      setTenantsLoaded(true);
       const slug = searchParams.get("t");
       if (slug) {
         const found = list.find(t => t.slug === slug);
         if (found) { setTenant(found); setStep("phone"); return; }
       }
       if (list.length === 1) { setTenant(list[0]); setStep("phone"); }
-    });
+    }).catch(() => setTenantsLoaded(true));
   }, [searchParams]);
 
   async function sendOtp() {
@@ -76,8 +77,14 @@ export default function HblLoginPage() {
             <>
               <h2 className="text-xl font-bold text-slate-800 mb-1">Select Your Branch</h2>
               <p className="text-slate-500 text-sm mb-5">Choose your Herbalife club location</p>
-              {tenants.length === 0 ? (
+              {!tenantsLoaded ? (
                 <div className="text-center py-6"><Loader2 className="w-6 h-6 animate-spin text-green-600 mx-auto" /></div>
+              ) : tenants.length === 0 ? (
+                <div className="text-center py-6 space-y-2">
+                  <p className="text-slate-500 text-sm">No branches set up yet.</p>
+                  <p className="text-slate-400 text-xs">Contact your club admin to get started.</p>
+                  <a href="/hbl/admin" className="block mt-3 text-xs text-green-600 font-semibold hover:underline">Admin → Create First Branch</a>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {tenants.map(t => (

@@ -20,19 +20,24 @@ function adminHeaders(pin: string, tenantId: string) {
 }
 
 export default function AdminDashboard() {
-  const [step, setStep] = useState<"tenant" | "pin" | "dash">("tenant");
+  const [step, setStep] = useState<"tenant" | "pin" | "dash" | "setup">("tenant");
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenantsLoaded, setTenantsLoaded] = useState(false);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [pin, setPin] = useState("");
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [wa, setWa] = useState<string | null>(null);
+  const [setupForm, setSetupForm] = useState({ name: "", slug: "", address: "", gstin: "", fssai: "", phone: "", adminPin: "9999", superPin: "" });
+  const [setupSaving, setSetupSaving] = useState(false);
 
-  // Load tenants for selection
   useEffect(() => {
-    fetch("/api/hbl/admin/tenants").then(r => r.json()).then(d => setTenants(d.tenants ?? []));
-    // Restore session
+    fetch("/api/hbl/admin/tenants").then(r => r.json()).then(d => {
+      const list = d.tenants ?? [];
+      setTenants(list);
+      setTenantsLoaded(true);
+    }).catch(() => setTenantsLoaded(true));
     const saved = sessionStorage.getItem("hbl_admin_session");
     if (saved) {
       try {
@@ -55,6 +60,33 @@ export default function AdminDashboard() {
   }, [step, tenant, pin, stats, fetchStats]);
 
   function selectTenant(t: Tenant) { setTenant(t); setStep("pin"); setError(""); }
+
+  async function createFirstBranch() {
+    if (!setupForm.name || !setupForm.superPin) { setError("Branch name and super PIN required"); return; }
+    setSetupSaving(true); setError("");
+    const slug = setupForm.slug || setupForm.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const res = await fetch("/api/hbl/admin/setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-hbl-admin": setupForm.superPin },
+      body: JSON.stringify({ name: setupForm.name, slug, address: setupForm.address, gstin: setupForm.gstin, fssai: setupForm.fssai, phone: setupForm.phone }),
+    });
+    const data = await res.json();
+    setSetupSaving(false);
+    if (!res.ok) { setError(data.error ?? "Failed — check your super PIN (default: 9999)"); return; }
+    // If custom adminPin, update it
+    if (setupForm.adminPin && setupForm.adminPin !== "9999") {
+      await fetch(`/api/hbl/admin/tenants/${data.tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-hbl-admin": setupForm.superPin },
+        body: JSON.stringify({ adminPin: setupForm.adminPin }),
+      });
+    }
+    // Refresh tenant list and proceed to pin step
+    const newTenant = { ...data.tenant, adminPin: setupForm.adminPin || "9999" };
+    setTenants([newTenant]); setTenant(newTenant); setPin(setupForm.adminPin || setupForm.superPin);
+    sessionStorage.setItem("hbl_admin_session", JSON.stringify({ tenant: newTenant, pin: setupForm.adminPin || setupForm.superPin }));
+    setStep("dash");
+  }
 
   async function login() {
     if (!pin.trim() || !tenant) { setError("Enter PIN"); return; }
@@ -84,6 +116,67 @@ export default function AdminDashboard() {
   }
 
   // ── Tenant selection ────────────────────────────────────────────────────────
+  if (step === "setup") return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm">
+        <button onClick={() => { setStep("tenant"); setError(""); }} className="text-xs text-slate-400 hover:text-slate-600 mb-4 block">← Back</button>
+        <div className="text-center mb-5">
+          <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Building2 className="w-7 h-7 text-green-600" />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 mb-1">Create First Branch</h2>
+          <p className="text-slate-500 text-xs">One-time setup for your Herbalife club</p>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Branch / Club Name *</label>
+            <input value={setupForm.name} onChange={e => setSetupForm(f => ({ ...f, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-") }))}
+              placeholder="e.g. Veppampattu Nutrition Club"
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Address</label>
+            <input value={setupForm.address} onChange={e => setSetupForm(f => ({ ...f, address: e.target.value }))}
+              placeholder="Full address"
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">GSTIN</label>
+              <input value={setupForm.gstin} onChange={e => setSetupForm(f => ({ ...f, gstin: e.target.value }))}
+                placeholder="Optional"
+                className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-500" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">FSSAI</label>
+              <input value={setupForm.fssai} onChange={e => setSetupForm(f => ({ ...f, fssai: e.target.value }))}
+                placeholder="Optional"
+                className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-500" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Branch Admin PIN</label>
+            <input type="password" value={setupForm.adminPin} onChange={e => setSetupForm(f => ({ ...f, adminPin: e.target.value }))}
+              placeholder="PIN for this branch (default: 9999)"
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Super Admin PIN *</label>
+            <input type="password" value={setupForm.superPin} onChange={e => setSetupForm(f => ({ ...f, superPin: e.target.value }))}
+              placeholder="Master PIN from Vercel env (default: 9999)"
+              className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500" />
+            <p className="text-xs text-slate-400 mt-1">This is the HBL_ADMIN_PIN in your Vercel settings (default: 9999)</p>
+          </div>
+        </div>
+        {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+        <button onClick={createFirstBranch} disabled={setupSaving}
+          className="mt-5 w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-2 disabled:opacity-60">
+          {setupSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : "Create Branch & Continue"}
+        </button>
+      </div>
+    </div>
+  );
+
   if (step === "tenant") return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm">
@@ -94,10 +187,19 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-black text-slate-800 mb-1">HBL Admin</h2>
           <p className="text-slate-500 text-sm">Select your branch to continue</p>
         </div>
-        {tenants.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-sm text-slate-500 mb-4">No branches set up yet.</p>
-            <p className="text-xs text-slate-400">Use the super-admin API to create your first branch.</p>
+        {!tenantsLoaded ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-green-600" /></div>
+        ) : tenants.length === 0 ? (
+          <div className="text-center py-4 space-y-3">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+              <Building2 className="w-7 h-7 text-slate-400" />
+            </div>
+            <p className="text-slate-600 text-sm font-semibold">No branches set up yet</p>
+            <p className="text-slate-400 text-xs">Create your first branch to get started</p>
+            <button onClick={() => { setStep("setup"); setError(""); }}
+              className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 text-sm">
+              + Create First Branch
+            </button>
           </div>
         ) : (
           <div className="space-y-2">
@@ -114,6 +216,10 @@ export default function AdminDashboard() {
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
             ))}
+            <button onClick={() => { setStep("setup"); setError(""); }}
+              className="w-full mt-1 text-xs text-slate-400 hover:text-green-600 py-2 border border-dashed border-slate-200 rounded-xl hover:border-green-400 transition-colors">
+              + Add Another Branch
+            </button>
           </div>
         )}
         <Link href="/hbl" className="block mt-6 text-center text-sm text-slate-400 hover:text-slate-600">← Customer Portal</Link>
