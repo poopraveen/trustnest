@@ -13,18 +13,32 @@ interface Reports {
   totalRevenue: number;
 }
 
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
+}
+
+function adminHeaders() {
+  const s = getAdminSession();
+  return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+}
+
 export default function AdminReports() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+
   const [range, setRange] = useState<"week" | "month" | "year">("month");
   const [data, setData] = useState<Reports | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/hbl/admin/reports?range=${range}`, { headers: { "x-hbl-admin": pin } });
+    const res = await fetch(`/api/hbl/admin/reports?range=${range}`, { headers: adminHeaders() });
     if (res.ok) { const d = await res.json(); setData(d); }
     setLoading(false);
-  }, [pin, range]);
+  }, [ range]);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
 

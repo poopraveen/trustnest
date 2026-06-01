@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Leaf, CheckCircle2, ShoppingBag, History, Star, Calendar, AlertTriangle, LogOut, ChevronRight, Loader2, QrCode } from "lucide-react";
+import { Leaf, CheckCircle2, ShoppingBag, History, Star, Calendar, AlertTriangle, LogOut, ChevronRight, Loader2, QrCode, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 interface Member {
   id: string; name: string; phone: string; plan: string; status: string;
@@ -25,6 +26,8 @@ export default function HblDashboard() {
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInMsg, setCheckInMsg] = useState("");
+  const searchParams = useSearchParams();
+  const qrCheckin = searchParams.get("qr_checkin");
 
   useEffect(() => {
     fetch("/api/hbl/auth/me").then((r) => {
@@ -127,27 +130,51 @@ export default function HblDashboard() {
           {checkInMsg && <p className="text-sm font-medium text-green-700 mt-2">{checkInMsg}</p>}
         </div>
 
-        {/* QR Code */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?data=${member.qrCode}&size=80x80&bgcolor=ffffff`}
-            alt="QR Code" className="w-20 h-20 rounded-xl border border-slate-100"
-          />
-          <div>
+        {/* QR scan success banner */}
+        {qrCheckin === "done" && (
+          <div className="bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-bold text-green-800 text-sm">QR Check-In Successful! 🎉</p>
+              <p className="text-xs text-green-600">+1 point earned. Welcome to the club!</p>
+            </div>
+          </div>
+        )}
+        {qrCheckin === "already" && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" />
+            <p className="font-bold text-blue-800 text-sm">Already checked in today ✓</p>
+          </div>
+        )}
+
+        {/* QR Code — tap to view full card */}
+        <Link href="/hbl/myqr" className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4 hover:border-green-300 hover:shadow-sm transition-all group">
+          <div className="relative shrink-0">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent((typeof window !== "undefined" ? window.location.origin : "https://trustnest-tsgz.vercel.app") + "/en/hbl/qr/" + member.qrCode)}&size=80x80&bgcolor=ffffff&color=166534&qzone=1`}
+              alt="QR Code" className="w-20 h-20 rounded-xl border border-slate-100"
+            />
+            <div className="absolute inset-0 bg-green-600/0 group-hover:bg-green-600/10 rounded-xl transition-colors flex items-center justify-center">
+              <ExternalLink className="w-5 h-5 text-green-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <QrCode className="w-4 h-4 text-green-600" />
               <p className="font-bold text-slate-800 text-sm">Your QR Code</p>
+              <span className="text-xs text-green-600 font-semibold ml-auto">Tap to view →</span>
             </div>
-            <p className="font-mono text-xs text-slate-500 break-all">{member.qrCode}</p>
-            <p className="text-xs text-slate-400 mt-1">Show this to check in</p>
+            <p className="font-mono text-xs text-slate-400 truncate">{member.qrCode}</p>
+            <p className="text-xs text-slate-500 mt-1">Scan to login + auto check-in</p>
           </div>
-        </div>
+        </Link>
 
         {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {[
             { href: "/hbl/order", icon: ShoppingBag, label: "Order", color: "bg-emerald-50 text-emerald-700" },
             { href: "/hbl/checkin", icon: CheckCircle2, label: "Check-in", color: "bg-blue-50 text-blue-700" },
+            { href: "/hbl/myqr", icon: QrCode, label: "My QR", color: "bg-green-50 text-green-700" },
             { href: "/hbl/history", icon: History, label: "History", color: "bg-purple-50 text-purple-700" },
           ].map(({ href, icon: Icon, label, color }) => (
             <Link key={href} href={href} className={`${color} rounded-2xl p-4 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity`}>
