@@ -72,7 +72,7 @@ export function isBareNameQuery(msg: string): boolean {
   ) {
     return false;
   }
-  if (/^[a-zA-Z0-9.\s'-]+$/u.test(t) && t.split(/\s+/).length <= 5) return true;
+  if (/^[a-zA-Z0-9.\s'-]+$/.test(t) && t.split(/\s+/).length <= 5) return true;
   return false;
 }
 
