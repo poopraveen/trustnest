@@ -156,6 +156,7 @@ export default function WardElectionChat({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openaiOk, setOpenaiOk] = useState(openaiConfigured);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -170,7 +171,9 @@ export default function WardElectionChat({
   const canChat = openaiConfigured || openaiOk;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, loading, status]);
 
   const send = useCallback(
@@ -292,8 +295,8 @@ export default function WardElectionChat({
   return (
     <div
       className={cn(
-        "flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden",
-        compact ? "h-full min-h-0" : "h-[min(78vh,720px)]",
+        "flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden min-h-0 max-h-full",
+        compact ? "h-full min-h-0" : "h-[min(78vh,720px)] max-h-[calc(100dvh-10rem)]",
         className
       )}
     >
@@ -304,7 +307,7 @@ export default function WardElectionChat({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
+      <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
         <div className="flex items-center gap-2 text-indigo-900 font-semibold text-sm">
           <Sparkles className="w-4 h-4 text-indigo-600" />
           Ward Election AI
@@ -332,7 +335,12 @@ export default function WardElectionChat({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+      {/* Scrollable messages — flex-1 + min-h-0 required for overflow inside flex column */}
+      <div
+        ref={scrollRef}
+        className="ward-chat-messages flex-1 min-h-0 overflow-y-scroll overscroll-y-contain px-4 py-4 space-y-4 [scrollbar-gutter:stable]"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {messages.map((m, i) => (
           <div
             key={i}
@@ -352,7 +360,7 @@ export default function WardElectionChat({
             </div>
             <div
               className={cn(
-                "max-w-[88%] rounded-2xl px-3.5 py-2.5",
+                "max-w-[88%] min-w-0 rounded-2xl px-3.5 py-2.5 overflow-hidden",
                 m.role === "user"
                   ? "bg-indigo-700 text-white"
                   : "bg-slate-50 text-slate-800 border border-slate-100"
@@ -397,7 +405,7 @@ export default function WardElectionChat({
       </div>
 
       {!compact && messages.length <= 1 && (
-        <div className="px-4 pb-2 flex flex-wrap gap-2">
+        <div className="shrink-0 px-4 pb-2 flex flex-wrap gap-2 max-h-28 overflow-y-auto border-t border-slate-50">
           {STARTERS.map((s) => (
             <button
               key={s}
@@ -413,12 +421,12 @@ export default function WardElectionChat({
       )}
 
       {error && (
-        <p className="px-4 pb-2 text-xs text-red-600" role="alert">
+        <p className="shrink-0 px-4 pb-2 text-xs text-red-600" role="alert">
           {error}
         </p>
       )}
 
-      <form onSubmit={onSubmit} className="p-3 border-t border-slate-100 bg-slate-50/80">
+      <form onSubmit={onSubmit} className="shrink-0 p-3 border-t border-slate-100 bg-slate-50/80">
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}

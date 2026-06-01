@@ -35,6 +35,29 @@ function dataPath(areaId: string): string {
   return path.join(process.cwd(), area.voterDataPath);
 }
 
+/** Normalize house keys so route "1-11" matches voter JSON "1/11", etc. */
+export function normalizeHouseKey(house: string): string {
+  return String(house || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[/\\~]/g, "-")
+    .replace(/\s+/g, "");
+}
+
+export function houseNumbersMatch(routeHouse: string, voterHouse: string): boolean {
+  const a = normalizeHouseKey(routeHouse);
+  const b = normalizeHouseKey(voterHouse);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // "1-11" vs "111" style collapse for OCR quirks (only when short)
+  if (a.length <= 6 && b.length <= 6) {
+    const ca = a.replace(/-/g, "");
+    const cb = b.replace(/-/g, "");
+    if (ca === cb) return true;
+  }
+  return false;
+}
+
 function normalize(r: RawRecord): VoterRecord {
   const age = r.Age === "" || r.Age == null ? null : Number(r.Age);
   const serial = r.Serial_No === "" || r.Serial_No == null ? null : Number(r.Serial_No);
@@ -76,7 +99,7 @@ export function queryVoters(opts: {
   const { areaId = DEFAULT_AREA_ID, ward, house, q, page = 1, limit = 50 } = opts;
   let rows = loadAllVoters(areaId);
   if (ward != null) rows = rows.filter((v) => v.ward === ward);
-  if (house) rows = rows.filter((v) => v.houseNumber === house);
+  if (house) rows = rows.filter((v) => houseNumbersMatch(house, v.houseNumber));
   if (q?.trim()) {
     const term = q.trim().toLowerCase();
     rows = rows.filter(
@@ -98,5 +121,7 @@ export function getVotersByHouse(
   house: string,
   areaId: string = DEFAULT_AREA_ID
 ): VoterRecord[] {
-  return loadAllVoters(areaId).filter((v) => v.ward === ward && v.houseNumber === house);
+  return loadAllVoters(areaId).filter(
+    (v) => v.ward === ward && houseNumbersMatch(house, v.houseNumber)
+  );
 }

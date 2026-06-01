@@ -36,13 +36,15 @@ export default function WardElectionChatPage() {
         </div>
       </section>
 
-      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto flex flex-col min-h-0">
         <Suspense
           fallback={
-            <div className="h-[520px] bg-slate-100 rounded-2xl animate-pulse" />
+            <div className="h-[min(78vh,720px)] bg-slate-100 rounded-2xl animate-pulse" />
           }
         >
-          <WardElectionChat openaiConfigured={openaiConfigured} />
+          <div className="h-[min(78vh,720px)] max-h-[calc(100dvh-14rem)] min-h-[420px]">
+            <WardElectionChat openaiConfigured={openaiConfigured} className="h-full" />
+          </div>
         </Suspense>
         <p className="text-xs text-slate-400 text-center mt-4">
           {openaiConfigured

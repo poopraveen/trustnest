@@ -19,13 +19,13 @@ function FabInner() {
       <div
         className={
           open
-            ? "fixed z-[70] inset-x-3 bottom-3 top-auto sm:inset-auto sm:bottom-6 sm:right-6 sm:left-auto sm:w-[400px] sm:h-[520px] flex flex-col"
+            ? "fixed z-[70] inset-x-2 bottom-2 top-14 flex flex-col sm:inset-auto sm:bottom-6 sm:right-6 sm:left-auto sm:top-auto sm:w-[420px] sm:h-[min(600px,calc(100dvh-3rem))]"
             : "fixed z-[70] bottom-6 right-6"
         }
       >
         {open && (
-          <div className="relative flex flex-col h-full min-h-0 shadow-2xl rounded-2xl overflow-hidden mb-3 sm:mb-0">
-            <div className="flex justify-end p-1 bg-white border-b border-slate-100 sm:hidden">
+          <div className="relative flex flex-col h-full min-h-0 max-h-full shadow-2xl rounded-2xl overflow-hidden">
+            <div className="shrink-0 flex justify-end p-1 bg-white border-b border-slate-100 sm:hidden">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -35,7 +35,7 @@ function FabInner() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <WardElectionChat compact className="flex-1 border-0 rounded-none sm:rounded-2xl sm:border" />
+            <WardElectionChat compact className="flex-1 min-h-0 h-full border-0 rounded-none sm:rounded-2xl sm:border" />
             <button
               type="button"
               onClick={() => setOpen(false)}
