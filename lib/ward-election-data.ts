@@ -129,6 +129,13 @@ export const WARDS: Ward[] = [
     rollPdf: "/ward-election/rolls/part-171.pdf", ...COMMON,
   },
   {
+    id: "AC5-P172", number: 172, partNo: 172, name: "Veppampattu — Part 172",
+    sections: ["See voter extract — official roll PDF pending"],
+    pollingStation: "172 — polling station (roll PDF pending)",
+    rollPdf: undefined,
+    ...COMMON,
+  },
+  {
     id: "AC5-P173", number: 173, partNo: 173, name: "Veppampattu — Part 173",
     nameTa: "அண்ணா நகர் வார்டு 2",
     sections: ["Anna Nagar Ward 2"],
@@ -144,7 +151,7 @@ export const ELECTION_META: ElectionMeta = {
   electionDate: "TBD",
   totalWards: WARDS.length,
   totalElectors: WARDS.reduce((sum, w) => sum + (w.electorate ?? 0), 0),
-  source: "ECI Electoral Roll 2026 (SIR), AC 5 Poonamallee — Parts 164–173",
+  source: "ECI Electoral Roll 2026 (SIR), AC 5 Poonamallee — Parts 164–173 (172 roll pending)",
   lastUpdated: "06-04-2026",
 };
 

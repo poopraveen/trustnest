@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Link } from "@/navigation";
 import {
-  Vote, MapPin, Users, BarChart3, Clock, Sparkles, FileText,
+  Vote, Clock, Sparkles, Trophy, ClipboardList, BarChart3,
 } from "lucide-react";
-import { ELECTION_META, WARDS, CANDIDATES } from "@/lib/ward-election-data";
+import { ELECTION_META, WARDS } from "@/lib/ward-election-data";
+import { ANALYTICS_META } from "@/lib/ward-election-analytics";
+import { HOUSEHOLD_META } from "@/lib/ward-households";
+import WardRollsTable from "@/components/ward-election/WardRollsTable";
 
 export const metadata: Metadata = {
   title: "Ward Election | TrustNest",
@@ -11,16 +14,17 @@ export const metadata: Metadata = {
 };
 
 const stats = [
-  { value: ELECTION_META.totalWards.toLocaleString("en-IN"), label: "Wards", labelTa: "வார்டுகள்" },
+  { value: ELECTION_META.totalWards.toLocaleString("en-IN"), label: "Parts", labelTa: "பாகங்கள்" },
   { value: ELECTION_META.totalElectors.toLocaleString("en-IN"), label: "Electors", labelTa: "வாக்காளர்கள்" },
-  { value: CANDIDATES.length.toLocaleString("en-IN"), label: "Candidates", labelTa: "வேட்பாளர்கள்" },
+  { value: HOUSEHOLD_META.totalHouseholds.toLocaleString("en-IN"), label: "Households", labelTa: "வீடுகள்" },
+  { value: ANALYTICS_META.totalAnalyzed.toLocaleString("en-IN"), label: "Voters mapped", labelTa: "வாக்காளர்கள்" },
 ];
 
 const quickLinks = [
-  { href: "/ward-election", icon: MapPin, label: "Wards", labelTa: "வார்டுகள்", color: "bg-blue-100 text-blue-700" },
-  { href: "/ward-election", icon: Users, label: "Candidates", labelTa: "வேட்பாளர்கள்", color: "bg-emerald-100 text-emerald-700" },
-  { href: "/ward-election", icon: BarChart3, label: "Results", labelTa: "முடிவுகள்", color: "bg-amber-100 text-amber-700" },
-  { href: "/ward-election", icon: Vote, label: "Turnout", labelTa: "வாக்குப்பதிவு", color: "bg-violet-100 text-violet-700" },
+  { href: "/ward-election/plan", icon: Trophy, label: "Win Plan", labelTa: "வெற்றித் திட்டம்", color: "bg-amber-100 text-amber-700" },
+  { href: "/ward-election/canvassing", icon: ClipboardList, label: "Canvassing", labelTa: "வீடு வீடா", color: "bg-emerald-100 text-emerald-700" },
+  { href: "/ward-election/campaign", icon: BarChart3, label: "Campaign", labelTa: "பிரச்சாரம்", color: "bg-blue-100 text-blue-700" },
+  { href: "/ward-election/turnout", icon: Vote, label: "GOTV", labelTa: "வாக்குப்பதிவு", color: "bg-violet-100 text-violet-700" },
   { href: "/ward-election/strategy", icon: Sparkles, label: "AI Strategy", labelTa: "உத்தி", color: "bg-indigo-100 text-indigo-700" },
 ];
 
@@ -40,11 +44,11 @@ export default function WardElectionHomePage() {
               <span className="text-yellow-300">Ward-Level Insights</span>
             </h1>
             <p className="text-indigo-100 text-base max-w-2xl mx-auto mt-3">
-              Explore wards, candidates, turnout and results — backed by verifiable, sourced data.
+              Plan to win — ward data, household routes, campaign tracking, turnout &amp; AI strategy.
             </p>
           </div>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-8 text-center">
+          <div className="mt-8 flex flex-wrap justify-center gap-6 sm:gap-10 text-center">
             {stats.map((s) => (
               <div key={s.label} className="text-white">
                 <div className="text-2xl font-bold font-data">{s.value}</div>
@@ -94,63 +98,20 @@ export default function WardElectionHomePage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="w-12">Part</th>
-                  <th>Ward / Sections</th>
-                  <th>Polling Station</th>
-                  <th className="num">Male</th>
-                  <th className="num">Female</th>
-                  <th className="num">Electors</th>
-                  <th>Roll</th>
-                </tr>
-              </thead>
-              <tbody>
-                {WARDS.map((w) => (
-                  <tr key={w.id}>
-                    <td className="font-bold text-slate-400">{w.partNo ?? w.number}</td>
-                    <td className="font-medium text-slate-800 max-w-xs">
-                      {w.name}
-                      {w.sections && w.sections.length > 0 && (
-                        <span className="block text-xs text-slate-400 mt-0.5">
-                          {w.sections.join(" · ")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-slate-600 max-w-xs">{w.pollingStation ?? "—"}</td>
-                    <td className="num">{w.male?.toLocaleString("en-IN") ?? "—"}</td>
-                    <td className="num">{w.female?.toLocaleString("en-IN") ?? "—"}</td>
-                    <td className="num font-semibold">{w.electorate?.toLocaleString("en-IN") ?? "—"}</td>
-                    <td>
-                      {w.rollPdf ? (
-                        <a
-                          href={w.rollPdf}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                        >
-                          <FileText className="w-3.5 h-3.5" /> PDF
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-semibold text-slate-700 border-t-2 border-slate-200">
-                  <td colSpan={3} className="text-right pr-4">Total</td>
-                  <td className="num">{WARDS.reduce((s, w) => s + (w.male ?? 0), 0).toLocaleString("en-IN")}</td>
-                  <td className="num">{WARDS.reduce((s, w) => s + (w.female ?? 0), 0).toLocaleString("en-IN")}</td>
-                  <td className="num">{ELECTION_META.totalElectors.toLocaleString("en-IN")}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <WardRollsTable
+            wards={WARDS.map((w) => ({
+              id: w.id,
+              name: w.name,
+              number: w.number,
+              partNo: w.partNo,
+              sections: w.sections,
+              pollingStation: w.pollingStation,
+              male: w.male,
+              female: w.female,
+              electorate: w.electorate,
+              rollPdf: w.rollPdf,
+            }))}
+          />
         )}
 
         <p className="trust-strip mt-4">

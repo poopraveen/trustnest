@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Ward, Candidate, ElectionMeta } from "@/lib/ward-election-data";
+import { getAnalyticsByWard, ANALYTICS_META } from "@/lib/ward-election-analytics";
 
 // Lazy singleton — instantiated only at call time, never at build time.
 let _client: OpenAI | null = null;
@@ -73,21 +74,37 @@ export async function generateWardStrategy(
   }
 
   // Keep the payload compact and avoid leaking unbounded data into the prompt.
-  const wardSummary = input.wards.slice(0, 60).map((w) => ({
-    id: w.id,
-    name: w.name,
-    number: w.number,
-    zone: w.zone ?? null,
-    electorate: w.electorate ?? null,
-    male: w.male ?? null,
-    female: w.female ?? null,
-    thirdGender: w.thirdGender ?? null,
-    partNo: w.partNo ?? null,
-    sections: w.sections ?? null,
-    pollingStation: w.pollingStation ?? null,
-    village: w.village ?? null,
-    assemblyConstituency: w.assemblyConstituency ?? null,
-  }));
+  // Enrich each ward with demographic cohorts from the voter-level analytics.
+  const wardSummary = input.wards.slice(0, 60).map((w) => {
+    const a = w.partNo != null ? getAnalyticsByWard(w.partNo) : undefined;
+    const ageKnown = a
+      ? a.ageBands.y18_29 + a.ageBands.a30_44 + a.ageBands.a45_59 + a.ageBands.a60plus + a.ageBands.u18
+      : 0;
+    const pct = (n: number) => (ageKnown ? Math.round((n / ageKnown) * 100) : null);
+    return {
+      id: w.id,
+      name: w.name,
+      number: w.number,
+      electorate: w.electorate ?? null,
+      male: w.male ?? null,
+      female: w.female ?? null,
+      partNo: w.partNo ?? null,
+      sections: w.sections ?? null,
+      pollingStation: w.pollingStation ?? null,
+      demographics: a
+        ? {
+            analyzedVoters: a.analyzedVoters,
+            avgAge: a.avgAge,
+            households: a.households,
+            youthPct18_29: pct(a.ageBands.y18_29),
+            midPct30_44: pct(a.ageBands.a30_44),
+            seniorPct60plus: pct(a.ageBands.a60plus),
+            femaleShareKnown:
+              a.male + a.female > 0 ? Math.round((a.female / (a.male + a.female)) * 100) : null,
+          }
+        : null,
+    };
+  });
 
   const candidateSummary = input.candidates.slice(0, 120).map((c) => ({
     name: c.name,
@@ -107,13 +124,15 @@ ELECTION CONTEXT:
 ${input.party ? `- Strategy is being built for: ${input.party}` : ""}
 ${input.objective ? `- Campaign objective: ${input.objective}` : ""}
 
-WARD DATA (JSON):
+WARD DATA (JSON) — "electorate"/"male"/"female" are official roll totals; "demographics" are
+derived from an analyzed voter-level sample (${ANALYTICS_META.totalAnalyzed} records, partial — may
+under-represent each ward), giving age cohorts, female share and household counts:
 ${JSON.stringify(wardSummary, null, 2)}
 
 CANDIDATE DATA (JSON):
 ${JSON.stringify(candidateSummary, null, 2)}
 
-Using ONLY the data above (do not invent specific numbers that are not present; reason qualitatively when data is missing), produce a practical, ethical campaign strategy.
+Using ONLY the data above (do not invent specific numbers that are not present; reason qualitatively when data is missing), produce a practical, ethical campaign strategy. Use the demographic cohorts (youth vs senior share, female share, households per ward) to tailor messaging, GOTV and door-to-door canvassing. Prioritise larger wards and those with distinctive cohorts.
 
 Respond with ONLY a valid JSON object in this exact shape:
 {
