@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Home, Search, ChevronRight, Users, Loader2 } from "lucide-react";
-import { WARD_ANALYTICS } from "@/lib/ward-election-analytics";
+import { useSearchParams } from "next/navigation";
+import { getAnalyticsForArea } from "@/lib/ward-election-analytics";
 import { getHouseholdsByWard } from "@/lib/ward-households";
+import { resolveAreaId } from "@/lib/ward-election-areas";
 import {
   VOTER_STATUS_LABELS,
   VOTER_STATUS_COLORS,
@@ -34,8 +36,11 @@ const STATUSES: VoterStatus[] = [
 ];
 
 export default function CanvassingClient() {
-  const wards = WARD_ANALYTICS.map((w) => w.ward).sort((a, b) => a - b);
-  const [ward, setWard] = useState(wards[0] ?? 164);
+  const searchParams = useSearchParams();
+  const areaId = resolveAreaId(searchParams.get("area"));
+  const areaAnalytics = getAnalyticsForArea(areaId);
+  const wards = areaAnalytics.map((w) => w.ward).sort((a, b) => a - b);
+  const [ward, setWard] = useState(wards[0] ?? (areaId === "perumalpattu" ? 188 : 164));
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHouse, setSelectedHouse] = useState<string | null>(null);
   const [voters, setVoters] = useState<Voter[]>([]);
@@ -47,27 +52,31 @@ export default function CanvassingClient() {
     setLoadingV(true);
     try {
       const res = await fetch(
-        `/api/ward-election/voters?ward=${w}&house=${encodeURIComponent(house)}&limit=100`
+        `/api/ward-election/voters?area=${encodeURIComponent(areaId)}&ward=${w}&house=${encodeURIComponent(house)}&limit=100`
       );
       const data = await res.json();
       setVoters(data.items ?? []);
     } finally {
       setLoadingV(false);
     }
-  }, []);
+  }, [areaId]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const p = params.get("part");
+    const p = params.get("part") ?? params.get("ward");
     if (p && !Number.isNaN(Number(p))) setWard(Number(p));
   }, []);
 
   useEffect(() => {
-    setHouseholds(getHouseholdsByWard(ward));
+    if (wards.length && !wards.includes(ward)) setWard(wards[0]);
+  }, [areaId, wards, ward]);
+
+  useEffect(() => {
+    setHouseholds(getHouseholdsByWard(ward, areaId));
     setSelectedHouse(null);
     setVoters([]);
     setSearch("");
-  }, [ward]);
+  }, [ward, areaId]);
 
   const filtered = search.trim()
     ? households.filter((h) => h.house.toLowerCase().includes(search.trim().toLowerCase()))

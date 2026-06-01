@@ -1,6 +1,12 @@
 import OpenAI from "openai";
 import type { Ward, Candidate, ElectionMeta } from "@/lib/ward-election-data";
 import { getAnalyticsByWard, ANALYTICS_META } from "@/lib/ward-election-analytics";
+import { buildWardElectionSystemPrompt } from "@/lib/ward-election-context";
+import {
+  WARD_CHAT_TOOLS,
+  runWardElectionTool,
+} from "@/lib/ward-election-chat-tools";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Lazy singleton — instantiated only at call time, never at build time.
 let _client: OpenAI | null = null;
@@ -76,7 +82,7 @@ export async function generateWardStrategy(
   // Keep the payload compact and avoid leaking unbounded data into the prompt.
   // Enrich each ward with demographic cohorts from the voter-level analytics.
   const wardSummary = input.wards.slice(0, 60).map((w) => {
-    const a = w.partNo != null ? getAnalyticsByWard(w.partNo) : undefined;
+    const a = w.partNo != null ? getAnalyticsByWard(w.partNo, w.areaId) : undefined;
     const ageKnown = a
       ? a.ageBands.y18_29 + a.ageBands.a30_44 + a.ageBands.a45_59 + a.ageBands.a60plus + a.ageBands.u18
       : 0;
@@ -176,5 +182,197 @@ Keep targetWards to at most 8, ordered by priority. Keep all arrays concise and 
       risks: parsed.risks ?? [],
       quickWins: parsed.quickWins ?? [],
     },
+  };
+}
+
+export interface WardChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface WardChatInput {
+  messages: WardChatMessage[];
+  /** Focus context: one area, or both. */
+  areaFocus?: "veppampattu" | "perumalpattu" | "all";
+}
+
+export type WardChatStreamEvent =
+  | { type: "status"; message: string }
+  | { type: "token"; text: string }
+  | { type: "done"; reply: string; toolsUsed: string[] }
+  | { type: "error"; message: string };
+
+const MAX_HISTORY = 24;
+const MAX_TOOL_ROUNDS = 8;
+
+const TOOL_LABELS: Record<string, string> = {
+  list_election_areas: "Listed election areas",
+  list_ward_parts: "Loaded ward parts",
+  get_ward_details: "Fetched ward details",
+  search_voters: "Searched voter JSON",
+  aggregate_voters: "Aggregated voter data",
+  list_households: "Listed households",
+};
+
+type ChatMessage = ChatCompletionMessageParam;
+
+function toolStatusLabel(name: string): string {
+  return TOOL_LABELS[name] ?? `Query: ${name}`;
+}
+
+/** Agent loop with OpenAI tools over voter JSON + ward data. */
+export async function chatWardElection(
+  input: WardChatInput
+): Promise<{ configured: boolean; reply: string; toolsUsed: string[] }> {
+  if (!process.env.OPENAI_API_KEY) {
+    return { configured: false, reply: "", toolsUsed: [] };
+  }
+
+  const focus = input.areaFocus ?? "all";
+  const system = buildWardElectionSystemPrompt(focus);
+  const history = input.messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-MAX_HISTORY)
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+  if (history.length === 0 || history[history.length - 1].role !== "user") {
+    throw new Error("Last message must be from the user");
+  }
+
+  const messages: ChatMessage[] = [{ role: "system", content: system }, ...history];
+  const toolsUsed: string[] = [];
+  const client = getClient();
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      tools: WARD_CHAT_TOOLS,
+      tool_choice: "auto",
+      temperature: 0.35,
+      max_tokens: 1600,
+    });
+
+    const choice = response.choices[0]?.message;
+    if (!choice) break;
+
+    const toolCalls = choice.tool_calls;
+    if (!toolCalls?.length) {
+      const reply = choice.content?.trim() ?? "";
+      return { configured: true, reply, toolsUsed };
+    }
+
+    messages.push(choice);
+
+    for (const tc of toolCalls) {
+      if (tc.type !== "function") continue;
+      const fn = tc.function;
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(fn.arguments || "{}") as Record<string, unknown>;
+      } catch {
+        args = {};
+      }
+      toolsUsed.push(toolStatusLabel(fn.name));
+      const result = runWardElectionTool(fn.name, args, focus);
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+
+  return {
+    configured: true,
+    reply: "I could not finish looking up the data. Please try a simpler question or specify the part number and area.",
+    toolsUsed,
+  };
+}
+
+/** Stream status + final reply tokens for interactive UI. */
+export async function* chatWardElectionStream(
+  input: WardChatInput
+): AsyncGenerator<WardChatStreamEvent> {
+  if (!process.env.OPENAI_API_KEY) {
+    yield { type: "error", message: "OPENAI_API_KEY not configured" };
+    return;
+  }
+
+  const focus = input.areaFocus ?? "all";
+  const system = buildWardElectionSystemPrompt(focus);
+  const history = input.messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-MAX_HISTORY)
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+  if (history.length === 0 || history[history.length - 1].role !== "user") {
+    yield { type: "error", message: "Last message must be from the user" };
+    return;
+  }
+
+  const messages: ChatMessage[] = [{ role: "system", content: system }, ...history];
+  const toolsUsed: string[] = [];
+  const client = getClient();
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      tools: WARD_CHAT_TOOLS,
+      tool_choice: "auto",
+      temperature: 0.35,
+      max_tokens: 1600,
+    });
+
+    const choice = response.choices[0]?.message;
+    if (!choice) break;
+
+    const toolCalls = choice.tool_calls;
+    if (!toolCalls?.length) {
+      const full = choice.content?.trim() ?? "";
+      const words = full.split(/(\s+)/);
+      let buf = "";
+      for (const w of words) {
+        buf += w;
+        if (buf.length >= 12) {
+          yield { type: "token", text: buf };
+          buf = "";
+          await new Promise((r) => setTimeout(r, 8));
+        }
+      }
+      if (buf) yield { type: "token", text: buf };
+      yield { type: "done", reply: full, toolsUsed };
+      return;
+    }
+
+    messages.push(choice);
+
+    for (const tc of toolCalls) {
+      if (tc.type !== "function") continue;
+      const fn = tc.function;
+      const label = toolStatusLabel(fn.name);
+      toolsUsed.push(label);
+      yield { type: "status", message: label + "…" };
+
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(fn.arguments || "{}") as Record<string, unknown>;
+      } catch {
+        args = {};
+      }
+      const result = runWardElectionTool(fn.name, args, focus);
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+
+  yield {
+    type: "done",
+    reply: "I could not complete the lookup. Try naming the part number and area (Veppampattu or Perumalpattu).",
+    toolsUsed,
   };
 }

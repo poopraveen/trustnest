@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { DEFAULT_AREA_ID, getElectionArea } from "@/lib/ward-election-areas";
 
 export interface VoterRecord {
   ward: number;
@@ -27,10 +28,11 @@ interface RawRecord {
   Gender: string;
 }
 
-let _cache: VoterRecord[] | null = null;
+const _cache = new Map<string, VoterRecord[]>();
 
-function dataPath(): string {
-  return path.join(process.cwd(), "data/ward-election/ward_members.json");
+function dataPath(areaId: string): string {
+  const area = getElectionArea(areaId) ?? getElectionArea(DEFAULT_AREA_ID)!;
+  return path.join(process.cwd(), area.voterDataPath);
 }
 
 function normalize(r: RawRecord): VoterRecord {
@@ -50,22 +52,29 @@ function normalize(r: RawRecord): VoterRecord {
   };
 }
 
-export function loadAllVoters(): VoterRecord[] {
-  if (_cache) return _cache;
-  const raw = JSON.parse(fs.readFileSync(dataPath(), "utf8")) as RawRecord[];
-  _cache = raw.map(normalize);
-  return _cache;
+export function loadAllVoters(areaId: string = DEFAULT_AREA_ID): VoterRecord[] {
+  if (_cache.has(areaId)) return _cache.get(areaId)!;
+  const file = dataPath(areaId);
+  if (!fs.existsSync(file)) {
+    _cache.set(areaId, []);
+    return [];
+  }
+  const raw = JSON.parse(fs.readFileSync(file, "utf8")) as RawRecord[];
+  const rows = raw.map(normalize);
+  _cache.set(areaId, rows);
+  return rows;
 }
 
 export function queryVoters(opts: {
+  areaId?: string;
   ward?: number;
   house?: string;
   q?: string;
   page?: number;
   limit?: number;
 }) {
-  const { ward, house, q, page = 1, limit = 50 } = opts;
-  let rows = loadAllVoters();
+  const { areaId = DEFAULT_AREA_ID, ward, house, q, page = 1, limit = 50 } = opts;
+  let rows = loadAllVoters(areaId);
   if (ward != null) rows = rows.filter((v) => v.ward === ward);
   if (house) rows = rows.filter((v) => v.houseNumber === house);
   if (q?.trim()) {
@@ -84,6 +93,10 @@ export function queryVoters(opts: {
   return { items, total, page, limit, pages: Math.ceil(total / limit) || 1 };
 }
 
-export function getVotersByHouse(ward: number, house: string): VoterRecord[] {
-  return loadAllVoters().filter((v) => v.ward === ward && v.houseNumber === house);
+export function getVotersByHouse(
+  ward: number,
+  house: string,
+  areaId: string = DEFAULT_AREA_ID
+): VoterRecord[] {
+  return loadAllVoters(areaId).filter((v) => v.ward === ward && v.houseNumber === house);
 }

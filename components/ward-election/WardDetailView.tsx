@@ -9,10 +9,16 @@ import VoterAnalytics from "@/components/ward-election/VoterAnalytics";
 
 const fmt = (n: number) => n.toLocaleString("en-IN");
 
-export default function WardDetailView({ part }: { part: number }) {
-  const ward = getWardByPart(part);
-  const analytics = getAnalyticsByWard(part);
-  const households = getHouseholdCountByWard(part);
+export default function WardDetailView({
+  part,
+  areaId = "veppampattu",
+}: {
+  part: number;
+  areaId?: string;
+}) {
+  const ward = getWardByPart(part, areaId);
+  const analytics = getAnalyticsByWard(part, areaId);
+  const households = getHouseholdCountByWard(part, areaId);
 
   if (!ward && !analytics) {
     return (

@@ -1,11 +1,12 @@
-// AUTO-GENERATED from data/ward-election/ward_members.json
-// Regenerate: node scripts/gen-ward-election-data.mjs
+// AUTO-GENERATED — do not edit by hand
+// Regenerate: npm run ward:gen   (merges veppampattu + perumalpattu voter JSON)
 
 export interface AgeBands {
   u18: number; y18_29: number; a30_44: number; a45_59: number; a60plus: number;
 }
 
 export interface WardAnalytics {
+  areaId: string;
   ward: number;
   analyzedVoters: number;
   male: number;
@@ -20,6 +21,7 @@ export interface WardAnalytics {
 
 export const WARD_ANALYTICS: WardAnalytics[] = [
   {
+    "areaId": "veppampattu",
     "ward": 164,
     "analyzedVoters": 260,
     "male": 92,
@@ -38,6 +40,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 165,
     "analyzedVoters": 155,
     "male": 58,
@@ -56,6 +59,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 166,
     "analyzedVoters": 265,
     "male": 100,
@@ -74,6 +78,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 167,
     "analyzedVoters": 235,
     "male": 83,
@@ -92,6 +97,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 168,
     "analyzedVoters": 335,
     "male": 110,
@@ -110,6 +116,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 169,
     "analyzedVoters": 199,
     "male": 63,
@@ -128,6 +135,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 170,
     "analyzedVoters": 122,
     "male": 42,
@@ -146,6 +154,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 171,
     "analyzedVoters": 230,
     "male": 72,
@@ -164,6 +173,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 172,
     "analyzedVoters": 231,
     "male": 79,
@@ -182,6 +192,7 @@ export const WARD_ANALYTICS: WardAnalytics[] = [
     }
   },
   {
+    "areaId": "veppampattu",
     "ward": 173,
     "analyzedVoters": 136,
     "male": 35,
@@ -208,6 +219,23 @@ export const ANALYTICS_META = {
   note: "Partial OCR extract; some records have missing age/gender. Use official roll totals for electorate size.",
 };
 
-export function getAnalyticsByWard(ward: number): WardAnalytics | undefined {
-  return WARD_ANALYTICS.find((w) => w.ward === ward);
+export const ANALYTICS_BY_AREA: Record<string, { totalAnalyzed: number; wardsCovered: number }> = {
+  "veppampattu": {
+    "totalAnalyzed": 2168,
+    "wardsCovered": 10
+  },
+  "perumalpattu": {
+    "totalAnalyzed": 0,
+    "wardsCovered": 0
+  }
+};
+
+export function getAnalyticsByWard(ward: number, areaId?: string): WardAnalytics | undefined {
+  return WARD_ANALYTICS.find(
+    (w) => w.ward === ward && (areaId == null || w.areaId === areaId)
+  );
+}
+
+export function getAnalyticsForArea(areaId: string): WardAnalytics[] {
+  return WARD_ANALYTICS.filter((w) => w.areaId === areaId);
 }

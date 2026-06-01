@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ClipboardList } from "lucide-react";
 import CanvassingClient from "@/components/ward-election/CanvassingClient";
 
@@ -23,7 +24,9 @@ export default function CanvassingPage() {
         </div>
       </section>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <CanvassingClient />
+        <Suspense fallback={<div className="h-64 bg-slate-100 rounded-xl animate-pulse" />}>
+          <CanvassingClient />
+        </Suspense>
       </section>
     </div>
   );

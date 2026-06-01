@@ -19,7 +19,15 @@ export interface RollWard {
 
 const fmt = (n?: number) => (n == null ? "—" : n.toLocaleString("en-IN"));
 
-export default function WardRollsTable({ wards }: { wards: RollWard[] }) {
+export default function WardRollsTable({
+  wards,
+  areaId = "veppampattu",
+}: {
+  wards: RollWard[];
+  areaId?: string;
+}) {
+  const partHref = (part: number) =>
+    `/ward-election/wards/${part}?area=${encodeURIComponent(areaId)}`;
   const [active, setActive] = useState<RollWard | null>(null);
 
   const totalMale = wards.reduce((s, w) => s + (w.male ?? 0), 0);
@@ -60,13 +68,13 @@ export default function WardRollsTable({ wards }: { wards: RollWard[] }) {
               <tr key={w.id}>
                     <td className="font-bold text-slate-400">
                       {w.partNo ?? w.number ? (
-                        <Link href={`/ward-election/wards/${w.partNo ?? w.number}`} className="text-indigo-600 hover:text-indigo-800">
+                        <Link href={partHref(w.partNo ?? w.number)} className="text-indigo-600 hover:text-indigo-800">
                           {w.partNo ?? w.number}
                         </Link>
                       ) : "—"}
                     </td>
                     <td className="font-medium text-slate-800 max-w-xs">
-                      <Link href={`/ward-election/wards/${w.partNo ?? w.number}`} className="hover:text-indigo-700">
+                      <Link href={partHref(w.partNo ?? w.number)} className="hover:text-indigo-700">
                         {w.name}
                       </Link>
                   {w.sections && w.sections.length > 0 && (

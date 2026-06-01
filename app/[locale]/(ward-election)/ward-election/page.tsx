@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Link } from "@/navigation";
 import {
-  Vote, Clock, Sparkles, Trophy, ClipboardList, BarChart3,
+  Vote, Clock, Sparkles, Trophy, ClipboardList, BarChart3, Map, MapPin, Bot,
 } from "lucide-react";
-import { ELECTION_META, WARDS } from "@/lib/ward-election-data";
+import { getElectionMetaForArea, getWardsForArea } from "@/lib/ward-election-data";
+import { resolveAreaId } from "@/lib/ward-election-areas";
+import { wardElectionHref } from "@/lib/ward-election-areas";
 import { ANALYTICS_META } from "@/lib/ward-election-analytics";
 import { HOUSEHOLD_META } from "@/lib/ward-households";
 import WardRollsTable from "@/components/ward-election/WardRollsTable";
@@ -13,14 +15,9 @@ export const metadata: Metadata = {
   description: "Ward-level election data, candidates, turnout and results.",
 };
 
-const stats = [
-  { value: ELECTION_META.totalWards.toLocaleString("en-IN"), label: "Parts", labelTa: "பாகங்கள்" },
-  { value: ELECTION_META.totalElectors.toLocaleString("en-IN"), label: "Electors", labelTa: "வாக்காளர்கள்" },
-  { value: HOUSEHOLD_META.totalHouseholds.toLocaleString("en-IN"), label: "Households", labelTa: "வீடுகள்" },
-  { value: ANALYTICS_META.totalAnalyzed.toLocaleString("en-IN"), label: "Voters mapped", labelTa: "வாக்காளர்கள்" },
-];
-
-const quickLinks = [
+const quickLinksBase = [
+  { href: "/ward-election/chat", icon: Bot, label: "AI Chat", labelTa: "சாட்", color: "bg-indigo-100 text-indigo-700" },
+  { href: "/ward-election/map", icon: Map, label: "Ward Map", labelTa: "வரைபடம்", color: "bg-teal-100 text-teal-700" },
   { href: "/ward-election/plan", icon: Trophy, label: "Win Plan", labelTa: "வெற்றித் திட்டம்", color: "bg-amber-100 text-amber-700" },
   { href: "/ward-election/canvassing", icon: ClipboardList, label: "Canvassing", labelTa: "வீடு வீடா", color: "bg-emerald-100 text-emerald-700" },
   { href: "/ward-election/campaign", icon: BarChart3, label: "Campaign", labelTa: "பிரச்சாரம்", color: "bg-blue-100 text-blue-700" },
@@ -28,7 +25,25 @@ const quickLinks = [
   { href: "/ward-election/strategy", icon: Sparkles, label: "AI Strategy", labelTa: "உத்தி", color: "bg-indigo-100 text-indigo-700" },
 ];
 
-export default function WardElectionHomePage() {
+export default function WardElectionHomePage({
+  searchParams,
+}: {
+  searchParams: { area?: string };
+}) {
+  const areaId = resolveAreaId(searchParams.area);
+  const ELECTION_META = getElectionMetaForArea(areaId);
+  const WARDS = getWardsForArea(areaId);
+  const quickLinks = quickLinksBase.map((q) => ({
+    ...q,
+    href: wardElectionHref(q.href, areaId),
+  }));
+  const stats = [
+    { value: ELECTION_META.totalWards.toLocaleString("en-IN"), label: "Parts", labelTa: "பாகங்கள்" },
+    { value: ELECTION_META.totalElectors.toLocaleString("en-IN"), label: "Electors", labelTa: "வாக்காளர்கள்" },
+    { value: HOUSEHOLD_META.totalHouseholds.toLocaleString("en-IN"), label: "Households", labelTa: "வீடுகள்" },
+    { value: ANALYTICS_META.totalAnalyzed.toLocaleString("en-IN"), label: "Voters mapped", labelTa: "வாக்காளர்கள்" },
+  ];
+
   return (
     <div className="min-h-screen bg-surface">
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 to-indigo-700">
@@ -61,7 +76,7 @@ export default function WardElectionHomePage() {
 
       <section className="bg-gradient-to-b from-indigo-50 to-white">
         <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             {quickLinks.map((q, i) => (
               <Link
                 key={`${q.label}-${i}`}
@@ -99,6 +114,7 @@ export default function WardElectionHomePage() {
           </div>
         ) : (
           <WardRollsTable
+            areaId={areaId}
             wards={WARDS.map((w) => ({
               id: w.id,
               name: w.name,

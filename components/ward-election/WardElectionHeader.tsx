@@ -1,44 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Link, usePathname, useRouter } from "@/navigation";
 import { useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import {
   Vote, Globe, Home, Menu, X, MapPin, Trophy, Sparkles,
-  ClipboardList, BarChart3,
+  ClipboardList, BarChart3, Map, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import WardElectionAreaSwitcher from "@/components/ward-election/WardElectionAreaSwitcher";
+import { resolveAreaId, wardElectionHref } from "@/lib/ward-election-areas";
 
 const NAV_LINKS = [
   { href: "/ward-election", label: "Dashboard", labelTa: "முகப்பு", icon: MapPin },
+  { href: "/ward-election/map", label: "Map", labelTa: "வரைபடம்", icon: Map },
   { href: "/ward-election/plan", label: "Win Plan", labelTa: "வெற்றித் திட்டம்", icon: Trophy },
   { href: "/ward-election/canvassing", label: "Canvass", labelTa: "வீடு வீடா", icon: ClipboardList },
   { href: "/ward-election/campaign", label: "Campaign", labelTa: "பிரச்சாரம்", icon: BarChart3 },
   { href: "/ward-election/turnout", label: "GOTV", labelTa: "வாக்குப்பதிவு", icon: Vote },
   { href: "/ward-election/strategy", label: "AI Strategy", labelTa: "உத்தி", icon: Sparkles },
+  { href: "/ward-election/chat", label: "AI Chat", labelTa: "சாட்", icon: Bot },
 ];
 
-export default function WardElectionHeader() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const locale = useLocale();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const isTa = locale === "ta";
-
-  const switchLocale = () => {
-    router.replace(pathname, { locale: locale === "en" ? "ta" : "en" });
-  };
-
+function NavLinks({
+  isTa,
+  pathname,
+  areaId,
+  onNavigate,
+}: {
+  isTa: boolean;
+  pathname: string;
+  areaId: string;
+  onNavigate?: () => void;
+}) {
   const isActive = (href: string) =>
     href === "/ward-election"
       ? pathname === href
       : pathname === href || pathname.startsWith(href + "/");
 
   return (
+    <>
+      {NAV_LINKS.map((link) => (
+        <Link
+          key={link.href}
+          href={wardElectionHref(link.href, areaId)}
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium rounded-lg transition-colors",
+            isActive(link.href)
+              ? "bg-white/20 text-white"
+              : "text-white/85 hover:text-white hover:bg-white/10"
+          )}
+        >
+          <link.icon className="w-3.5 h-3.5" />
+          {isTa ? link.labelTa : link.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function WardElectionHeaderInner() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const locale = useLocale();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isTa = locale === "ta";
+  const areaId = resolveAreaId(searchParams.get("area"));
+
+  const switchLocale = () => {
+    router.replace(pathname, { locale: locale === "en" ? "ta" : "en" });
+  };
+
+  return (
     <header className="sticky top-0 z-50 bg-gradient-to-r from-indigo-900 to-indigo-700 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16 gap-4">
-          <Link href="/ward-election" className="flex items-center gap-2.5 flex-shrink-0">
+          <Link href={wardElectionHref("/ward-election", areaId)} className="flex items-center gap-2.5 flex-shrink-0">
             <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
               <Vote className="w-5 h-5 text-yellow-300" />
             </div>
@@ -49,26 +89,13 @@ export default function WardElectionHeader() {
           </Link>
 
           <nav className="hidden xl:flex items-center gap-0.5 ml-2">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium rounded-lg transition-colors",
-                  isActive(link.href)
-                    ? "bg-white/20 text-white"
-                    : "text-white/85 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <link.icon className="w-3.5 h-3.5" />
-                {isTa ? link.labelTa : link.label}
-              </Link>
-            ))}
+            <NavLinks isTa={isTa} pathname={pathname} areaId={areaId} />
           </nav>
 
           <div className="flex-1" />
 
           <div className="hidden sm:flex items-center gap-2">
+            <WardElectionAreaSwitcher />
             <button type="button" onClick={switchLocale}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white/85 border border-white/25 rounded-lg hover:bg-white/10">
               <Globe className="w-3.5 h-3.5" />
@@ -93,19 +120,28 @@ export default function WardElectionHeader() {
       </div>
 
       {mobileOpen && (
-        <div className="xl:hidden bg-indigo-950 border-t border-indigo-700 px-4 py-3 flex flex-col gap-0.5">
-          {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
-                isActive(link.href) ? "bg-white/20 text-white font-semibold" : "text-white/85 hover:bg-white/10"
-              )}>
-              <link.icon className="w-4 h-4" />
-              {isTa ? link.labelTa : link.label}
-            </Link>
-          ))}
+        <div className="xl:hidden bg-indigo-950 border-t border-indigo-700 px-4 py-3 flex flex-col gap-2">
+          <WardElectionAreaSwitcher className="w-full max-w-xs" />
+          <div className="flex flex-col gap-0.5">
+            <NavLinks
+              isTa={isTa}
+              pathname={pathname}
+              areaId={areaId}
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </div>
         </div>
       )}
     </header>
+  );
+}
+
+export default function WardElectionHeader() {
+  return (
+    <Suspense fallback={
+      <header className="sticky top-0 z-50 h-16 bg-gradient-to-r from-indigo-900 to-indigo-700" />
+    }>
+      <WardElectionHeaderInner />
+    </Suspense>
   );
 }
