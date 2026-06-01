@@ -18,6 +18,7 @@
     "tenant": "node scripts/switch-tenant.mjs",
     "tenant:list": "node scripts/switch-tenant.mjs list",
     "admin:create": "tsx scripts/create-admin.ts",
+    "tenant:vercel": "node scripts/export-vercel-env.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

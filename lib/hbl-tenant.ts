@@ -32,9 +32,11 @@ export function tenantWhere(ctx: AdminContext) {
   return ctx.isSuperAdmin && !ctx.tenant ? {} : { tenantId: ctx.tenant.id };
 }
 
-/** Generate next member code for a tenant, e.g. "VPT-0001" */
-export async function nextMemberCode(tenantSlug: string, tenantId: string): Promise<string> {
+/** Generate next member code for a tenant, e.g. "VPT-0001".
+ * memberCode is globally unique, so we count by prefix (not by tenant) to avoid
+ * collisions between tenants whose slugs share the same first 3 letters. */
+export async function nextMemberCode(tenantSlug: string, _tenantId: string): Promise<string> {
   const prefix = tenantSlug.slice(0, 3).toUpperCase();
-  const count = await prisma.hblMember.count({ where: { tenantId } });
+  const count = await prisma.hblMember.count({ where: { memberCode: { startsWith: `${prefix}-` } } });
   return `${prefix}-${String(count + 1).padStart(4, "0")}`;
 }
