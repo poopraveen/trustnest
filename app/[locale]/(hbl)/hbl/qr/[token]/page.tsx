@@ -16,7 +16,7 @@ export default function QrRedirectPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 to-emerald-500 flex flex-col items-center justify-center gap-5 p-6">
+    <div className="min-h-screen hbl-hero-bg flex flex-col items-center justify-center gap-5 p-6">
       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-xl">
         <Leaf className="w-10 h-10 text-green-600" />
       </div>

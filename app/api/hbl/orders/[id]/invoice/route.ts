@@ -25,18 +25,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const order = await prisma.hblOrder.findFirst({
       where: { id: params.id, memberId: member.id },
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { product: true } }, tenant: true },
     });
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Fetch tenant for this order so invoice shows correct FSSAI/GSTIN/address
-    const tenantId = order.tenantId ?? member.tenantId;
-    const tenant = tenantId
-      ? await prisma.hblTenant.findUnique({ where: { id: tenantId } })
-      : null;
+    // Seller details come from the order's tenant (branch). Fall back to the
+    // member's tenant if the order pre-dates multi-tenant support.
+    const tenant =
+      order.tenant ??
+      (member.tenantId
+        ? await prisma.hblTenant.findUnique({ where: { id: member.tenantId } })
+        : null);
+
+    const seller = tenant
+      ? {
+          name: tenant.name,
+          legalName: tenant.legalName,
+          address: tenant.address,
+          gstin: tenant.gstin,
+          fssai: tenant.fssai,
+          phone: tenant.phone,
+          email: tenant.email,
+        }
+      : undefined;
 
     const invoiceData = {
       orderNo: order.orderNo,
@@ -65,12 +79,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         };
       }),
       volumePoints: Math.round(order.totalAmount / 100),
-      clubName:      tenant?.name      ?? undefined,
-      clubAddress:   tenant?.address   ?? undefined,
-      clubFssai:     tenant?.fssai     ?? undefined,
-      clubGstin:     tenant?.gstin     ?? undefined,
-      clubPhone:     tenant?.phone     ?? undefined,
-      clubOwnerName: tenant?.ownerName ?? undefined,
+      seller,
     };
 
     // Generate PDF — returns Uint8Array

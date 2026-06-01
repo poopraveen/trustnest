@@ -78,15 +78,19 @@ export const authOptions: NextAuthOptions = {
         } catch {
           token.role = (user as { role?: string }).role ?? "BUYER";
         }
-      } else if (token.id && !token.role) {
+      } else if (token.id) {
+        // Always refresh role from DB so admin/seller upgrades apply without re-login
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { role: true },
+            select: { role: true, name: true, avatar: true, image: true },
           });
-          token.role = dbUser?.role ?? "BUYER";
+          if (dbUser?.role) token.role = dbUser.role;
+          if (dbUser?.name) token.name = dbUser.name;
+          const pic = dbUser?.avatar ?? dbUser?.image;
+          if (pic) token.picture = pic;
         } catch {
-          token.role = "BUYER";
+          if (!token.role) token.role = "BUYER";
         }
       }
       if (trigger === "update" && session) {
