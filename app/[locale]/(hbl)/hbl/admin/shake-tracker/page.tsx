@@ -11,8 +11,22 @@ interface TrackerItem {
   isActive: boolean; needsAttention: boolean;
 }
 
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
+}
+
+function adminHeaders() {
+  const s = getAdminSession();
+  return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+}
+
 export default function ShakeTrackerPage() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+
   const [tracker, setTracker] = useState<TrackerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [todayShakes, setTodayShakes] = useState(0);
@@ -20,10 +34,10 @@ export default function ShakeTrackerPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/hbl/admin/shake-tracker", { headers: { "x-hbl-admin": pin } });
+    const res = await fetch("/api/hbl/admin/shake-tracker", { headers: adminHeaders() });
     if (res.ok) { const d = await res.json(); setTracker(d.tracker ?? []); setTodayShakes(d.todayShakes); }
     setLoading(false);
-  }, [pin]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

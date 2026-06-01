@@ -23,8 +23,22 @@ const REASON_EMOJI: Record<string, string> = {
   NO_CHECKIN: "📅", EXPIRING: "⏰", NEW_JOINER: "🌱", NO_ORDER: "🛒",
 };
 
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
+}
+
+function adminHeaders() {
+  const s = getAdminSession();
+  return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+}
+
 export default function FollowUpPage() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
@@ -32,10 +46,10 @@ export default function FollowUpPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/hbl/admin/followup", { headers: { "x-hbl-admin": pin } });
+    const res = await fetch("/api/hbl/admin/followup", { headers: adminHeaders() });
     if (res.ok) { const d = await res.json(); setFollowUps(d.followUps ?? []); }
     setLoading(false);
-  }, [pin]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -43,7 +57,7 @@ export default function FollowUpPage() {
     setDoneIds(prev => { const s = new Set(Array.from(prev)); s.add(item.id); return s; });
     await fetch("/api/hbl/admin/followup", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", ...adminHeaders() },
       body: JSON.stringify({ memberId: item.memberId, reason: item.reason, note: `Contacted via ${method}` }),
     });
   }

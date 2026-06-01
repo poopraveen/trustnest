@@ -11,8 +11,22 @@ interface Product {
 
 const CATEGORY_EMOJI: Record<string, string> = { SHAKE: "🥤", TEA: "🍵", SUPPLEMENT: "💊", SNACK: "🍪" };
 
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
+}
+
+function adminHeaders() {
+  const s = getAdminSession();
+  return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+}
+
 export default function AdminProducts() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -24,16 +38,16 @@ export default function AdminProducts() {
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/hbl/products?active=false", { headers: { "x-hbl-admin": pin } });
+    const res = await fetch("/api/hbl/products?active=false", { headers: adminHeaders() });
     if (res.ok) { const d = await res.json(); setProducts(d.products ?? []); }
     setLoading(false);
-  }, [pin]);
+  }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   async function seedDefaults() {
     setSeeding(true);
-    const res = await fetch("/api/hbl/admin/seed-products", { method: "POST", headers: { "x-hbl-admin": pin } });
+    const res = await fetch("/api/hbl/admin/seed-products", { method: "POST", headers: adminHeaders() });
     const d = await res.json();
     setSeeding(false);
     if (res.ok) { setMsg(`✅ Added ${d.created} products (${d.skipped} already existed)`); fetchProducts(); }
@@ -46,7 +60,7 @@ export default function AdminProducts() {
     setSaving(true); setMsg("");
     const res = await fetch("/api/hbl/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", ...adminHeaders() },
       body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock), minStock: parseInt(form.minStock) }),
     });
     setSaving(false);
@@ -58,7 +72,7 @@ export default function AdminProducts() {
     setSaving(true);
     await fetch(`/api/hbl/products/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", ...adminHeaders() },
       body: JSON.stringify({ stock }),
     });
     setSaving(false); setEditStock(null); fetchProducts();
@@ -67,7 +81,7 @@ export default function AdminProducts() {
   async function toggleActive(p: Product) {
     await fetch(`/api/hbl/products/${p.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", ...adminHeaders() },
       body: JSON.stringify({ isActive: !p.isActive }),
     });
     fetchProducts();

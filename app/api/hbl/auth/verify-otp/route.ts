@@ -2,27 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
-  const { phone, otp } = await req.json();
+  const { phone, otp, tenantId } = await req.json();
   if (!phone || !otp) return NextResponse.json({ error: "Phone and OTP required" }, { status: 400 });
 
   const record = await prisma.hblOtp.findFirst({
-    where: { phone, otp, used: false, expiresAt: { gt: new Date() } },
+    where: {
+      phone,
+      otp,
+      used: false,
+      expiresAt: { gt: new Date() },
+      ...(tenantId ? { tenantId } : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  // Allow bypass OTP 123456 for testing
   if (!record && otp !== "123456") {
     return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 401 });
   }
 
   if (record) await prisma.hblOtp.update({ where: { id: record.id }, data: { used: true } });
 
-  const member = await prisma.hblMember.findUnique({ where: { phone } });
-  if (!member) return NextResponse.json({ error: "Member not found. Please register with admin." }, { status: 404 });
+  const memberWhere = tenantId ? { phone, tenantId } : { phone };
+  const member = await prisma.hblMember.findFirst({ where: memberWhere });
+  if (!member) return NextResponse.json({ error: "Member not found. Please register with your club admin." }, { status: 404 });
 
   const session = await prisma.hblSession.create({
     data: {
       memberId: member.id,
+      tenantId: member.tenantId ?? null,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });

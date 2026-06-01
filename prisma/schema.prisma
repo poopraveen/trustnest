@@ -1080,9 +1080,34 @@ enum HblProductCategory {
   SNACK
 }
 
+model HblTenant {
+  id        String      @id @default(cuid())
+  name      String      // branch / club display name
+  slug      String      @unique // url-safe identifier
+  address   String      @default("")
+  gstin     String      @default("")
+  fssai     String      @default("")
+  phone     String      @default("")
+  adminPin  String      @default("9999")
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  members   HblMember[]
+  products  HblProduct[]
+  orders    HblOrder[]
+  sessions  HblSession[]
+  otps      HblOtp[]
+
+  @@map("hbl_tenants")
+}
+
 model HblMember {
   id         String            @id @default(cuid())
-  phone      String            @unique
+  tenantId   String?
+  tenant     HblTenant?        @relation(fields: [tenantId], references: [id])
+  phone      String
+  memberCode String?           @unique // barcode value e.g. VPT-0001
   name       String
   email      String?
   plan       HblMembershipType @default(BASIC)
@@ -1103,6 +1128,8 @@ model HblMember {
   shakeLogs   HblShakeLog[]
   followUps   HblFollowUp[]
 
+  @@unique([phone, tenantId])
+  @@index([tenantId])
   @@index([phone])
   @@index([status])
   @@index([expiresAt])
@@ -1110,7 +1137,9 @@ model HblMember {
 
 model HblProduct {
   id        String             @id @default(cuid())
-  sku       String?            @unique
+  tenantId  String?
+  tenant    HblTenant?         @relation(fields: [tenantId], references: [id])
+  sku       String?
   barcode   String?
   name      String
   nameTa    String?
@@ -1127,15 +1156,18 @@ model HblProduct {
   orderItems HblOrderItem[]
   shakeLogs  HblShakeLog[]
 
+  @@unique([sku, tenantId])
+  @@index([tenantId])
   @@index([category])
   @@index([isActive])
-  @@index([sku])
 }
 
 model HblOrder {
   id          String         @id @default(cuid())
   memberId    String
   member      HblMember      @relation(fields: [memberId], references: [id])
+  tenantId    String?
+  tenant      HblTenant?     @relation(fields: [tenantId], references: [id])
   orderNo     String         @unique
   status      HblOrderStatus @default(PENDING)
   totalAmount Float
@@ -1148,6 +1180,7 @@ model HblOrder {
   payment HblPayment?
 
   @@index([memberId])
+  @@index([tenantId])
   @@index([status])
   @@index([createdAt])
 }
@@ -1202,26 +1235,31 @@ model HblLoyaltyTxn {
 }
 
 model HblOtp {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   phone     String
+  tenantId  String?
+  tenant    HblTenant? @relation(fields: [tenantId], references: [id])
   otp       String
   expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  used      Boolean    @default(false)
+  createdAt DateTime   @default(now())
 
   @@index([phone])
 }
 
 model HblSession {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   memberId  String
-  member    HblMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  token     String    @unique @default(cuid())
+  member    HblMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tenantId  String?
+  tenant    HblTenant? @relation(fields: [tenantId], references: [id])
+  token     String     @unique @default(cuid())
   expiresAt DateTime
-  createdAt DateTime  @default(now())
+  createdAt DateTime   @default(now())
 
   @@index([token])
   @@index([memberId])
+  @@index([tenantId])
 }
 
 model HblShakeLog {

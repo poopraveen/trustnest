@@ -2,12 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Search, Users, Loader2, X, CheckCircle2, Phone } from "lucide-react";
+import { ArrowLeft, Plus, Search, Users, Loader2, X, CheckCircle2, Phone, ScanLine } from "lucide-react";
 import Link from "next/link";
 
 interface Member {
   id: string; name: string; phone: string; email?: string;
-  plan: string; status: string; points: number; expiresAt: string; joinedAt: string;
+  plan: string; status: string; points: number; expiresAt: string; joinedAt: string; memberCode?: string | null;
+}
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
 }
 
 const PLAN_COLOR: Record<string, string> = {
@@ -19,7 +27,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function AdminMembers() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+  const router = useRouter();
+  const [session, setSession] = useState({ pin: "", tenantId: "" });
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -29,24 +38,37 @@ export default function AdminMembers() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
+  useEffect(() => {
+    const s = getAdminSession();
+    if (!s.pin) { router.replace("/hbl/admin"); return; }
+    setSession(s);
+  }, [router]);
+
+  function headers(s = session) {
+    return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+  }
+
   const fetchMembers = useCallback(async () => {
+    const s = getAdminSession();
+    if (!s.pin) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (statusFilter) params.set("status", statusFilter);
-    const res = await fetch(`/api/hbl/admin/members?${params}`, { headers: { "x-hbl-admin": pin } });
+    const res = await fetch(`/api/hbl/admin/members?${params}`, { headers: { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) } });
     if (res.ok) { const d = await res.json(); setMembers(d.members ?? []); }
     setLoading(false);
-  }, [pin, search, statusFilter]);
+  }, [search, statusFilter]);
 
-  useEffect(() => { fetchMembers(); }, [fetchMembers]);
+  useEffect(() => { if (session.pin) fetchMembers(); }, [session.pin, fetchMembers]);
 
   async function addMember() {
     if (!form.name || !form.phone) return;
     setSaving(true); setMsg("");
-    const res = await fetch("/api/hbl/members", {
+    const s = getAdminSession();
+    const res = await fetch("/api/hbl/admin/members", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) },
       body: JSON.stringify(form),
     });
     const data = await res.json();
@@ -56,9 +78,10 @@ export default function AdminMembers() {
   }
 
   async function sendRenewalWA(id: string) {
+    const s = getAdminSession();
     const res = await fetch("/api/hbl/admin/whatsapp", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) },
       body: JSON.stringify({ type: "renewal", memberId: id }),
     });
     const data = await res.json();
@@ -75,6 +98,9 @@ export default function AdminMembers() {
             <h1 className="font-bold">Members</h1>
             <span className="ml-auto text-sm text-slate-400">{members.length} total</span>
           </div>
+          <Link href="/hbl/admin/scanner" className="flex items-center gap-1.5 bg-teal-600 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-teal-700">
+            <ScanLine className="w-4 h-4" /> Scan
+          </Link>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 bg-green-600 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-green-700">
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -82,11 +108,10 @@ export default function AdminMembers() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-4">
-        {/* Filters */}
         <div className="flex gap-2 mb-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or phone..."
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, phone or code..."
               className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-green-500" />
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -120,6 +145,7 @@ export default function AdminMembers() {
                       </div>
                       <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{m.phone}</span>
+                        {m.memberCode && <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{m.memberCode}</span>}
                         <span>⭐ {m.points} pts</span>
                         <span className={days <= 7 && days > 0 ? "text-red-500 font-semibold" : ""}>
                           Expires: {new Date(m.expiresAt).toLocaleDateString("en-IN")} {days <= 7 && days > 0 ? `(${days}d!)` : ""}
@@ -137,7 +163,6 @@ export default function AdminMembers() {
         )}
       </div>
 
-      {/* Add member modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md p-6">
@@ -153,7 +178,7 @@ export default function AdminMembers() {
               ].map(({ key, label, placeholder }) => (
                 <div key={key}>
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">{label}</label>
-                  <input value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  <input value={(form as never)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     placeholder={placeholder} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-green-500" />
                 </div>
               ))}

@@ -19,8 +19,22 @@ const STATUS_COLOR: Record<string, string> = {
   READY: "bg-green-100 text-green-700", DELIVERED: "bg-slate-100 text-slate-600", CANCELLED: "bg-red-100 text-red-700",
 };
 
+
+function getAdminSession() {
+  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  try {
+    const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
+  } catch { return { pin: "", tenantId: "" }; }
+}
+
+function adminHeaders() {
+  const s = getAdminSession();
+  return { "x-hbl-admin": s.pin, ...(s.tenantId ? { "x-hbl-tenant": s.tenantId } : {}) };
+}
+
 export default function AdminOrders() {
-  const [pin] = useState(() => typeof window !== "undefined" ? sessionStorage.getItem("hbl_admin_pin") ?? "" : "");
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("PENDING");
@@ -29,10 +43,10 @@ export default function AdminOrders() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     const params = statusFilter ? `?status=${statusFilter}` : "";
-    const res = await fetch(`/api/hbl/admin/orders${params}`, { headers: { "x-hbl-admin": pin } });
+    const res = await fetch(`/api/hbl/admin/orders${params}`, { headers: adminHeaders() });
     if (res.ok) { const d = await res.json(); setOrders(d.orders ?? []); }
     setLoading(false);
-  }, [pin, statusFilter]);
+  }, [ statusFilter]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -40,7 +54,7 @@ export default function AdminOrders() {
     setUpdating(id);
     await fetch(`/api/hbl/admin/orders/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-hbl-admin": pin },
+      headers: { "Content-Type": "application/json", ...adminHeaders() },
       body: JSON.stringify({ status: nextStatus }),
     });
     setUpdating(null);

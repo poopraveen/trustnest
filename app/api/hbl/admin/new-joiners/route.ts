@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-function isAdmin(req: NextRequest) {
-  return req.headers.get("x-hbl-admin") === (process.env.HBL_ADMIN_PIN ?? "9999");
-}
+import { getAdminContext, tenantWhere } from "@/lib/hbl-tenant";
 
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx = await getAdminContext(req);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tw = tenantWhere(ctx);
 
   const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const newJoiners = await prisma.hblMember.findMany({
-    where: { joinedAt: { gte: thirtyDaysAgo } },
+    where: { ...tw, joinedAt: { gte: thirtyDaysAgo } },
     include: {
       checkIns: { orderBy: { checkedAt: "desc" } },
       shakeLogs: { orderBy: { loggedAt: "desc" } },
@@ -32,7 +31,6 @@ export async function GET(req: NextRequest) {
       ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
       : daysSinceJoin;
 
-    // Milestone badges
     const milestones = [];
     if (firstCheckIn) milestones.push("first_checkin");
     if (firstShake) milestones.push("first_shake");
@@ -47,7 +45,7 @@ export async function GET(req: NextRequest) {
       totalCheckIns >= 3 ? "LOW" : "INACTIVE";
 
     return {
-      id: m.id, name: m.name, phone: m.phone, plan: m.plan,
+      id: m.id, name: m.name, phone: m.phone, plan: m.plan, memberCode: m.memberCode,
       joinedAt: m.joinedAt, daysSinceJoin,
       totalCheckIns, totalShakes, totalOrders,
       firstCheckIn, firstShake, lastActivity, daysSinceActivity,

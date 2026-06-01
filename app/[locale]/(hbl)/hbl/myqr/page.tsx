@@ -8,7 +8,7 @@ import Link from "next/link";
 interface Member {
   id: string; name: string; phone: string; plan: string;
   status: string; points: number; expiresAt: string; qrCode: string;
-  checkedInToday: boolean;
+  checkedInToday: boolean; memberCode?: string | null;
 }
 
 const PLAN_BADGE: Record<string, string> = { BASIC: "🌿", SILVER: "⭐", GOLD: "🥇", PLATINUM: "💎" };
@@ -24,6 +24,33 @@ function getBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "https://trustnest-tsgz.vercel.app";
 }
 
+function BarcodeDisplay({ code }: { code: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!code || !canvasRef.current) return;
+    import("jsbarcode").then(({ default: JsBarcode }) => {
+      JsBarcode(canvasRef.current, code, {
+        format: "CODE128",
+        width: 2,
+        height: 60,
+        displayValue: true,
+        fontSize: 12,
+        margin: 8,
+        background: "#ffffff",
+        lineColor: "#166534",
+      });
+    }).catch(() => {});
+  }, [code]);
+
+  return (
+    <div className="flex flex-col items-center mt-3 pt-3 border-t border-slate-100">
+      <p className="text-xs text-slate-400 mb-2 font-medium">Member Barcode</p>
+      <canvas ref={canvasRef} className="max-w-full" />
+    </div>
+  );
+}
+
 export default function MyQrPage() {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -32,10 +59,10 @@ export default function MyQrPage() {
   const [shared, setShared] = useState(false);
 
   useEffect(() => {
-    fetch("/api/hbl/auth/me").then((r) => {
+    fetch("/api/hbl/auth/me").then(r => {
       if (r.status === 401) { router.replace("/hbl"); return null; }
       return r.json();
-    }).then((d) => { if (d?.member) setMember(d.member); }).finally(() => setLoading(false));
+    }).then(d => { if (d?.member) setMember(d.member); }).finally(() => setLoading(false));
   }, [router]);
 
   function getQrUrl(size = 280) {
@@ -60,8 +87,7 @@ export default function MyQrPage() {
       await navigator.share({ title: "My Herbalife Member QR", text: `Scan to access my Herbalife club profile — ${member?.name}`, url: deepLink });
     } else {
       await navigator.clipboard.writeText(deepLink);
-      setShared(true);
-      setTimeout(() => setShared(false), 2500);
+      setShared(true); setTimeout(() => setShared(false), 2500);
     }
   }
 
@@ -80,7 +106,6 @@ export default function MyQrPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-gradient-to-r from-green-600 to-emerald-500 text-white no-print">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/hbl/dashboard" className="p-1.5 bg-white/20 rounded-lg">
@@ -97,7 +122,6 @@ export default function MyQrPage() {
 
         {/* Member Card */}
         <div ref={cardRef} className={`w-full max-w-xs rounded-3xl bg-gradient-to-br ${gradient} shadow-2xl overflow-hidden print-card`}>
-          {/* Card header */}
           <div className="px-6 pt-6 pb-4 text-white">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
@@ -110,6 +134,9 @@ export default function MyQrPage() {
             </div>
             <h2 className="text-2xl font-black tracking-tight">{member.name}</h2>
             <p className="text-white/70 text-sm mt-0.5">{member.phone}</p>
+            {member.memberCode && (
+              <p className="text-white/60 text-xs font-mono mt-0.5">{member.memberCode}</p>
+            )}
             <div className="flex items-center gap-2 mt-3">
               <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full">
                 {PLAN_BADGE[member.plan]} {member.plan}
@@ -120,7 +147,7 @@ export default function MyQrPage() {
             </div>
           </div>
 
-          {/* QR section */}
+          {/* QR + Barcode section */}
           <div className="bg-white mx-4 mb-4 rounded-2xl p-5 flex flex-col items-center">
             <img
               src={getQrUrl(240)}
@@ -130,9 +157,11 @@ export default function MyQrPage() {
             />
             <p className="text-xs text-slate-500 mt-3 text-center font-medium">Scan to open app & check in</p>
             <p className="font-mono text-[9px] text-slate-300 mt-1 break-all text-center">{member.qrCode}</p>
+
+            {/* Barcode */}
+            {member.memberCode && <BarcodeDisplay code={member.memberCode} />}
           </div>
 
-          {/* Card footer */}
           <div className="px-6 pb-5 flex items-center justify-between text-white/70 text-xs">
             <span>Valid until {new Date(member.expiresAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
             <span className={`font-bold ${member.status === "ACTIVE" ? "text-green-200" : "text-red-300"}`}>{member.status}</span>
@@ -147,7 +176,7 @@ export default function MyQrPage() {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-            <p>Show this card to the club trainer for in-person verification.</p>
+            <p>Admin can scan the <strong>barcode</strong> on this card to check you in directly.</p>
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
@@ -171,14 +200,12 @@ export default function MyQrPage() {
           </button>
         </div>
 
-        {/* Deep link */}
         <div className="mt-4 w-full max-w-xs bg-slate-100 rounded-xl px-4 py-3 no-print">
           <p className="text-xs text-slate-400 mb-1">Your QR link</p>
           <p className="text-xs text-slate-600 font-mono break-all">{deepLink}</p>
         </div>
       </div>
 
-      {/* Print styles */}
       <style>{`
         @media print {
           .no-print { display: none !important; }

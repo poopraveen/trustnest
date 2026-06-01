@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-function isAdmin(req: NextRequest) {
-  return req.headers.get("x-hbl-admin") === (process.env.HBL_ADMIN_PIN ?? "9999");
-}
+import { getAdminContext } from "@/lib/hbl-tenant";
 
 const DEFAULT_PRODUCTS = [
   { sku: "0006", barcode: "U0006IN0020256346174", name: "Herbal Aloe Concentrate", nameTa: "ஹெர்பல் அலோ கான்சன்ட்ரேட்", category: "SUPPLEMENT", price: 1125, mrp: 1250, minStock: 5 },
@@ -21,13 +18,18 @@ const DEFAULT_PRODUCTS = [
 ];
 
 export async function POST(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx = await getAdminContext(req);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const tenantId = ctx.isSuperAdmin ? null : ctx.tenant.id;
 
   const results = { created: 0, skipped: 0 };
   for (const p of DEFAULT_PRODUCTS) {
-    const existing = await prisma.hblProduct.findUnique({ where: { sku: p.sku } });
+    const existing = await prisma.hblProduct.findFirst({
+      where: { sku: p.sku, tenantId: tenantId ?? undefined },
+    });
     if (existing) { results.skipped++; continue; }
-    await prisma.hblProduct.create({ data: p as any });
+    await prisma.hblProduct.create({ data: { ...p, tenantId } as never });
     results.created++;
   }
   return NextResponse.json({ success: true, ...results, total: DEFAULT_PRODUCTS.length });
