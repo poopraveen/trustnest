@@ -177,3 +177,76 @@
 .animate-ticker {
   animation: ticker 25s linear infinite;
 }
+
+/* ── HBL (Herbalife Club) theme ─────────────────────────────────────────────
+   A shared gradient + image backdrop for every HBL screen. Page roots inside
+   the shell should be transparent so this backdrop shows through. */
+.hbl-shell {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+.hbl-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: #ecfdf5;
+  background-image:
+    linear-gradient(180deg, rgba(240, 253, 244, 0.55) 0%, rgba(209, 250, 229, 0.75) 100%),
+    url("/hbl/hbl-bg.png");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Vivid hero backdrop for auth / entry screens (white text on top). */
+.hbl-hero-bg {
+  position: relative;
+  background-color: #064e3b;
+  background-image:
+    linear-gradient(135deg, rgba(4, 47, 24, 0.78) 0%, rgba(6, 78, 59, 0.55) 45%, rgba(6, 95, 70, 0.78) 100%),
+    url("/hbl/hbl-hero.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Frosted glass surface for cards over the gradient backdrop. */
+.hbl-glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+/* Cohesive gradient header bar used across HBL screens. */
+.hbl-header {
+  background-image: linear-gradient(120deg, #065f46 0%, #15803d 50%, #0d9488 100%);
+}
+
+/* Primary gradient CTA. */
+.hbl-cta {
+  background-image: linear-gradient(120deg, #16a34a 0%, #059669 50%, #0d9488 100%);
+}
+.hbl-cta:hover {
+  background-image: linear-gradient(120deg, #15803d 0%, #047857 50%, #0f766e 100%);
+}
+
+/* Reveal the shared backdrop: neutralise opaque solid page roots so the
+   gradient/image shows through. Gradient roots (auth screens) set a
+   background-image and are unaffected by clearing background-color. */
+.hbl-shell .min-h-screen {
+  background-color: transparent !important;
+}
+
+/* Unify admin header bars (slate) to the brand green gradient. */
+.hbl-shell header.from-slate-800 {
+  background-image: linear-gradient(120deg, #065f46 0%, #15803d 55%, #0d9488 100%) !important;
+}
+
+/* Give member green header bars the richer 3-stop brand gradient. */
+.hbl-shell header.from-green-600 {
+  background-image: linear-gradient(120deg, #16a34a 0%, #059669 55%, #0d9488 100%) !important;
+}

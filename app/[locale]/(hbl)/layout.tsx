@@ -1,3 +1,3 @@
 export default function HblLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <div className="hbl-shell">{children}</div>;
 }
