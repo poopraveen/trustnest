@@ -1049,3 +1049,170 @@ model Tender {
   @@index([departmentId])
   @@index([stage])
 }
+
+// ─── HERBALIFE DISTRIBUTION ──────────────────────────────────────────────────
+
+enum HblMembershipType {
+  BASIC
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum HblMemberStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+enum HblOrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum HblProductCategory {
+  SHAKE
+  TEA
+  SUPPLEMENT
+  SNACK
+}
+
+model HblMember {
+  id         String            @id @default(cuid())
+  phone      String            @unique
+  name       String
+  email      String?
+  plan       HblMembershipType @default(BASIC)
+  status     HblMemberStatus   @default(ACTIVE)
+  points     Int               @default(0)
+  joinedAt   DateTime          @default(now())
+  expiresAt  DateTime
+  qrCode     String            @unique
+  referredBy String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  checkIns    HblCheckIn[]
+  orders      HblOrder[]
+  payments    HblPayment[]
+  loyaltyTxns HblLoyaltyTxn[]
+  sessions    HblSession[]
+
+  @@index([phone])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model HblProduct {
+  id        String             @id @default(cuid())
+  name      String
+  nameTa    String?
+  category  HblProductCategory
+  price     Float
+  stock     Int                @default(0)
+  minStock  Int                @default(10)
+  imageUrl  String?
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  orderItems HblOrderItem[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model HblOrder {
+  id          String         @id @default(cuid())
+  memberId    String
+  member      HblMember      @relation(fields: [memberId], references: [id])
+  orderNo     String         @unique
+  status      HblOrderStatus @default(PENDING)
+  totalAmount Float
+  pickupTime  DateTime?
+  notes       String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  items   HblOrderItem[]
+  payment HblPayment?
+
+  @@index([memberId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model HblOrderItem {
+  id        String     @id @default(cuid())
+  orderId   String
+  order     HblOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   HblProduct @relation(fields: [productId], references: [id])
+  qty       Int
+  price     Float
+
+  @@index([orderId])
+}
+
+model HblCheckIn {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    HblMember @relation(fields: [memberId], references: [id])
+  checkedAt DateTime  @default(now())
+
+  @@index([memberId])
+  @@index([checkedAt])
+}
+
+model HblPayment {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    HblMember @relation(fields: [memberId], references: [id])
+  orderId   String?   @unique
+  order     HblOrder? @relation(fields: [orderId], references: [id])
+  amount    Float
+  type      String
+  method    String    @default("CASH")
+  reference String?
+  createdAt DateTime  @default(now())
+
+  @@index([memberId])
+  @@index([createdAt])
+}
+
+model HblLoyaltyTxn {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    HblMember @relation(fields: [memberId], references: [id])
+  points    Int
+  reason    String
+  createdAt DateTime  @default(now())
+
+  @@index([memberId])
+}
+
+model HblOtp {
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+model HblSession {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    HblMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  token     String    @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([memberId])
+}
