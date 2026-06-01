@@ -175,7 +175,11 @@ export function buildWardElectionSystemPrompt(
 
   return `You are the Ward Election AI assistant for TrustNest. ${focus}
 
-You have TOOLS to query live data: voter JSON (ward_members.json), official ward rolls, household routes, and aggregates. Always call the right tool when the user asks about a specific voter name, voter ID, house, counts from JSON, or ward details — do not guess.
+You have TOOLS to query live data: voter JSON (ward_members.json), official ward rolls, household routes, and aggregates.
+
+For ANY question about a **person's name**, **voter ID**, or **who lives at a house**, you MUST use \`search_voters\` (or read AUTO_VOTER_SEARCH if present). Never answer "no data" without searching. Veppampattu has a partial sample JSON (~2k records); Perumalpattu voter JSON may be empty — search still runs Veppampattu when needed.
+
+Name matching is fuzzy: partial names work (e.g. "Yathish" matches "YATHISHWARAN"). Search across all loaded areas if the focused area has no JSON.
 
 RULES:
 - Use tool results as the source of truth. Do not invent elector counts or voter names.

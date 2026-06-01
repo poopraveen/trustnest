@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Search, ChevronRight, Users, Loader2, AlertCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { getAnalyticsForArea } from "@/lib/ward-election-analytics";
 import { getHouseholdsByWard, HOUSEHOLD_ROUTES } from "@/lib/ward-households";
 import { getWardsForArea } from "@/lib/ward-election-data";
 import { resolveAreaId } from "@/lib/ward-election-areas";
+import { houseNumbersMatch } from "@/lib/ward-house-match";
 import {
   VOTER_STATUS_LABELS,
   VOTER_STATUS_COLORS,
@@ -55,39 +56,47 @@ export default function CanvassingClient() {
   const [ward, setWard] = useState(defaultWard);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHouse, setSelectedHouse] = useState<string | null>(null);
-  const [voters, setVoters] = useState<Voter[]>([]);
+  const [wardVoters, setWardVoters] = useState<Voter[]>([]);
+  const [loadingWard, setLoadingWard] = useState(false);
+  const [wardLoadError, setWardLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [loadingV, setLoadingV] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { getStatus, setStatus, ready } = useCampaignStore();
   const detailRef = useRef<HTMLDivElement>(null);
 
-  const loadVoters = useCallback(async (w: number, house: string) => {
-    setLoadingV(true);
-    setLoadError(null);
-    setVoters([]);
+  const loadWardVoters = useCallback(async (w: number) => {
+    setLoadingWard(true);
+    setWardLoadError(null);
+    setWardVoters([]);
+    setSelectedHouse(null);
     try {
-      const res = await fetch(
-        `/api/ward-election/voters?area=${encodeURIComponent(areaId)}&ward=${w}&house=${encodeURIComponent(house)}&limit=100`
-      );
+      const res = await fetch("/api/ward-election/voters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ areaId, ward: w, allForWard: true }),
+      });
       const data = await res.json();
       if (!res.ok) {
-        setLoadError(data.error ?? "Could not load voters");
+        setWardLoadError(data.error ?? "Could not load voter data for this part");
         return;
       }
       const items = (data.items ?? []) as Voter[];
-      setVoters(items);
+      setWardVoters(items);
       if (items.length === 0) {
-        setLoadError(
-          "No voter records matched this house in the JSON extract. Try another house or run npm run ward:gen after updating ward_members.json."
+        setWardLoadError(
+          "No voters in JSON for this part. Add data to ward_members.json and run npm run ward:gen."
         );
       }
     } catch {
-      setLoadError("Network error loading voter details.");
+      setWardLoadError("Network error loading voters.");
     } finally {
-      setLoadingV(false);
+      setLoadingWard(false);
     }
   }, [areaId]);
+
+  const votersAtHouse = useMemo(() => {
+    if (!selectedHouse) return [];
+    return wardVoters.filter((v) => houseNumbersMatch(selectedHouse, v.houseNumber));
+  }, [selectedHouse, wardVoters]);
 
   useEffect(() => {
     const p = searchParams.get("part") ?? searchParams.get("ward");
@@ -108,17 +117,15 @@ export default function CanvassingClient() {
         hasSenior: h.hasSenior,
       }))
     );
-    setSelectedHouse(null);
-    setVoters([]);
-    setLoadError(null);
     setSearch("");
-  }, [ward, areaId]);
+    loadWardVoters(ward);
+  }, [ward, areaId, loadWardVoters]);
 
   useEffect(() => {
     if (selectedHouse && detailRef.current) {
       detailRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [selectedHouse, loadingV]);
+  }, [selectedHouse]);
 
   const filtered = search.trim()
     ? households.filter((h) => h.house.toLowerCase().includes(search.trim().toLowerCase()))
@@ -126,8 +133,9 @@ export default function CanvassingClient() {
 
   const selectHouse = (house: string) => {
     setSelectedHouse(house);
-    loadVoters(ward, house);
   };
+
+  const selectedHousehold = households.find((h) => h.house === selectedHouse);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -138,6 +146,7 @@ export default function CanvassingClient() {
             value={ward}
             onChange={(e) => setWard(Number(e.target.value))}
             className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+            disabled={loadingWard}
           >
             {wards.length === 0 ? (
               <option value={ward}>Part {ward} (no route data)</option>
@@ -147,11 +156,18 @@ export default function CanvassingClient() {
               ))
             )}
           </select>
-          {wards.length === 0 && (
-            <p className="text-xs text-amber-700 mt-2">
-              No household routes for this area yet. Add voter JSON and run{" "}
-              <code className="bg-amber-50 px-1 rounded">npm run ward:gen</code>.
+          {loadingWard && (
+            <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Loading voters…
             </p>
+          )}
+          {!loadingWard && wardVoters.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">
+              {wardVoters.length} voters loaded for Part {ward} (sample data)
+            </p>
+          )}
+          {wardLoadError && (
+            <p className="text-xs text-amber-700 mt-2">{wardLoadError}</p>
           )}
         </div>
 
@@ -175,23 +191,31 @@ export default function CanvassingClient() {
                 No households for Part {ward}. Check area ({areaId}) or regenerate routes.
               </p>
             ) : (
-              filtered.map((h) => (
-                <button
-                  key={`${h.ward}-${h.house}`}
-                  type="button"
-                  onClick={() => selectHouse(h.house)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
-                    selectedHouse === h.house
-                      ? "bg-indigo-100 text-indigo-800 font-medium ring-1 ring-indigo-200"
-                      : "hover:bg-slate-50 text-slate-700"
-                  }`}
-                >
-                  <Home className="w-4 h-4 shrink-0 text-slate-400" />
-                  <span className="flex-1 truncate">{h.house || "—"}</span>
-                  <span className="text-xs text-slate-400">{h.voters}</span>
-                  <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-                </button>
-              ))
+              filtered.map((h) => {
+                const matched = wardVoters.filter((v) =>
+                  houseNumbersMatch(h.house, v.houseNumber)
+                ).length;
+                return (
+                  <button
+                    key={`${h.ward}-${h.house}`}
+                    type="button"
+                    onClick={() => selectHouse(h.house)}
+                    disabled={loadingWard || wardVoters.length === 0}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors disabled:opacity-50 ${
+                      selectedHouse === h.house
+                        ? "bg-indigo-100 text-indigo-800 font-medium ring-1 ring-indigo-200"
+                        : "hover:bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    <Home className="w-4 h-4 shrink-0 text-slate-400" />
+                    <span className="flex-1 truncate">{h.house || "—"}</span>
+                    <span className="text-xs text-slate-400" title="Route count / matched in JSON">
+                      {matched > 0 ? matched : h.voters}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -199,18 +223,18 @@ export default function CanvassingClient() {
 
       <div className="lg:col-span-8" ref={detailRef}>
         <div className="card p-6 min-h-[320px] lg:min-h-[480px]">
-          {!selectedHouse ? (
+          {loadingWard ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+              <p className="text-sm text-slate-500">Loading Part {ward} voters…</p>
+            </div>
+          ) : !selectedHouse ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="w-12 h-12 text-slate-300 mb-3" />
               <p className="font-medium text-slate-600">Select a household</p>
               <p className="text-sm text-slate-400 mt-1 max-w-sm">
-                Tap a house in the route list — voter names and sentiment tags appear here.
+                Tap a house in the route list — voter names appear here instantly.
               </p>
-            </div>
-          ) : loadingV ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-              <p className="text-sm text-slate-500">Loading voters at {selectedHouse}…</p>
             </div>
           ) : (
             <>
@@ -218,19 +242,26 @@ export default function CanvassingClient() {
                 House {selectedHouse} · Part {ward}
               </h3>
               <p className="text-sm text-slate-500 mb-4">
-                {voters.length} voter{voters.length !== 1 ? "s" : ""} at this address
+                {votersAtHouse.length} voter{votersAtHouse.length !== 1 ? "s" : ""} matched
+                {selectedHousehold
+                  ? ` (route listed ${selectedHousehold.voters})`
+                  : ""}
               </p>
 
-              {loadError && voters.length === 0 && (
+              {votersAtHouse.length === 0 && (
                 <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 mb-4 text-sm text-amber-900">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{loadError}</span>
+                  <span>
+                    No voters matched this address in the sample JSON. The roll may list this
+                    house differently (e.g. <strong>1/462</strong> vs <strong>462</strong>). Try
+                    nearby houses in the list.
+                  </span>
                 </div>
               )}
 
-              {voters.length > 0 ? (
+              {votersAtHouse.length > 0 && (
                 <div className="space-y-3 max-h-[min(60vh,520px)] overflow-y-auto pr-1">
-                  {voters.map((v, idx) => {
+                  {votersAtHouse.map((v, idx) => {
                     const status = ready ? getStatus(v.voterId) : "unknown";
                     return (
                       <div
@@ -245,7 +276,7 @@ export default function CanvassingClient() {
                             {v.gender && ` · ${v.gender}`}
                           </p>
                           {v.houseNumber && v.houseNumber !== selectedHouse && (
-                            <p className="text-[10px] text-slate-400 mt-0.5">
+                            <p className="text-[10px] text-indigo-600 mt-0.5">
                               Roll house: {v.houseNumber}
                             </p>
                           )}
@@ -266,9 +297,7 @@ export default function CanvassingClient() {
                     );
                   })}
                 </div>
-              ) : !loadError ? (
-                <p className="text-sm text-slate-500">No voters to display.</p>
-              ) : null}
+              )}
             </>
           )}
         </div>

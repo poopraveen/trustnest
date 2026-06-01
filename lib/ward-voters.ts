@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { DEFAULT_AREA_ID, getElectionArea } from "@/lib/ward-election-areas";
+import { houseNumbersMatch } from "@/lib/ward-house-match";
+import { matchesVoterSearch } from "@/lib/ward-voter-search";
+
+export { houseNumbersMatch, normalizeHouseKey } from "@/lib/ward-house-match";
 
 export interface VoterRecord {
   ward: number;
@@ -33,29 +37,6 @@ const _cache = new Map<string, VoterRecord[]>();
 function dataPath(areaId: string): string {
   const area = getElectionArea(areaId) ?? getElectionArea(DEFAULT_AREA_ID)!;
   return path.join(process.cwd(), area.voterDataPath);
-}
-
-/** Normalize house keys so route "1-11" matches voter JSON "1/11", etc. */
-export function normalizeHouseKey(house: string): string {
-  return String(house || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[/\\~]/g, "-")
-    .replace(/\s+/g, "");
-}
-
-export function houseNumbersMatch(routeHouse: string, voterHouse: string): boolean {
-  const a = normalizeHouseKey(routeHouse);
-  const b = normalizeHouseKey(voterHouse);
-  if (!a || !b) return false;
-  if (a === b) return true;
-  // "1-11" vs "111" style collapse for OCR quirks (only when short)
-  if (a.length <= 6 && b.length <= 6) {
-    const ca = a.replace(/-/g, "");
-    const cb = b.replace(/-/g, "");
-    if (ca === cb) return true;
-  }
-  return false;
 }
 
 function normalize(r: RawRecord): VoterRecord {
@@ -101,14 +82,8 @@ export function queryVoters(opts: {
   if (ward != null) rows = rows.filter((v) => v.ward === ward);
   if (house) rows = rows.filter((v) => houseNumbersMatch(house, v.houseNumber));
   if (q?.trim()) {
-    const term = q.trim().toLowerCase();
-    rows = rows.filter(
-      (v) =>
-        v.name.toLowerCase().includes(term) ||
-        v.voterId.toLowerCase().includes(term) ||
-        v.houseNumber.toLowerCase().includes(term) ||
-        v.relativeName.toLowerCase().includes(term)
-    );
+    const term = q.trim();
+    rows = rows.filter((v) => matchesVoterSearch(v, term));
   }
   const total = rows.length;
   const start = (page - 1) * limit;

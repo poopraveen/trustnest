@@ -4,6 +4,11 @@ import { getHouseholdsByWard, HOUSEHOLDS_BY_AREA } from "@/lib/ward-households";
 import { isValidAreaId } from "@/lib/ward-election-areas";
 import { getElectionMetaForArea } from "@/lib/ward-election-data";
 import { loadAllVoters, queryVoters, type VoterRecord } from "@/lib/ward-voters";
+const AREAS_WITH_JSON = ["veppampattu", "perumalpattu"] as const;
+
+function areasWithVoterJson(): ("veppampattu" | "perumalpattu")[] {
+  return AREAS_WITH_JSON.filter((id) => loadAllVoters(id).length > 0);
+}
 
 export const WARD_CHAT_TOOLS = [
   {
@@ -128,8 +133,9 @@ function ageBand(age: number | null): string {
   return "60_plus";
 }
 
-function voterToRow(v: VoterRecord) {
+function voterToRow(v: VoterRecord, areaId?: string) {
   return {
+    areaId: areaId ?? null,
     part: v.ward,
     serial: v.serialNo,
     voterId: v.voterId,
@@ -210,33 +216,61 @@ export function runWardElectionTool(
       const partNo = args.partNo != null ? Number(args.partNo) : undefined;
       const house = args.houseNumber ? String(args.houseNumber) : undefined;
       const limit = Math.min(Number(args.limit) || 25, 50);
+      const withData = areasWithVoterJson();
 
-      const areas =
-        areaId === "all" ? (["veppampattu", "perumalpattu"] as const) : [areaId as "veppampattu" | "perumalpattu"];
+      const requested: ("veppampattu" | "perumalpattu")[] =
+        areaId === "all"
+          ? [...AREAS_WITH_JSON]
+          : [areaId as "veppampattu" | "perumalpattu"];
 
-      const items: ReturnType<typeof voterToRow>[] = [];
-      for (const id of areas) {
-        const voters = loadAllVoters(id);
-        if (voters.length === 0) continue;
-        const { items: batch } = queryVoters({
-          areaId: id,
-          ward: partNo,
-          house,
-          q: query,
-          limit: limit - items.length,
-        });
-        items.push(...batch.map(voterToRow));
-        if (items.length >= limit) break;
+      const runSearch = (areaIds: ("veppampattu" | "perumalpattu")[]) => {
+        const rows: ReturnType<typeof voterToRow>[] = [];
+        for (const id of areaIds) {
+          if (!withData.includes(id)) continue;
+          const { items: batch } = queryVoters({
+            areaId: id,
+            ward: partNo,
+            house,
+            q: query,
+            limit: limit - rows.length,
+          });
+          rows.push(...batch.map((v) => voterToRow(v, id)));
+          if (rows.length >= limit) break;
+        }
+        return rows;
+      };
+
+      let searchAreas = requested.filter((id) => withData.includes(id));
+      if (searchAreas.length === 0) searchAreas = withData;
+
+      let items = runSearch(searchAreas);
+      let expandedToAllAreas = false;
+
+      if (items.length === 0 && withData.length > searchAreas.length) {
+        items = runSearch(withData);
+        expandedToAllAreas = true;
       }
+
+      const emptyJsonAreas = requested.filter((id) => !withData.includes(id));
 
       return {
         query,
+        partNo: partNo ?? null,
+        searchedAreas: searchAreas,
+        expandedToAllAreas,
         count: items.length,
+        totalInSample: withData.reduce((n, id) => n + loadAllVoters(id).length, 0),
         items: items.slice(0, limit),
         note:
           items.length === 0
-            ? "No matches — voter JSON may be empty for that area. Official roll totals are still in ward details."
-            : undefined,
+            ? withData.length === 0
+              ? "No voter JSON loaded yet. Veppampattu needs data/ward-election/ward_members.json; Perumalpattu needs perumalpattu/ward_members.json."
+              : `No matches for "${query}" in the loaded sample (${withData.join(", ")}). Try a shorter name, voter ID, or check spelling.`
+            : emptyJsonAreas.length > 0
+              ? `Searched ${withData.join(", ")} sample only — ${emptyJsonAreas.join(", ")} voter JSON not loaded yet.`
+              : expandedToAllAreas
+                ? `No matches in the selected area; results are from all loaded areas (${withData.join(", ")}).`
+                : "Results from voter JSON sample extract (partial roll).",
       };
     }
 

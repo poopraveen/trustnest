@@ -6,6 +6,10 @@ import {
   WARD_CHAT_TOOLS,
   runWardElectionTool,
 } from "@/lib/ward-election-chat-tools";
+import {
+  extractPartFromMessage,
+  extractVoterSearchQuery,
+} from "@/lib/ward-voter-search";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Lazy singleton — instantiated only at call time, never at build time.
@@ -220,6 +224,37 @@ function toolStatusLabel(name: string): string {
   return TOOL_LABELS[name] ?? `Query: ${name}`;
 }
 
+/** Run voter search before the LLM when the user message looks like a name lookup. */
+function appendVoterSearchPrefetch(
+  messages: ChatMessage[],
+  userText: string,
+  areaFocus: "veppampattu" | "perumalpattu" | "all"
+): void {
+  const query = extractVoterSearchQuery(userText);
+  if (!query) return;
+
+  const partNo = extractPartFromMessage(userText);
+  const result = runWardElectionTool(
+    "search_voters",
+    {
+      query,
+      areaId: areaFocus === "all" ? "all" : areaFocus,
+      ...(partNo != null ? { partNo } : {}),
+      limit: 30,
+    },
+    areaFocus
+  );
+
+  messages.push({
+    role: "system",
+    content:
+      `AUTO_VOTER_SEARCH (already ran search_voters for "${query}"` +
+      (partNo != null ? ` in Part ${partNo}` : "") +
+      ` — use these rows in your answer; cite part, house, voter ID):\n` +
+      JSON.stringify(result),
+  });
+}
+
 /** Agent loop with OpenAI tools over voter JSON + ward data. */
 export async function chatWardElection(
   input: WardChatInput
@@ -240,7 +275,12 @@ export async function chatWardElection(
   }
 
   const messages: ChatMessage[] = [{ role: "system", content: system }, ...history];
+  const lastUserText = history[history.length - 1]?.content ?? "";
+  appendVoterSearchPrefetch(messages, lastUserText, focus);
   const toolsUsed: string[] = [];
+  if (extractVoterSearchQuery(lastUserText)) {
+    toolsUsed.push(TOOL_LABELS.search_voters);
+  }
   const client = getClient();
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -312,7 +352,14 @@ export async function* chatWardElectionStream(
   }
 
   const messages: ChatMessage[] = [{ role: "system", content: system }, ...history];
+  const lastUserText = history[history.length - 1]?.content ?? "";
+  appendVoterSearchPrefetch(messages, lastUserText, focus);
   const toolsUsed: string[] = [];
+  const autoSearch = extractVoterSearchQuery(lastUserText);
+  if (autoSearch) {
+    toolsUsed.push(TOOL_LABELS.search_voters);
+    yield { type: "status", message: "Searched voter JSON…" };
+  }
   const client = getClient();
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
