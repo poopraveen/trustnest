@@ -18,10 +18,11 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     return NextResponse.redirect(url);
   }
 
-  // Create session
+  // Create session (scoped to the member's tenant/branch)
   const session = await prisma.hblSession.create({
     data: {
       memberId: member.id,
+      tenantId: member.tenantId ?? null,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });

@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Search, Users, Loader2, X, CheckCircle2, Phone, ScanLine } from "lucide-react";
+import { ArrowLeft, Plus, Search, Users, Loader2, X, CheckCircle2, Phone, ScanLine, QrCode } from "lucide-react";
 import Link from "next/link";
+import MemberQrCard from "@/components/hbl/MemberQrCard";
 
 interface Member {
   id: string; name: string; phone: string; email?: string;
-  plan: string; status: string; points: number; expiresAt: string; joinedAt: string; memberCode?: string | null;
+  plan: string; status: string; points: number; expiresAt: string; joinedAt: string;
+  memberCode?: string | null; qrCode: string;
 }
 
 function getAdminSession() {
-  if (typeof window === "undefined") return { pin: "", tenantId: "" };
+  if (typeof window === "undefined") return { pin: "", tenantId: "", clubName: "" };
   try {
     const s = JSON.parse(sessionStorage.getItem("hbl_admin_session") ?? "{}");
-    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "" };
-  } catch { return { pin: "", tenantId: "" }; }
+    return { pin: s.pin ?? "", tenantId: s.tenant?.id ?? "", clubName: s.tenant?.name ?? "" };
+  } catch { return { pin: "", tenantId: "", clubName: "" }; }
 }
 
 const PLAN_COLOR: Record<string, string> = {
@@ -28,7 +30,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AdminMembers() {
   const router = useRouter();
-  const [session, setSession] = useState({ pin: "", tenantId: "" });
+  const [session, setSession] = useState({ pin: "", tenantId: "", clubName: "" });
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -37,6 +39,7 @@ export default function AdminMembers() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", plan: "BASIC" });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [qrMember, setQrMember] = useState<Member | null>(null);
 
   useEffect(() => {
     const s = getAdminSession();
@@ -73,8 +76,14 @@ export default function AdminMembers() {
     });
     const data = await res.json();
     setSaving(false);
-    if (res.ok) { setMsg("Member added!"); setShowAdd(false); setForm({ name: "", phone: "", email: "", plan: "BASIC" }); fetchMembers(); }
-    else setMsg(data.error ?? "Failed");
+    if (res.ok) {
+      setMsg("Member added!");
+      setShowAdd(false);
+      setForm({ name: "", phone: "", email: "", plan: "BASIC" });
+      fetchMembers();
+      // Show the login QR/barcode card right away so admin can share/print it.
+      if (data.member) setQrMember(data.member as Member);
+    } else setMsg(data.error ?? "Failed");
   }
 
   async function sendRenewalWA(id: string) {
@@ -152,9 +161,14 @@ export default function AdminMembers() {
                         </span>
                       </div>
                     </div>
-                    <button onClick={() => sendRenewalWA(m.id)} className="shrink-0 text-xs bg-green-600 text-white px-3 py-1.5 rounded-xl hover:bg-green-700 font-semibold">
-                      WhatsApp
-                    </button>
+                    <div className="shrink-0 flex flex-col gap-1.5">
+                      <button onClick={() => setQrMember(m)} className="flex items-center justify-center gap-1 text-xs bg-slate-800 text-white px-3 py-1.5 rounded-xl hover:bg-slate-900 font-semibold">
+                        <QrCode className="w-3.5 h-3.5" /> Card
+                      </button>
+                      <button onClick={() => sendRenewalWA(m.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-xl hover:bg-green-700 font-semibold">
+                        WhatsApp
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -200,6 +214,10 @@ export default function AdminMembers() {
             </button>
           </div>
         </div>
+      )}
+
+      {qrMember && (
+        <MemberQrCard member={qrMember} clubName={session.clubName || undefined} onClose={() => setQrMember(null)} />
       )}
     </div>
   );
