@@ -137,7 +137,7 @@ export function buildWardElectionKnowledge(
   if (otherArea && areaFilter !== "all") {
     const otherMeta = getElectionMetaForArea(otherArea.id);
     globalNotes.push(
-      `User may also ask about ${otherArea.name}: ${otherMeta.totalParts} parts, ${otherMeta.totalElectors.toLocaleString("en-IN")} electors — switch area or ask for comparison.`
+      `User may also ask about ${otherArea.name}: ${otherMeta.totalWards} parts, ${otherMeta.totalElectors.toLocaleString("en-IN")} electors — switch area or ask for comparison.`
     );
   }
 

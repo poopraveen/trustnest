@@ -267,7 +267,7 @@ export default function WardElectionChat({
           copy[copy.length - 1] = {
             role: "assistant",
             content: fullReply || "No response.",
-            toolsUsed: [...new Set(toolsUsed)],
+            toolsUsed: Array.from(new Set(toolsUsed)),
             streaming: false,
           };
           return copy;

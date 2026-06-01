@@ -10,7 +10,7 @@ export function generateStaticParams() {
   const parts = new Set<number>();
   ALL_WARDS.forEach((w) => { if (w.partNo) parts.add(w.partNo); });
   WARD_ANALYTICS.forEach((w) => parts.add(w.ward));
-  return [...parts].map((part) => ({ part: String(part) }));
+  return Array.from(parts).map((part) => ({ part: String(part) }));
 }
 
 export async function generateMetadata({

@@ -1,7 +1,8 @@
 import { getWardsForArea, getWardByPart, type Ward } from "@/lib/ward-election-data";
 import { getAnalyticsByWard, getAnalyticsForArea } from "@/lib/ward-election-analytics";
 import { getHouseholdsByWard, HOUSEHOLDS_BY_AREA } from "@/lib/ward-households";
-import { getElectionMetaForArea, isValidAreaId } from "@/lib/ward-election-areas";
+import { isValidAreaId } from "@/lib/ward-election-areas";
+import { getElectionMetaForArea } from "@/lib/ward-election-data";
 import { loadAllVoters, queryVoters, type VoterRecord } from "@/lib/ward-voters";
 
 export const WARD_CHAT_TOOLS = [
@@ -269,7 +270,7 @@ export function runWardElectionTool(
       return {
         total: rows.length,
         groupBy,
-        groups: [...groups.entries()]
+        groups: Array.from(groups.entries())
           .map(([key, count]) => ({ key, count }))
           .sort((a, b) => b.count - a.count),
       };
