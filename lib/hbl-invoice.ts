@@ -8,6 +8,16 @@ export interface InvoiceItem {
   retailPricePerUnit: number;
 }
 
+export interface InvoiceSeller {
+  name?: string;       // club / branch display name
+  legalName?: string;  // FBO / proprietor name
+  address?: string;
+  gstin?: string;
+  fssai?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface InvoiceData {
   orderNo: string;
   invoiceNo: string;
@@ -16,6 +26,9 @@ export interface InvoiceData {
   shipTo: { name: string; address: string };
   items: InvoiceItem[];
   volumePoints?: number;
+  /** Seller / branch details — pulled from the tenant record. */
+  seller?: InvoiceSeller;
+  // Legacy aliases (still honoured if `seller` is not provided)
   clubName?: string;
   clubAddress?: string;
 }
@@ -82,22 +95,39 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   const W = 595 - L * 2; // usable width
   let y = 842 - L; // cursor starts near top
 
-  const club = data.clubName    ?? "Herbalife Nutrition Club";
-  const addr = data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  // Resolve seller details (tenant record → legacy aliases → sensible defaults)
+  const seller = data.seller ?? {};
+  const club    = seller.name    ?? data.clubName    ?? "Herbalife Nutrition Club";
+  const addr    = seller.address ?? data.clubAddress ?? "Veppampattu, Tiruvallur, Tamil Nadu 602024";
+  const gstin   = (seller.gstin ?? "").trim();
+  const fssai   = (seller.fssai ?? "").trim();
+  const legal   = (seller.legalName ?? "").trim();
+  const sPhone  = (seller.phone ?? "").trim();
+  const sEmail  = (seller.email ?? "").trim();
+  const hasGst  = gstin.length > 0;
 
   // ── HEADER ────────────────────────────────────────────────────────────────
   rect(page, L, y - 50, W, 50, C.green);
   txt(page, "Herbalife", L + 8, y - 18, bold, 20, C.white);
   txt(page, "NUTRITION", L + 8, y - 30, reg, 7, C.tgreen);
-  txt(page, "TAX INVOICE", L + W - 85, y - 20, bold, 13, C.white);
-  txt(page, "Original for Recipient", L + W - 85, y - 32, reg, 6, C.tgreen);
+  const docTitle = hasGst ? "TAX INVOICE" : "BILL OF SUPPLY";
+  txt(page, docTitle, L + W - 92, y - 20, bold, 13, C.white);
+  txt(page, "Original for Recipient", L + W - 92, y - 32, reg, 6, C.tgreen);
   y -= 56;
 
   // ── SELLER BAR ─────────────────────────────────────────────────────────────
-  rect(page, L, y - 54, W, 54, C.lgray, C.border);
-  txt(page, club.toUpperCase(), L + 6, y - 11, bold, 8, C.dark);
-  txt(page, addr, L + 6, y - 22, reg, 7, C.gray);
-  txt(page, "GSTIN: 33AAACH8025R1ZA  |  FSSAI No: 10013043000639  |  Reverse Charge: No", L + 6, y - 32, reg, 6, C.gray);
+  rect(page, L, y - 60, W, 60, C.lgray, C.border);
+  txt(page, club.toUpperCase(), L + 6, y - 11, bold, 8, C.dark, W / 2 - 8);
+  if (legal) txt(page, `Prop: ${legal}`, L + 6, y - 21, reg, 6.5, C.gray, W / 2 - 8);
+  txt(page, addr, L + 6, y - (legal ? 31 : 22), reg, 6.5, C.gray, W - 12);
+  const regLine = [
+    hasGst ? `GSTIN: ${gstin}` : "GST: Not Registered (Bill of Supply)",
+    fssai ? `FSSAI No: ${fssai}` : null,
+    "Reverse Charge: No",
+  ].filter(Boolean).join("  |  ");
+  txt(page, regLine, L + 6, y - (legal ? 42 : 33), reg, 6, C.gray, W - 12);
+  const contactLine = [sPhone ? `Ph: ${sPhone}` : null, sEmail ? sEmail : null].filter(Boolean).join("  |  ");
+  if (contactLine) txt(page, contactLine, L + 6, y - (legal ? 52 : 44), reg, 6, C.gray, W - 12);
 
   const mX = L + W / 2 + 8;
   [
@@ -109,7 +139,7 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
     txt(page, k,  mX,      y - 11 - i * 11, reg,  7, C.gray);
     txt(page, v,  mX + 68, y - 11 - i * 11, bold, 7, C.dark);
   });
-  y -= 60;
+  y -= 66;
 
   // ── PURCHASED BY / SHIP TO ─────────────────────────────────────────────────
   const half = (W - 4) / 2;
@@ -154,7 +184,7 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
   colStarts[0] = L;
   for (let i = 1; i < CWArr.length; i++) colStarts[i] = colStarts[i - 1] + CWArr[i - 1];
 
-  const HEADS = ["SL", "SKU", "Description", "MRP/Unit", "Qty", "Retail/Unit", "Total", "Discount", "Taxable", "SGST\n2.5%", "CGST\n2.5%"];
+  const HEADS = ["SL", "SKU", "Description", "MRP/Unit", "Qty", "Retail/Unit", "Total", "Discount", "Taxable", hasGst ? "SGST\n2.5%" : "SGST", hasGst ? "CGST\n2.5%" : "CGST"];
   const TH = 20;
   rect(page, L, y - TH, W, TH, C.green);
   HEADS.forEach((h, i) => {
@@ -177,9 +207,11 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
     const mrpTotal   = item.mrpPerUnit * item.qty;
     const retail     = item.retailPricePerUnit * item.qty;
     const disc       = mrpTotal - retail;
-    const taxable    = retail / 1.05;
-    const sgst       = taxable * 0.025;
-    const cgst       = taxable * 0.025;
+    // GST-registered sellers: price is inclusive of 5% GST (2.5% SGST + 2.5% CGST).
+    // Unregistered retailers (Bill of Supply): no tax is extracted.
+    const taxable    = hasGst ? retail / 1.05 : retail;
+    const sgst       = hasGst ? taxable * 0.025 : 0;
+    const cgst       = hasGst ? taxable * 0.025 : 0;
 
     totMrp    += mrpTotal;
     totRetail += retail;
@@ -242,9 +274,18 @@ export async function generateHblInvoice(data: InvoiceData): Promise<Uint8Array>
 
   // ── NOTES ──────────────────────────────────────────────────────────────────
   y -= 6;
+  if (!hasGst) {
+    txt(page, "Bill of Supply: Seller is not registered under GST (turnover within exemption limit). No tax is charged on this bill.", L, y, reg, 6.5, C.gray, W);
+    y -= 11;
+  }
   txt(page, "Thank you for your order. Products are prepared fresh at the nutrition club. Contact us for any queries.", L, y, reg, 6.5, C.gray, W);
   y -= 12;
-  txt(page, "Toll Free: 1800-102-2444  |  Email: preferredcustomer@herbalife.com  |  Web: www.myherbalife.com/en-in/", L, y, reg, 6.5, C.gray, W);
+  const footContact = [
+    sPhone ? `Ph: ${sPhone}` : null,
+    sEmail ? `Email: ${sEmail}` : "Email: preferredcustomer@herbalife.com",
+    "Web: www.myherbalife.com/en-in/",
+  ].filter(Boolean).join("  |  ");
+  txt(page, footContact, L, y, reg, 6.5, C.gray, W);
   y -= 20;
 
   // ── SIGNATURE ──────────────────────────────────────────────────────────────

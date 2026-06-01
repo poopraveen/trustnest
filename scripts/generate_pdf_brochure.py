@@ -1,267 +1,324 @@
 """
-Generate TrustNest HBL PDF brochure for download inside the app.
-Output: public/TrustNest_HBL_Brochure.pdf
+Generate the world-class TrustNest HBL brochure for the Veppampattu Herbalife
+Nutrition Club branch. Output: public/TrustNest_HBL_Brochure.pdf
+
+Branding + licence details are sourced from the branch FSSAI registration
+(Reg. No. 22426478000608). The brochure features a designed page background,
+a hero banner, feature grid, membership plans, and a sample Bill of Supply.
 """
+import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
+    HRFlowable, KeepTogether,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-import os
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "TrustNest_HBL_Brochure.pdf")
 
-GREEN  = colors.HexColor("#16a34a")
-DGREEN = colors.HexColor("#14532d")
-LGREY  = colors.HexColor("#f1f5f9")
-GREY   = colors.HexColor("#64748b")
-AMBER  = colors.HexColor("#d97706")
-WHITE  = colors.white
+# ── Palette ──────────────────────────────────────────────────────────────────
+GREEN   = colors.HexColor("#16a34a")
+DGREEN  = colors.HexColor("#14532d")
+MGREEN  = colors.HexColor("#22c55e")
+LGREEN  = colors.HexColor("#dcfce7")
+BG      = colors.HexColor("#f6faf7")
+LGREY   = colors.HexColor("#eef2f1")
+GREY    = colors.HexColor("#5b6b66")
+DARK    = colors.HexColor("#1f2937")
+AMBER   = colors.HexColor("#d97706")
+WHITE   = colors.white
 
-doc = SimpleDocTemplate(
+# ── Branch details (from FSSAI licence) ──────────────────────────────────────
+BRANCH       = "Veppampattu Herbalife Nutrition Club"
+PROPRIETOR   = "S K C Yoganathan"
+FSSAI        = "22426478000608"
+ADDRESS      = ("No 7, Nehru Street, Near Mannoliamman Kovil, Veppampattu, "
+                "PO: Veppambattu, Tiruvallur, Tamil Nadu - 602024")
+PHONE        = "8056497843"
+EMAIL        = "pooprav26@gmail.com"
+PORTAL       = "trustnest-tsgz.vercel.app/hbl"
+
+PAGE_W, PAGE_H = A4
+
+# ── Background painter ────────────────────────────────────────────────────────
+def paint_background(canvas, doc):
+    canvas.saveState()
+
+    # Soft page wash
+    canvas.setFillColor(BG)
+    canvas.rect(0, 0, PAGE_W, PAGE_H, stroke=0, fill=1)
+
+    # Decorative faint circles (top-right + bottom-left leaf motif)
+    canvas.setFillColor(MGREEN)
+    canvas.setFillAlpha(0.07)
+    canvas.circle(PAGE_W - 1.0 * cm, PAGE_H - 1.5 * cm, 4.2 * cm, stroke=0, fill=1)
+    canvas.circle(PAGE_W - 3.5 * cm, PAGE_H - 0.2 * cm, 2.4 * cm, stroke=0, fill=1)
+    canvas.setFillColor(GREEN)
+    canvas.setFillAlpha(0.06)
+    canvas.circle(0.5 * cm, 3.5 * cm, 4.8 * cm, stroke=0, fill=1)
+    canvas.circle(3.2 * cm, 1.0 * cm, 2.0 * cm, stroke=0, fill=1)
+    canvas.setFillAlpha(1)
+
+    # Left accent bar
+    canvas.setFillColor(GREEN)
+    canvas.rect(0, 0, 0.22 * cm, PAGE_H, stroke=0, fill=1)
+
+    # Footer band
+    canvas.setFillColor(DGREEN)
+    canvas.rect(0, 0, PAGE_W, 1.0 * cm, stroke=0, fill=1)
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica", 7.5)
+    canvas.drawString(2 * cm, 0.36 * cm,
+                      f"{BRANCH}  ·  FSSAI {FSSAI}")
+    canvas.drawRightString(PAGE_W - 2 * cm, 0.36 * cm,
+                           f"Powered by TrustNest HBL  ·  Page {doc.page}")
+    canvas.restoreState()
+
+
+# ── Document ──────────────────────────────────────────────────────────────────
+doc = BaseDocTemplate(
     OUT, pagesize=A4,
-    leftMargin=2*cm, rightMargin=2*cm,
-    topMargin=2*cm, bottomMargin=2*cm
+    leftMargin=2 * cm, rightMargin=2 * cm,
+    topMargin=1.6 * cm, bottomMargin=1.6 * cm,
+    title="TrustNest HBL — Veppampattu Nutrition Club", author="TrustNest HBL",
 )
+frame = Frame(doc.leftMargin, doc.bottomMargin,
+              doc.width, doc.height, id="main")
+doc.addPageTemplates([PageTemplate(id="bg", frames=[frame], onPage=paint_background)])
 
 styles = getSampleStyleSheet()
 
 def S(name, base="Normal", **kw):
     return ParagraphStyle(name, parent=styles[base], **kw)
 
-H1 = S("H1", fontSize=28, textColor=WHITE,    alignment=TA_CENTER, spaceAfter=4,  leading=34)
-H2 = S("H2", fontSize=18, textColor=DGREEN,   alignment=TA_CENTER, spaceAfter=6,  leading=24)
-H3 = S("H3", fontSize=13, textColor=DGREEN,   spaceAfter=4,  leading=18, fontName="Helvetica-Bold")
-Body = S("Body", fontSize=10, textColor=GREY, spaceAfter=4, leading=15)
-Bullet = S("Bullet", fontSize=10, textColor=GREY, leftIndent=14, spaceAfter=3, leading=14)
-Caption = S("Cap", fontSize=8, textColor=GREY, alignment=TA_CENTER)
-TagLine = S("TL", fontSize=12, textColor=WHITE, alignment=TA_CENTER, leading=18)
-CentBody = S("CB", fontSize=10, textColor=GREY, alignment=TA_CENTER, spaceAfter=4, leading=15)
+H1      = S("H1", fontSize=26, textColor=WHITE,  alignment=TA_CENTER, leading=30, fontName="Helvetica-Bold")
+HSUB    = S("HSUB", fontSize=11, textColor=LGREEN, alignment=TA_CENTER, leading=15)
+H2      = S("H2", fontSize=15, textColor=DGREEN, leading=20, fontName="Helvetica-Bold")
+Body    = S("Body", fontSize=9.5, textColor=GREY, spaceAfter=4, leading=14)
+CB      = S("CB", fontSize=9.5, textColor=GREY, alignment=TA_CENTER, leading=14)
+Pill    = S("Pill", fontSize=8.5, textColor=WHITE, alignment=TA_CENTER, leading=11, fontName="Helvetica-Bold")
+
+CONTENT_W = doc.width
 
 story = []
 
-# ── HERO BANNER ─────────────────────────────────────────────────────────────
-banner = Table([[
-    Paragraph("TrustNest HBL", H1),
-]], colWidths=[17*cm])
-banner.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), GREEN),
-    ("ROUNDEDCORNERS", [10]),
-    ("TOPPADDING",   (0,0), (-1,-1), 18),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 6),
-    ("LEFTPADDING",  (0,0), (-1,-1), 12),
-    ("RIGHTPADDING", (0,0), (-1,-1), 12),
+# ── HERO ──────────────────────────────────────────────────────────────────────
+hero = Table([
+    [Paragraph("HERBALIFE NUTRITION CLUB", HSUB)],
+    [Paragraph("Veppampattu", H1)],
+    [Paragraph("Healthy Active Lifestyle · Members · Shakes · Smart Billing", HSUB)],
+], colWidths=[CONTENT_W])
+hero.setStyle(TableStyle([
+    ("BACKGROUND",    (0, 0), (-1, -1), DGREEN),
+    ("ROUNDEDCORNERS", [12]),
+    ("TOPPADDING",    (0, 0), (-1, 0), 16),
+    ("BOTTOMPADDING", (0, -1), (-1, -1), 16),
+    ("TOPPADDING",    (0, 1), (-1, 1), 2),
+    ("BOTTOMPADDING", (0, 1), (-1, 1), 2),
+    ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+    ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
 ]))
-story.append(banner)
-story.append(Spacer(1, 0.3*cm))
+story.append(hero)
+story.append(Spacer(1, 0.25 * cm))
 
-tagline_tbl = Table([[
-    Paragraph("Smart Club Management for Herbalife Nutrition Clubs", TagLine),
-]], colWidths=[17*cm])
-tagline_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), DGREEN),
-    ("TOPPADDING",   (0,0), (-1,-1), 10),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 10),
-    ("LEFTPADDING",  (0,0), (-1,-1), 12),
-    ("RIGHTPADDING", (0,0), (-1,-1), 12),
+# Licence strip
+lic = Table([[
+    Paragraph(f"<b>Proprietor:</b> {PROPRIETOR}", S("L", fontSize=8.5, textColor=DARK, leading=12)),
+    Paragraph(f"<b>FSSAI:</b> {FSSAI}", S("L", fontSize=8.5, textColor=DARK, leading=12)),
+    Paragraph("<b>Reg. under FSS Act, 2006</b>", S("L", fontSize=8.5, textColor=GREEN, leading=12)),
+]], colWidths=[CONTENT_W * 0.42, CONTENT_W * 0.33, CONTENT_W * 0.25])
+lic.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, -1), LGREEN),
+    ("ROUNDEDCORNERS", [8]),
+    ("TOPPADDING",   (0, 0), (-1, -1), 7),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 7),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 12),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+    ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
 ]))
-story.append(tagline_tbl)
-story.append(Spacer(1, 0.6*cm))
+story.append(lic)
+story.append(Spacer(1, 0.5 * cm))
 
-# ── WHAT IS TRUSTNEST HBL ───────────────────────────────────────────────────
-story.append(Paragraph("What is TrustNest HBL?", H2))
-story.append(HRFlowable(width="100%", thickness=1, color=GREEN, spaceAfter=8))
+# ── ABOUT ───────────────────────────────────────────────────────────────────
+story.append(Paragraph("Welcome to your neighbourhood nutrition club", H2))
+story.append(HRFlowable(width="100%", thickness=1.2, color=GREEN, spaceAfter=8))
 story.append(Paragraph(
-    "TrustNest HBL is a purpose-built digital platform that gives every Herbalife Nutrition Club "
-    "a professional, paperless operations system — members, orders, inventory, attendance, and "
-    "reporting — accessible from any smartphone, tablet, or computer.", Body))
-story.append(Spacer(1, 0.4*cm))
+    f"{BRANCH} is your trusted local destination for Herbalife nutrition shakes, "
+    "wellness coaching, and a supportive Healthy Active Lifestyle community in Veppampattu, "
+    "Tiruvallur. Every visit, membership, order, and shake is managed on the TrustNest HBL "
+    "platform — so your records, invoices, and renewals are always accurate and paperless.", Body))
+story.append(Spacer(1, 0.4 * cm))
 
-# ── KEY FEATURES GRID ───────────────────────────────────────────────────────
-story.append(Paragraph("Platform Features", H2))
-story.append(HRFlowable(width="100%", thickness=1, color=GREEN, spaceAfter=8))
+# ── FEATURE GRID ──────────────────────────────────────────────────────────────
+story.append(Paragraph("What members enjoy", H2))
+story.append(HRFlowable(width="100%", thickness=1.2, color=GREEN, spaceAfter=8))
 
 features = [
-    ("Member Management",    "Digital profiles, renewal tracking, membership cards with unique barcodes"),
-    ("Barcode Check-In",     "Admin scans physical barcode on member card — instant attendance log"),
-    ("Order & Billing",      "Product catalog, order management, PDF invoices with GST/FSSAI details"),
-    ("Shake Tracker",        "Daily shake log per member, helping clubs track nutrition program adherence"),
-    ("Follow-Up System",     "Automated renewal reminders, WhatsApp messaging with one click"),
-    ("Inventory Control",    "Product stock tracking with low-stock alerts"),
-    ("Reports & Analytics",  "Daily/weekly/monthly revenue, check-in trends, member growth"),
-    ("Multi-Branch Ready",   "One deployment runs unlimited club branches, each fully isolated"),
-    ("Member Self-Service",  "Members view their profile, order history, download invoices, QR card"),
-    ("Mobile-First Design",  "Responsive UI works flawlessly on any smartphone browser"),
+    ("Digital Membership Card", "Unique barcode card (e.g. VEP-0001) for instant club check-in."),
+    ("Daily Shake Tracker",     "Log every shake; track your nutrition program day by day."),
+    ("Easy Ordering",           "Browse the product menu and place orders from your phone."),
+    ("Bill of Supply / Invoice","Every order produces a proper PDF bill with FSSAI details."),
+    ("Renewal Reminders",       "WhatsApp nudges 7 days before your membership expires."),
+    ("Member Portal",           "View profile, order history, QR card and download bills anytime."),
 ]
-
-feat_data = []
+fcells = []
 for i in range(0, len(features), 2):
     row = []
-    for j in [i, i+1]:
+    for j in (i, i + 1):
         if j < len(features):
-            title, desc = features[j]
-            cell = [Paragraph(f"<b>{title}</b>", S("FT", fontSize=10, textColor=DGREEN, leading=14)),
-                    Paragraph(desc, S("FD", fontSize=9, textColor=GREY, leading=13))]
-            row.append(cell)
-        else:
-            row.append("")
-    feat_data.append(row)
-
-feat_tbl = Table(feat_data, colWidths=[8.3*cm, 8.3*cm], rowHeights=None)
-feat_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), LGREY),
-    ("TOPPADDING",   (0,0), (-1,-1), 8),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 8),
-    ("LEFTPADDING",  (0,0), (-1,-1), 10),
-    ("RIGHTPADDING", (0,0), (-1,-1), 10),
-    ("GRID",         (0,0), (-1,-1), 0.5, WHITE),
-    ("VALIGN",       (0,0), (-1,-1), "TOP"),
-]))
-story.append(feat_tbl)
-story.append(Spacer(1, 0.6*cm))
-
-# ── MEMBER JOURNEY ──────────────────────────────────────────────────────────
-story.append(Paragraph("Member Journey", H2))
-story.append(HRFlowable(width="100%", thickness=1, color=GREEN, spaceAfter=8))
-
-steps = [
-    ("1", "Admin creates member profile with name, phone, plan & expiry date"),
-    ("2", "Member receives a unique barcode card (e.g. VPT-0001)"),
-    ("3", "Member logs in via phone OTP on the member portal"),
-    ("4", "Member views dashboard: profile, orders, history, QR/barcode"),
-    ("5", "Admin scans barcode at club visit — check-in recorded instantly"),
-    ("6", "Member places product orders; admin fulfills, invoice auto-generated"),
-    ("7", "System alerts admin 7 days before membership expiry for renewal"),
-]
-
-step_data = [[Paragraph(f"<b>Step {s}</b>", S("SH", fontSize=10, textColor=WHITE, leading=13)), Paragraph(d, S("SD", fontSize=10, textColor=GREY, leading=14))] for s, d in steps]
-step_tbl = Table(step_data, colWidths=[2.2*cm, 14.4*cm])
-step_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (0,-1), GREEN),
-    ("BACKGROUND",   (1,0), (1,-1), LGREY),
-    ("TOPPADDING",   (0,0), (-1,-1), 7),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 7),
-    ("LEFTPADDING",  (0,0), (-1,-1), 8),
-    ("RIGHTPADDING", (0,0), (-1,-1), 8),
-    ("GRID",         (0,0), (-1,-1), 0.5, WHITE),
-    ("VALIGN",       (0,0), (-1,-1), "MIDDLE"),
-    ("ALIGN",        (0,0), (0,-1), "CENTER"),
-]))
-story.append(step_tbl)
-story.append(Spacer(1, 0.6*cm))
-
-# ── PRICING / ROI ───────────────────────────────────────────────────────────
-story.append(Paragraph("Simple Pricing — Zero Surprises", H2))
-story.append(HRFlowable(width="100%", thickness=1, color=GREEN, spaceAfter=8))
-
-pricing_data = [
-    [Paragraph("<b>Plan</b>", S("PH", fontSize=11, textColor=WHITE)),
-     Paragraph("<b>Price</b>", S("PH", fontSize=11, textColor=WHITE)),
-     Paragraph("<b>Branches</b>", S("PH", fontSize=11, textColor=WHITE)),
-     Paragraph("<b>Best For</b>", S("PH", fontSize=11, textColor=WHITE))],
-    [Paragraph("Starter", S("PC", fontSize=10, textColor=DGREEN, fontName="Helvetica-Bold")),
-     Paragraph("Free", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("1", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("New clubs getting started", S("PC2", fontSize=10, textColor=GREY))],
-    [Paragraph("Club Pro", S("PC", fontSize=10, textColor=DGREEN, fontName="Helvetica-Bold")),
-     Paragraph("Rs.999 / month", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("Up to 3", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("Growing clubs with multiple outlets", S("PC2", fontSize=10, textColor=GREY))],
-    [Paragraph("Enterprise", S("PC", fontSize=10, textColor=DGREEN, fontName="Helvetica-Bold")),
-     Paragraph("Custom", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("Unlimited", S("PC2", fontSize=10, textColor=GREY)),
-     Paragraph("Distributors managing many clubs", S("PC2", fontSize=10, textColor=GREY))],
-]
-pricing_tbl = Table(pricing_data, colWidths=[3.5*cm, 4*cm, 3*cm, 6.1*cm])
-pricing_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,0), GREEN),
-    ("BACKGROUND",   (0,1), (-1,1), LGREY),
-    ("BACKGROUND",   (0,2), (-1,2), WHITE),
-    ("BACKGROUND",   (0,3), (-1,3), LGREY),
-    ("TOPPADDING",   (0,0), (-1,-1), 8),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 8),
-    ("LEFTPADDING",  (0,0), (-1,-1), 10),
-    ("RIGHTPADDING", (0,0), (-1,-1), 10),
-    ("GRID",         (0,0), (-1,-1), 0.5, WHITE),
-    ("VALIGN",       (0,0), (-1,-1), "MIDDLE"),
-]))
-story.append(pricing_tbl)
-story.append(Spacer(1, 0.6*cm))
-
-# ── WHY TRUSTNEST HBL ───────────────────────────────────────────────────────
-story.append(Paragraph("Why Clubs Choose TrustNest HBL", H2))
-story.append(HRFlowable(width="100%", thickness=1, color=GREEN, spaceAfter=8))
-
-reasons = [
-    ("No Hardware Needed", "Works on any smartphone browser. No app install required."),
-    ("GST & FSSAI Ready", "Invoices carry your GSTIN and FSSAI number automatically."),
-    ("100% Data Privacy",  "Each club's data is fully isolated — no cross-tenant access."),
-    ("Instant Setup",      "Create your branch and add members in under 10 minutes."),
-    ("WhatsApp Native",    "Renewal reminders open WhatsApp with pre-filled message."),
-    ("Always Up-to-Date",  "Cloud-hosted — updates deploy automatically, zero downtime."),
-]
-
-why_data = []
-for i in range(0, len(reasons), 3):
-    row = []
-    for j in range(i, i+3):
-        if j < len(reasons):
-            title, desc = reasons[j]
+            t, d = features[j]
             row.append([
-                Paragraph(f"<b>{title}</b>", S("WT", fontSize=10, textColor=DGREEN, leading=14)),
-                Paragraph(desc, S("WD", fontSize=9, textColor=GREY, leading=13))
+                Paragraph(f"<b>{t}</b>", S("FT", fontSize=9.5, textColor=DGREEN, leading=13)),
+                Paragraph(d, S("FD", fontSize=8.5, textColor=GREY, leading=12)),
             ])
         else:
             row.append("")
-    why_data.append(row)
-
-why_tbl = Table(why_data, colWidths=[5.5*cm, 5.5*cm, 5.6*cm])
-why_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), LGREY),
-    ("TOPPADDING",   (0,0), (-1,-1), 10),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 10),
-    ("LEFTPADDING",  (0,0), (-1,-1), 10),
-    ("RIGHTPADDING", (0,0), (-1,-1), 10),
-    ("GRID",         (0,0), (-1,-1), 0.5, WHITE),
-    ("VALIGN",       (0,0), (-1,-1), "TOP"),
+    fcells.append(row)
+ftbl = Table(fcells, colWidths=[CONTENT_W / 2, CONTENT_W / 2])
+ftbl.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, -1), WHITE),
+    ("BOX",          (0, 0), (-1, -1), 0.5, LGREY),
+    ("INNERGRID",    (0, 0), (-1, -1), 0.5, LGREY),
+    ("TOPPADDING",   (0, 0), (-1, -1), 9),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 9),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 11),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 11),
+    ("VALIGN",       (0, 0), (-1, -1), "TOP"),
 ]))
-story.append(why_tbl)
-story.append(Spacer(1, 0.6*cm))
+story.append(ftbl)
+story.append(Spacer(1, 0.5 * cm))
 
-# ── GET STARTED ─────────────────────────────────────────────────────────────
-cta_tbl = Table([[
-    Paragraph("Get Started Today", S("CTA", fontSize=16, textColor=WHITE, alignment=TA_CENTER, leading=22, fontName="Helvetica-Bold")),
-]], colWidths=[17*cm])
-cta_tbl.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), GREEN),
-    ("TOPPADDING",   (0,0), (-1,-1), 14),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 6),
-    ("LEFTPADDING",  (0,0), (-1,-1), 12),
-    ("RIGHTPADDING", (0,0), (-1,-1), 12),
+# ── MEMBERSHIP PLANS ──────────────────────────────────────────────────────────
+story.append(Paragraph("Membership plans", H2))
+story.append(HRFlowable(width="100%", thickness=1.2, color=GREEN, spaceAfter=8))
+
+plans = [
+    [Paragraph("<b>Plan</b>", Pill), Paragraph("<b>Duration</b>", Pill), Paragraph("<b>Ideal for</b>", Pill)],
+    ["Basic",    "1 month",   "Trying the program"],
+    ["Silver",   "3 months",  "Building the habit"],
+    ["Gold",     "6 months",  "Committed members"],
+    ["Platinum", "12 months", "Best value, full year"],
+]
+prows = [plans[0]]
+for r in plans[1:]:
+    prows.append([
+        Paragraph(r[0], S("P0", fontSize=9.5, textColor=DGREEN, fontName="Helvetica-Bold")),
+        Paragraph(r[1], S("P1", fontSize=9.5, textColor=GREY)),
+        Paragraph(r[2], S("P2", fontSize=9.5, textColor=GREY)),
+    ])
+ptbl = Table(prows, colWidths=[CONTENT_W * 0.25, CONTENT_W * 0.25, CONTENT_W * 0.5])
+ptbl.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, 0), GREEN),
+    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [WHITE, LGREY]),
+    ("BOX",          (0, 0), (-1, -1), 0.5, LGREY),
+    ("INNERGRID",    (0, 0), (-1, -1), 0.5, WHITE),
+    ("TOPPADDING",   (0, 0), (-1, -1), 7),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 7),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 11),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 11),
+    ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
 ]))
-story.append(cta_tbl)
+story.append(ptbl)
+story.append(Spacer(1, 0.5 * cm))
 
-cta_sub = Table([[
-    Paragraph(
-        "Visit trustnest-tsgz.vercel.app/hbl/admin  |  Create your branch in under 10 minutes",
-        S("CTS", fontSize=10, textColor=WHITE, alignment=TA_CENTER, leading=16)),
-]], colWidths=[17*cm])
-cta_sub.setStyle(TableStyle([
-    ("BACKGROUND",   (0,0), (-1,-1), DGREEN),
-    ("TOPPADDING",   (0,0), (-1,-1), 8),
-    ("BOTTOMPADDING",(0,0), (-1,-1), 8),
-    ("LEFTPADDING",  (0,0), (-1,-1), 12),
-    ("RIGHTPADDING", (0,0), (-1,-1), 12),
+# ── SAMPLE BILL OF SUPPLY ─────────────────────────────────────────────────────
+sample_block = []
+sample_block.append(Paragraph("Sample bill — what you receive", H2))
+sample_block.append(HRFlowable(width="100%", thickness=1.2, color=GREEN, spaceAfter=8))
+
+# Mock bill header
+bill_head = Table([[
+    Paragraph("<b>Herbalife Nutrition Club</b>", S("BH", fontSize=10, textColor=WHITE, leading=13)),
+    Paragraph("BILL OF SUPPLY", S("BH2", fontSize=11, textColor=WHITE, alignment=TA_LEFT, leading=13, fontName="Helvetica-Bold")),
+]], colWidths=[CONTENT_W * 0.6, CONTENT_W * 0.4])
+bill_head.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, -1), GREEN),
+    ("TOPPADDING",   (0, 0), (-1, -1), 8),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 8),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 10),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+    ("ALIGN",        (1, 0), (1, 0), "RIGHT"),
+    ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
 ]))
-story.append(cta_sub)
-story.append(Spacer(1, 0.4*cm))
+sample_block.append(bill_head)
 
-story.append(Paragraph(
-    "TrustNest HBL  ·  Powered by TrustNest Platform  ·  Built for Herbalife Nutrition Clubs in India",
-    S("Footer", fontSize=8, textColor=GREY, alignment=TA_CENTER)))
+# Seller line
+seller = Table([[Paragraph(
+    f"<b>{PROPRIETOR}</b>  ·  {ADDRESS}<br/>FSSAI No: {FSSAI}  |  GST: Not Registered (Bill of Supply)  |  Ph: {PHONE}",
+    S("SL", fontSize=7.5, textColor=GREY, leading=11))]], colWidths=[CONTENT_W])
+seller.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, -1), LGREY),
+    ("TOPPADDING",   (0, 0), (-1, -1), 6),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 6),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 10),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+]))
+sample_block.append(seller)
+
+# Mock line items
+items = [
+    ["SL", "Item", "Qty", "Rate", "Amount"],
+    ["1", "Formula 1 Nutritional Shake Mix", "1", "2,375.00", "2,375.00"],
+    ["2", "Afresh Energy Drink (Lemon)", "1", "1,015.00", "1,015.00"],
+    ["3", "Personalized Protein Powder", "1", "1,720.00", "1,720.00"],
+]
+hdr = [Paragraph(f"<b>{c}</b>", S("IH", fontSize=8, textColor=WHITE, leading=11)) for c in items[0]]
+irows = [hdr]
+for r in items[1:]:
+    irows.append([
+        Paragraph(r[0], S("I0", fontSize=8, textColor=DARK)),
+        Paragraph(r[1], S("I1", fontSize=8, textColor=DARK)),
+        Paragraph(r[2], S("I2", fontSize=8, textColor=DARK, alignment=TA_CENTER)),
+        Paragraph(r[3], S("I3", fontSize=8, textColor=DARK, alignment=TA_LEFT)),
+        Paragraph(r[4], S("I4", fontSize=8, textColor=DARK, alignment=TA_LEFT)),
+    ])
+irows.append([
+    "", "", "", Paragraph("<b>Total</b>", S("IT", fontSize=8.5, textColor=DGREEN)),
+    Paragraph("<b>Rs. 5,110.00</b>", S("ITV", fontSize=8.5, textColor=DGREEN)),
+])
+itbl = Table(irows, colWidths=[CONTENT_W * 0.08, CONTENT_W * 0.52, CONTENT_W * 0.10, CONTENT_W * 0.15, CONTENT_W * 0.15])
+itbl.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, 0), DGREEN),
+    ("ROWBACKGROUNDS", (0, 1), (-1, -2), [WHITE, colors.HexColor("#f3faf5")]),
+    ("BACKGROUND",   (0, -1), (-1, -1), LGREEN),
+    ("BOX",          (0, 0), (-1, -1), 0.5, LGREY),
+    ("INNERGRID",    (0, 0), (-1, -2), 0.4, LGREY),
+    ("LINEABOVE",    (0, -1), (-1, -1), 0.6, GREEN),
+    ("TOPPADDING",   (0, 0), (-1, -1), 5),
+    ("BOTTOMPADDING",(0, 0), (-1, -1), 5),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 8),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+]))
+sample_block.append(itbl)
+sample_block.append(Spacer(1, 2))
+sample_block.append(Paragraph(
+    "Bill of Supply: Seller is not registered under GST (turnover within exemption limit). "
+    "No tax is charged. This is a computer-generated bill.",
+    S("BN", fontSize=7, textColor=GREY, leading=10)))
+story.append(KeepTogether(sample_block))
+story.append(Spacer(1, 0.5 * cm))
+
+# ── VISIT US / CTA ────────────────────────────────────────────────────────────
+visit = Table([
+    [Paragraph("Visit us in Veppampattu", S("V1", fontSize=14, textColor=WHITE, alignment=TA_CENTER, leading=18, fontName="Helvetica-Bold"))],
+    [Paragraph(ADDRESS, S("V2", fontSize=9, textColor=LGREEN, alignment=TA_CENTER, leading=13))],
+    [Paragraph(f"Call / WhatsApp: {PHONE}  ·  {EMAIL}", S("V3", fontSize=9, textColor=WHITE, alignment=TA_CENTER, leading=13))],
+    [Paragraph(f"Member portal: {PORTAL}", S("V4", fontSize=9, textColor=LGREEN, alignment=TA_CENTER, leading=13))],
+], colWidths=[CONTENT_W])
+visit.setStyle(TableStyle([
+    ("BACKGROUND",   (0, 0), (-1, -1), GREEN),
+    ("ROUNDEDCORNERS", [12]),
+    ("TOPPADDING",   (0, 0), (-1, 0), 14),
+    ("BOTTOMPADDING",(0, -1), (-1, -1), 14),
+    ("TOPPADDING",   (0, 1), (-1, -1), 2),
+    ("LEFTPADDING",  (0, 0), (-1, -1), 14),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+]))
+story.append(visit)
 
 doc.build(story)
 print(f"PDF saved: {os.path.abspath(OUT)}")

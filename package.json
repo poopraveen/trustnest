@@ -18,7 +18,9 @@
     "tenant": "node scripts/switch-tenant.mjs",
     "tenant:list": "node scripts/switch-tenant.mjs list",
     "admin:create": "tsx scripts/create-admin.ts",
+    "hbl:seed-veppampattu": "tsx scripts/seed-hbl-veppampattu.ts",
     "tenant:vercel": "node scripts/export-vercel-env.mjs",
+    "brochure:hbl": "python scripts/generate_pdf_brochure.py",
     "postinstall": "prisma generate"
   },
   "dependencies": {
