@@ -148,6 +148,26 @@
   }
 }
 
+/* Ward election chat — visible scroll area for long replies */
+.ward-chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.ward-chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+.ward-chat-messages::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.ward-chat-messages::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+.ward-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 /* Leaflet map overrides */
 .leaflet-container {
   border-radius: 12px;

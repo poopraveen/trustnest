@@ -19,7 +19,10 @@
     "tenant": "node scripts/switch-tenant.mjs",
     "tenant:list": "node scripts/switch-tenant.mjs list",
     "admin:create": "tsx scripts/create-admin.ts",
-    "hbl:seed-veppampattu": "tsx scripts/seed-hbl-veppampattu.ts",
+    "ward:gen": "node scripts/gen-ward-election-data.mjs all",
+    "ward:gen:veppampattu": "node scripts/gen-ward-election-data.mjs veppampattu",
+    "ward:gen:perumalpattu": "node scripts/gen-ward-election-data.mjs perumalpattu",
+    "ward:import:perumalpattu": "node scripts/import-perumalpattu-voters.mjs",
     "tenant:vercel": "node scripts/export-vercel-env.mjs",
     "brochure:hbl": "python scripts/generate_pdf_brochure.py",
     "postinstall": "prisma generate"
