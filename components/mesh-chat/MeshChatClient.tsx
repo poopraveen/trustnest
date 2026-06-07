@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Wifi, WifiOff, Send, AlertTriangle, Users, Radio,
   CheckCircle, HelpCircle, Heart, Truck, Package,
-  MessageCircle, ArrowLeft, Loader2, Bell,
+  MessageCircle, ArrowLeft, Loader2, Bell, Paperclip,
+  FileText, Image as ImageIcon, X,
 } from "lucide-react";
 
 /* ── Channel config ─────────────────────────────────────────────────────────── */
@@ -64,6 +65,9 @@ export default function MeshChatClient() {
   const [input, setInput]             = useState("");
   const [priority, setPriority]       = useState(false);
   const [online, setOnline]           = useState(true);
+  const [attachment, setAttachment]   = useState<{ url: string; name: string; type: string } | null>(null);
+  const [uploading, setUploading]     = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUsers, setShowUsers]     = useState(false);
   const [unread, setUnread]           = useState<Record<ChannelId, number>>({
     general: 0, sos: 0, medical: 0, evacuation: 0, resources: 0,
@@ -181,14 +185,40 @@ export default function MeshChatClient() {
     })();
   }, [online]);
 
+  /* ── Upload file ──────────────────────────────────────────────────────────── */
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/mesh-chat/upload", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setAttachment({ url: data.url, name: data.name, type: data.type });
+    } catch {
+      alert("File upload failed. Make sure you are running on local server.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   /* ── Send ─────────────────────────────────────────────────────────────────── */
   async function send() {
     const text = input.trim();
-    if (!text || !name) return;
+    const hasAttachment = Boolean(attachment);
+    if (!text && !hasAttachment) return;
+    if (!name) return;
     setInput("");
+    const msgContent = attachment
+      ? `${text ? text + "\n" : ""}[FILE:${attachment.name}:${attachment.url}:${attachment.type}]`
+      : text;
+    setAttachment(null);
 
     const optimistic: Message = {
-      id: genId(), channel, author: name, content: text,
+      id: genId(), channel, author: name, content: msgContent,
       priority, status: myStatus, createdAt: new Date().toISOString(), _pending: true,
     };
     setMessages(prev => [...prev, optimistic]);
@@ -197,7 +227,7 @@ export default function MeshChatClient() {
       const res = await fetch("/api/mesh-chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel, author: name, content: text, priority, status: myStatus }),
+        body: JSON.stringify({ channel, author: name, content: msgContent, priority, status: myStatus }),
       });
       if (!res.ok) throw new Error();
       const { message } = await res.json();
@@ -206,9 +236,8 @@ export default function MeshChatClient() {
       setOnline(true);
     } catch {
       setOnline(false);
-      // queue offline
       const queue = loadQueue();
-      queue.push({ channel, author: name, content: text, priority, status: myStatus, id: optimistic.id, createdAt: optimistic.createdAt });
+      queue.push({ channel, author: name, content: msgContent, priority, status: myStatus, id: optimistic.id, createdAt: optimistic.createdAt });
       saveQueue(queue);
     }
     setPriority(false);
@@ -375,9 +404,32 @@ export default function MeshChatClient() {
                         )}
                       </div>
                     )}
-                    <p className={`text-sm leading-relaxed ${isMe ? "text-white" : "text-slate-200"} ${isPrio ? "font-bold text-red-200" : ""}`}>
-                      {msg.content}
-                    </p>
+                    {(() => {
+                      const fileMatch = msg.content.match(/\[FILE:(.+?):(.+?):(.+?)\]/);
+                      const textPart  = msg.content.replace(/\[FILE:.+?\]/, "").trim();
+                      return (
+                        <>
+                          {textPart && (
+                            <p className={`text-sm leading-relaxed ${isMe ? "text-white" : "text-slate-200"} ${isPrio ? "font-bold text-red-200" : ""}`}>
+                              {textPart}
+                            </p>
+                          )}
+                          {fileMatch && (
+                            <a href={fileMatch[2]} target="_blank" rel="noopener noreferrer" download={fileMatch[1]}
+                              className="mt-2 flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 hover:bg-white/20 transition-colors">
+                              {fileMatch[3]?.startsWith("image/")
+                                ? <ImageIcon className="w-4 h-4 text-blue-300 shrink-0" />
+                                : <FileText className="w-4 h-4 text-slate-300 shrink-0" />}
+                              <span className="text-xs text-slate-200 truncate flex-1">{fileMatch[1]}</span>
+                              {fileMatch[3]?.startsWith("image/") && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={fileMatch[2]} alt={fileMatch[1]} className="w-full rounded-lg mt-1 max-h-48 object-cover" />
+                              )}
+                            </a>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center justify-end gap-1 mt-1">
                       {msg._pending && <Loader2 className="w-2.5 h-2.5 text-slate-400 animate-spin" />}
                       <p className="text-[10px] text-slate-400">
@@ -449,7 +501,22 @@ export default function MeshChatClient() {
         <Wifi className={`w-4 h-4 ${online ? "text-emerald-500" : "text-slate-600"}`} />
       </div>
 
+      {/* ── Attachment preview ─────────────────────────────────────────────── */}
+      {attachment && (
+        <div className="px-3 pt-2 bg-slate-900 shrink-0">
+          <div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2 border border-slate-700">
+            <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-xs text-slate-300 flex-1 truncate">{attachment.name}</span>
+            <button onClick={() => setAttachment(null)} className="p-0.5 hover:text-red-400 text-slate-500 transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Input ──────────────────────────────────────────────────────────── */}
+      <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange}
+        accept="image/*,.pdf,.doc,.docx,.txt,.zip" />
       <div className="px-3 py-2 bg-slate-900 border-t border-slate-800 flex gap-2 items-end shrink-0">
         <button
           onClick={() => setPriority(v => !v)}
@@ -462,6 +529,14 @@ export default function MeshChatClient() {
         >
           <Bell className="w-4 h-4" />
         </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          title="Attach file / photo"
+          className="p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 hover:text-cyan-400 transition-all shrink-0 disabled:opacity-40"
+        >
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+        </button>
         <input
           ref={inputRef}
           value={input}
@@ -472,7 +547,7 @@ export default function MeshChatClient() {
         />
         <button
           onClick={send}
-          disabled={!input.trim()}
+          disabled={!input.trim() && !attachment}
           className="p-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white transition-all shrink-0"
         >
           <Send className="w-4 h-4" />
