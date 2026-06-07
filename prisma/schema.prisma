@@ -1292,3 +1292,27 @@ model HblFollowUp {
   @@index([done])
   @@index([dueDate])
 }
+
+model MeshMessage {
+  id        String   @id @default(cuid())
+  channel   String
+  author    String
+  content   String
+  priority  Boolean  @default(false)
+  status    String?
+  createdAt DateTime @default(now())
+
+  @@index([channel, createdAt])
+}
+
+model MeshPresence {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  channel   String
+  status    String   @default("active")
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([lastSeen])
+}
