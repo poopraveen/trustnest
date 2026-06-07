@@ -346,10 +346,21 @@ function HeroSection() {
           initial="hidden"
           animate="visible"
           custom={0}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 text-xs font-semibold tracking-widest uppercase mb-6"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6"
         >
-          <Wifi className="w-3.5 h-3.5" />
-          WiFi-Based Sensing Technology
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 text-xs font-semibold tracking-widest uppercase">
+            <Wifi className="w-3.5 h-3.5" />
+            WiFi-Based Sensing Technology
+          </span>
+          <a
+            href="https://github.com/ruvnet/RuView"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+          >
+            ⬡ Powered by RuView
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </motion.div>
 
         <motion.h1
@@ -906,25 +917,25 @@ function ArchitectureSection() {
 const RESOURCES = [
   {
     icon: "⬡",
-    type: "GitHub",
-    title: "WiFi-CSI-Human-Pose-Detection",
-    desc: "Open-source repository implementing WiFi CSI-based pose estimation with ESP32 hardware.",
-    href: "https://github.com/topics/wifi-csi",
-    label: "View on GitHub",
+    type: "Open Source · MIT",
+    title: "RuView by ruvnet",
+    desc: "The engine powering this page. WiFi DensePose → 17-keypoint real-time pose estimation, breathing & heart rate — no camera, no wearable. Built in Rust at 54,000 frames/sec on ~$8 ESP32-S3 nodes.",
+    href: "https://github.com/ruvnet/RuView",
+    label: "Star on GitHub",
   },
   {
     icon: "⬡",
     type: "GitHub",
-    title: "WiFi DensePose by ruvnet",
-    desc: "Production-ready implementation of the DensePose-from-WiFi pipeline with real-time inference.",
-    href: "https://github.com/ruvnet/wifi-densepose",
+    title: "WiFi-CSI-Human-Pose-Detection",
+    desc: "Community implementation of WiFi CSI-based human pose detection with deep learning — enabling camera-free sensing through walls using ESP32 hardware.",
+    href: "https://github.com/euaziel/WiFi-CSI-Human-Pose-Detection",
     label: "View on GitHub",
   },
   {
     icon: "📄",
-    type: "Research",
+    type: "Research Paper",
     title: "\"DensePose from WiFi\"",
-    desc: "Carnegie Mellon University — Landmark paper demonstrating 24-region body mapping using standard WiFi hardware.",
+    desc: "Carnegie Mellon University — Landmark paper demonstrating 24-region body mapping using standard WiFi hardware. The foundation RuView is built on.",
     href: "https://arxiv.org/abs/2301.00250",
     label: "Read Paper",
   },
@@ -948,6 +959,39 @@ function ResearchSection() {
           </p>
         </motion.div>
 
+        {/* RuView featured banner */}
+        <motion.a
+          href="https://github.com/ruvnet/RuView"
+          target="_blank"
+          rel="noopener noreferrer"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="block mb-8 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/60 to-slate-900/60 p-6 hover:border-emerald-400/50 transition-all duration-300 group"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-2xl shrink-0">
+              ⬡
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Open Source · MIT License</span>
+              </div>
+              <h3 className="text-white font-extrabold text-lg mb-1">RuView — WiFi DensePose Engine</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                The open-source project this page is built on. Turns commodity WiFi signals into real-time human pose estimation,
+                vital sign monitoring, and presence detection — using ESP32-S3 nodes at $8 each, written in Rust at 54,000 frames/sec.
+                Self-supervised, no labeled data, no cloud required.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm group-hover:text-emerald-300 shrink-0">
+              <ExternalLink className="w-4 h-4" />
+              Star on GitHub
+            </div>
+          </div>
+        </motion.a>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {RESOURCES.map((res, i) => (
             <motion.div
@@ -957,11 +1001,15 @@ function ResearchSection() {
               whileInView="visible"
               viewport={{ once: true }}
               custom={i}
-              className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 flex flex-col hover:border-cyan-500/40 transition-all duration-300"
+              className={`border rounded-2xl p-6 flex flex-col transition-all duration-300 ${
+                i === 0
+                  ? "bg-emerald-950/30 border-emerald-500/30 hover:border-emerald-400/50"
+                  : "bg-slate-800/50 border-slate-700/60 hover:border-cyan-500/40"
+              }`}
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-xl">{res.icon}</span>
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">
+                <span className={`text-xs font-bold uppercase tracking-widest ${i === 0 ? "text-emerald-400" : "text-cyan-400"}`}>
                   {res.type}
                 </span>
               </div>
@@ -971,7 +1019,9 @@ function ResearchSection() {
                 href={res.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                className={`mt-5 inline-flex items-center gap-2 text-sm font-semibold transition-colors ${
+                  i === 0 ? "text-emerald-400 hover:text-emerald-300" : "text-cyan-400 hover:text-cyan-300"
+                }`}
               >
                 <ExternalLink className="w-4 h-4" />
                 {res.label}
@@ -1034,6 +1084,15 @@ function FooterCTASection() {
               {label}
             </span>
           ))}
+          <a
+            href="https://github.com/ruvnet/RuView"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-emerald-500 hover:text-emerald-400 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Powered by RuView
+          </a>
         </div>
       </motion.div>
     </section>
