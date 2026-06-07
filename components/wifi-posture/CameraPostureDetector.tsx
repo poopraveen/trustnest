@@ -11,6 +11,13 @@ import Link from "next/link";
 type PostureLabel = "Standing" | "Sitting" | "Lying" | "Walking" | "Unknown";
 type ModelState = "idle" | "loading" | "ready" | "error";
 
+const LOAD_STEPS = [
+  "Initialising TensorFlow.js…",
+  "Loading WebGL backend…",
+  "Downloading MoveNet model (~2 MB)…",
+  "Warming up neural network…",
+];
+
 interface PersonResult {
   id: number;
   posture: PostureLabel;
@@ -144,6 +151,7 @@ export default function CameraPostureDetector() {
   const streamRef  = useRef<MediaStream | null>(null);
 
   const [modelState, setModelState]   = useState<ModelState>("idle");
+  const [loadStep, setLoadStep]       = useState(0);
   const [cameraOn, setCameraOn]       = useState(false);
   const [persons, setPersons]         = useState<PersonResult[]>([]);
   const [fps, setFps]                 = useState(0);
@@ -151,34 +159,62 @@ export default function CameraPostureDetector() {
   const [error, setError]             = useState("");
   const fpsCounterRef = useRef({ frames: 0, last: Date.now() });
 
-  /* Load model */
-  useEffect(() => {
-    (async () => {
-      setModelState("loading");
+  async function loadModel() {
+    setModelState("loading");
+    setLoadStep(0);
+    setError("");
+    try {
+      setLoadStep(0);
+      const tf = await import("@tensorflow/tfjs");
+
+      setLoadStep(1);
+      // Prefer WebGL for GPU acceleration; fall back to CPU (wasm) on Safari
       try {
-        const tf = await import("@tensorflow/tfjs");
-        await tf.ready();
-        const poseDetection = await import("@tensorflow-models/pose-detection");
-        const detector = await poseDetection.createDetector(
-          poseDetection.SupportedModels.MoveNet,
-          {
-            modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
-            enableTracking: true,
-            trackerType: poseDetection.TrackerType.BoundingBox,
-          }
-        );
-        detectorRef.current = detector as typeof detectorRef.current;
-        setModelState("ready");
-      } catch (e) {
-        console.error(e);
-        setModelState("error");
-        setError("Failed to load pose model. Please reload.");
+        await import("@tensorflow/tfjs-backend-webgl" as never);
+        await tf.setBackend("webgl");
+      } catch {
+        await tf.setBackend("cpu");
       }
-    })();
+      await tf.ready();
+
+      setLoadStep(2);
+      const poseDetection = await import("@tensorflow-models/pose-detection");
+
+      // SinglePose Lightning: ~1.5 MB, fast on mobile, sufficient for 1 person
+      // MultiPose Lightning: ~3.5 MB, detects up to 5 people
+      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      const modelType = isMobile
+        ? poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+        : poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING;
+
+      const detector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        { modelType, enableTracking: true },
+      );
+
+      setLoadStep(3);
+      // Warm-up: run a blank tensor so first real frame is instant
+      const dummyVideo = document.createElement("canvas");
+      dummyVideo.width = 192; dummyVideo.height = 192;
+      await detector.estimatePoses(dummyVideo as unknown as HTMLVideoElement);
+
+      detectorRef.current = detector as typeof detectorRef.current;
+      setModelState("ready");
+    } catch (e) {
+      console.error(e);
+      setModelState("error");
+      setError(e instanceof Error ? e.message : "Failed to load model.");
+    }
+  }
+
+  /* Load model on mount */
+  useEffect(() => {
+    loadModel();
     return () => {
       cancelAnimationFrame(rafRef.current);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Detection loop */
@@ -344,35 +380,92 @@ export default function CameraPostureDetector() {
           style={{ pointerEvents: "none" }}
         />
 
-        {/* Overlay: idle / loading / error */}
+        {/* Overlay: idle / loading / error / ready */}
         {!cameraOn && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 gap-4 px-6">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 gap-5 px-8">
+
             {modelState === "loading" && (
               <>
-                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
-                <p className="text-slate-300 text-sm text-center">Loading MoveNet model…<br /><span className="text-xs text-slate-500">First load ~4 MB</span></p>
+                {/* Animated icon */}
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 rounded-full border-4 border-cyan-500/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-400 animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-cyan-400" />
+                  </div>
+                </div>
+
+                {/* Step label */}
+                <div className="text-center">
+                  <p className="text-white font-bold mb-1 text-sm">{LOAD_STEPS[loadStep]}</p>
+                  <p className="text-slate-500 text-xs">Step {loadStep + 1} of {LOAD_STEPS.length}</p>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full max-w-xs bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-cyan-400 rounded-full transition-all duration-500"
+                    style={{ width: `${((loadStep + 1) / LOAD_STEPS.length) * 100}%` }}
+                  />
+                </div>
+
+                {/* Step dots */}
+                <div className="flex gap-2">
+                  {LOAD_STEPS.map((s, i) => (
+                    <div key={i} title={s}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        i < loadStep ? "bg-cyan-400" : i === loadStep ? "bg-cyan-400 animate-pulse" : "bg-slate-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <p className="text-slate-600 text-xs text-center max-w-xs">
+                  First visit downloads ~2 MB model. Subsequent visits load instantly from cache.
+                </p>
               </>
             )}
+
             {modelState === "error" && (
               <>
-                <AlertCircle className="w-10 h-10 text-red-400" />
-                <p className="text-red-300 text-sm text-center">{error}</p>
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-red-400" />
+                </div>
+                <div className="text-center">
+                  <p className="text-white font-bold mb-2">Failed to load model</p>
+                  <p className="text-red-300 text-xs leading-relaxed max-w-xs">{error}</p>
+                </div>
+                <button
+                  onClick={loadModel}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-colors text-sm"
+                >
+                  <RotateCcw className="w-4 h-4" /> Try Again
+                </button>
+                <p className="text-slate-600 text-xs text-center max-w-xs">
+                  Make sure you have a stable internet connection for the first load.
+                </p>
               </>
             )}
-            {modelState === "ready" && !error && (
+
+            {modelState === "ready" && (
               <>
-                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-2">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
                   <Camera className="w-8 h-8 text-cyan-400" />
                 </div>
-                <p className="text-white font-bold text-lg">Ready to detect</p>
-                <p className="text-slate-400 text-sm text-center">Tap Start Camera to begin live posture detection. Point at people in your room.</p>
-                {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+                <div className="text-center">
+                  <p className="text-white font-bold text-lg mb-1">Model Ready</p>
+                  <p className="text-slate-400 text-sm">Point camera at people in your room</p>
+                </div>
                 <button
                   onClick={startCamera}
-                  className="mt-2 flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/40"
+                  className="flex items-center gap-2 px-7 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/40 text-sm"
                 >
                   <Camera className="w-5 h-5" /> Start Camera
                 </button>
+                <div className="flex items-center gap-4 text-xs text-slate-600">
+                  <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> On-device AI</span>
+                  <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> No data sent</span>
+                </div>
               </>
             )}
           </div>
