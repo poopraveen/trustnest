@@ -218,12 +218,84 @@ const POSTURES: {
   regions: string;
   confidence: string;
   signal: string;
+  bpm: number;
+  hrBpm: number;
+  /* SVG path points for the CSI waveform — normalised 0-100 y-values over 20 x steps */
+  wave: number[];
 }[] = [
-  { key: "standing", label: "Standing", regions: "24/24", confidence: "96%", signal: "Strong" },
-  { key: "sitting",  label: "Sitting",  regions: "24/24", confidence: "94%", signal: "Strong" },
-  { key: "walking",  label: "Walking",  regions: "22/24", confidence: "89%", signal: "Good" },
-  { key: "lying",    label: "Lying Down", regions: "21/24", confidence: "91%", signal: "Good" },
+  {
+    key: "standing", label: "Standing", regions: "24/24", confidence: "96%", signal: "Strong",
+    bpm: 15, hrBpm: 72,
+    wave: [50,48,52,55,50,46,50,54,51,49,52,50,47,53,50,51,49,52,50,50],
+  },
+  {
+    key: "sitting", label: "Sitting", regions: "24/24", confidence: "94%", signal: "Strong",
+    bpm: 14, hrBpm: 68,
+    wave: [50,51,49,50,52,50,49,51,50,50,49,52,51,50,48,51,50,49,51,50],
+  },
+  {
+    key: "walking", label: "Walking", regions: "22/24", confidence: "89%", signal: "Good",
+    bpm: 18, hrBpm: 95,
+    wave: [50,38,62,44,68,36,65,42,70,35,66,40,72,34,64,45,68,38,58,50],
+  },
+  {
+    key: "lying", label: "Lying Down", regions: "21/24", confidence: "91%", signal: "Good",
+    bpm: 12, hrBpm: 60,
+    wave: [50,51,49,50,51,50,49,50,52,49,51,50,49,51,50,50,49,52,50,50],
+  },
 ];
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CSI Signal Waveform visualiser
+───────────────────────────────────────────────────────────────────────────── */
+function SignalWaveform({ wave, posture }: { wave: number[]; posture: Posture }) {
+  const W = 320;
+  const H = 100;
+  const step = W / (wave.length - 1);
+
+  // Build SVG polyline points
+  const points = wave.map((v, i) => `${i * step},${v}`).join(" ");
+
+  // Colour depends on signal type
+  const stroke = posture === "walking" ? "#f59e0b" : "#22d3ee";
+  const fill   = posture === "walking" ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)";
+
+  return (
+    <div className="w-full">
+      <p className="text-xs text-slate-500 font-mono uppercase tracking-widest mb-2 text-center">
+        CSI Amplitude — {posture === "walking" ? "High Motion" : posture === "lying" ? "Minimal Motion" : "Low Motion"}
+      </p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 80 }}>
+        {/* Grid lines */}
+        {[25, 50, 75].map(y => (
+          <line key={y} x1="0" y1={y} x2={W} y2={y} stroke="#1e293b" strokeWidth="1" />
+        ))}
+        {/* Area fill */}
+        <polyline
+          points={`0,${H} ${points} ${W},${H}`}
+          fill={fill}
+          stroke="none"
+        />
+        {/* Signal line */}
+        <polyline
+          points={points}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {/* Data points */}
+        {wave.map((v, i) => (
+          <circle key={i} cx={i * step} cy={v} r="2.5" fill={stroke} opacity="0.7" />
+        ))}
+      </svg>
+      <div className="flex justify-between text-xs text-slate-600 font-mono mt-1 px-1">
+        <span>t=0ms</span><span>t=200ms</span><span>t=400ms</span>
+      </div>
+    </div>
+  );
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Section 1 — Hero
@@ -502,48 +574,68 @@ function DemoSection() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left — WiFi ripple visualization */}
-          <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[360px] relative overflow-hidden">
+          {/* Left — Signal Detection Panel */}
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-6 flex flex-col gap-5 min-h-[360px] relative overflow-hidden">
             <style>{`
               @keyframes rippleOut {
-                0%   { transform: scale(0.3); opacity: 0.9; border-color: #22d3ee; }
-                100% { transform: scale(3.5); opacity: 0; border-color: #0891b2; }
+                0%   { transform: scale(0.3); opacity: 0.9; }
+                100% { transform: scale(3.5); opacity: 0; }
               }
               .demo-ring {
                 position: absolute;
                 border: 1.5px solid #22d3ee;
                 border-radius: 50%;
-                width: 80px;
-                height: 80px;
-                animation: rippleOut 2.5s ease-out infinite;
+                width: 56px; height: 56px;
+                animation: rippleOut 2.4s ease-out infinite;
               }
-              .demo-ring:nth-child(2) { animation-delay: 0.5s; }
-              .demo-ring:nth-child(3) { animation-delay: 1.0s; }
-              .demo-ring:nth-child(4) { animation-delay: 1.5s; }
-              .demo-ring:nth-child(5) { animation-delay: 2.0s; }
+              .demo-ring:nth-child(2) { animation-delay: 0.48s; }
+              .demo-ring:nth-child(3) { animation-delay: 0.96s; }
+              .demo-ring:nth-child(4) { animation-delay: 1.44s; }
+              .demo-ring:nth-child(5) { animation-delay: 1.92s; }
             `}</style>
-            <div className="relative flex items-center justify-center w-24 h-24">
-              <div className="demo-ring" />
-              <div className="demo-ring" />
-              <div className="demo-ring" />
-              <div className="demo-ring" />
-              <div className="demo-ring" />
-              <div className="relative z-10 w-12 h-12 rounded-full bg-cyan-500/20 border border-cyan-500/60 flex items-center justify-center">
-                <Wifi className="w-6 h-6 text-cyan-400" />
+
+            {/* Router + ripple */}
+            <div className="flex items-center gap-4">
+              <div className="relative flex-shrink-0 w-14 h-14 flex items-center justify-center">
+                <div className="demo-ring" />
+                <div className="demo-ring" />
+                <div className="demo-ring" />
+                <div className="demo-ring" />
+                <div className="demo-ring" />
+                <div className="relative z-10 w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-500/60 flex items-center justify-center">
+                  <Wifi className="w-5 h-5 text-cyan-400" />
+                </div>
+              </div>
+              <div>
+                <p className="text-white text-sm font-bold">ESP32 CSI Capture</p>
+                <p className="text-slate-400 text-xs">100 packets/sec · 5 GHz band</p>
+                <div className="flex gap-1.5 mt-1.5">
+                  {["A", "B", "C", "D"].map(n => (
+                    <span key={n} className="px-1.5 py-0.5 rounded bg-blue-950 border border-blue-800/50 text-cyan-400 text-xs font-mono">
+                      Node {n} ✓
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-            <p className="mt-8 text-slate-400 text-sm text-center">
-              ESP32 nodes broadcasting 5GHz CSI data at 100 packets/sec
-            </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {["Node A", "Node B", "Node C", "Node D"].map((n) => (
-                <span
-                  key={n}
-                  className="px-2.5 py-1 rounded-full bg-blue-950 border border-blue-800/60 text-cyan-400 text-xs font-mono"
-                >
-                  {n} ✓
-                </span>
-              ))}
+
+            {/* Live CSI waveform */}
+            <div className="bg-slate-900/70 rounded-xl p-4 border border-slate-700/40">
+              <SignalWaveform wave={current.wave} posture={posture} />
+            </div>
+
+            {/* Vital signs */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/40 text-center">
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Breathing</p>
+                <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{current.bpm}</p>
+                <p className="text-xs text-slate-500">breaths/min</p>
+              </div>
+              <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/40 text-center">
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Heart Rate</p>
+                <p className="text-2xl font-black text-rose-400 font-mono mt-1">{current.hrBpm}</p>
+                <p className="text-xs text-slate-500">BPM</p>
+              </div>
             </div>
           </div>
 
