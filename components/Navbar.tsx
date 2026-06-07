@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +114,13 @@ export default function Navbar() {
                   {t(link.key)}
                 </GovNavLink>
               ))}
+              <GovNavLink href="/wifi-posture" active={isActive("/wifi-posture")}>
+                <Wifi className="w-3.5 h-3.5" />
+                WiFi Posture
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                  New
+                </span>
+              </GovNavLink>
             </div>
 
             <div className="hidden lg:flex items-center gap-2">
@@ -208,6 +215,22 @@ export default function Navbar() {
                 {t(link.key)}
               </Link>
             ))}
+            <Link
+              href="/wifi-posture"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/wifi-posture")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Wifi className="w-4 h-4" />
+              WiFi Posture
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
             <div className="border-t border-green-700 mt-2 pt-2 flex flex-col gap-1">
               <Link href="/" onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-amber-300 rounded-lg hover:bg-white/10">
