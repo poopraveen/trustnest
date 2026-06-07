@@ -404,6 +404,13 @@ function HeroSection() {
             Start Detection
           </Link>
           <Link
+            href="/wifi-posture/camera"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-900/40 hover:-translate-y-0.5"
+          >
+            <User className="w-4 h-4" />
+            Try with iPhone Camera
+          </Link>
+          <Link
             href="#how-it-works"
             className="inline-flex items-center gap-2 px-8 py-3.5 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 font-bold rounded-xl transition-all duration-200"
           >
