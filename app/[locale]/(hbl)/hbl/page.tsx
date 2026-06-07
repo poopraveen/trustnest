@@ -42,7 +42,7 @@ export default function HblLoginPage() {
     });
     const data = await res.json();
     setLoading(false);
-    if (res.ok) { setDemoOtp(data.otp); setStep("otp"); }
+    if (res.ok) { setDemoOtp(data.otp ?? null); setStep("otp"); }
     else setError(data.error ?? "Failed to send OTP");
   }
 
