@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -125,6 +125,13 @@ export default function Navbar() {
                 <Radio className="w-3.5 h-3.5" />
                 Mesh Chat
                 <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-emerald-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                  New
+                </span>
+              </GovNavLink>
+              <GovNavLink href="/object-detect" active={isActive("/object-detect")}>
+                <ScanSearch className="w-3.5 h-3.5" />
+                Object Detect
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-violet-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                   New
                 </span>
               </GovNavLink>
