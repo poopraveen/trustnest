@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostCompact": [
+      {
+        "matcher": "manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/compact-memory.sh",
+            "timeout": 30,
+            "statusMessage": "Saving context to CLAUDE.md..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/feature-memory.sh",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

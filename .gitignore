@@ -36,6 +36,9 @@ yarn-error.log*
 
 # cursor / claude tooling
 .claude/
+!.claude/settings.json
+!.claude/compact-memory.sh
+!.claude/feature-memory.sh
 
 # typescript
 *.tsbuildinfo
