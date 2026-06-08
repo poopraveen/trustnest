@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +135,13 @@ export default function Navbar() {
                   New
                 </span>
               </GovNavLink>
+              <GovNavLink href="/chemverse" active={isActive("/chemverse")}>
+                <FlaskConical className="w-3.5 h-3.5" />
+                ChemVerse
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                  New
+                </span>
+              </GovNavLink>
             </div>
 
             <div className="hidden lg:flex items-center gap-2">
@@ -258,6 +265,22 @@ export default function Navbar() {
               <Radio className="w-4 h-4" />
               Mesh Chat
               <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-emerald-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
+            <Link
+              href="/chemverse"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/chemverse")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <FlaskConical className="w-4 h-4" />
+              ChemVerse
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                 New
               </span>
             </Link>
