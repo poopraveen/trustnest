@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +139,13 @@ export default function Navbar() {
                 <FlaskConical className="w-3.5 h-3.5" />
                 ChemVerse
                 <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                  New
+                </span>
+              </GovNavLink>
+              <GovNavLink href="/majestor" active={isActive("/majestor")}>
+                <Cpu className="w-3.5 h-3.5" />
+                Majestor
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-green-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                   New
                 </span>
               </GovNavLink>
@@ -281,6 +288,22 @@ export default function Navbar() {
               <FlaskConical className="w-4 h-4" />
               ChemVerse
               <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-cyan-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
+            <Link
+              href="/majestor"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/majestor")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Cpu className="w-4 h-4" />
+              Majestor
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-green-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                 New
               </span>
             </Link>
