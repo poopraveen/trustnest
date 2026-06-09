@@ -1,4 +1,7 @@
+"use client";
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export default function Print3DLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,10 +39,8 @@ export default function Print3DLayout({ children }: { children: React.ReactNode 
               <NavLink href="/print3d/track">Track Order</NavLink>
               <Link
                 href="/print3d/order"
-                className="ml-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all"
+                className="ml-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#f97316' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#ea6e0f' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f97316' }}
               >
                 Order Now
               </Link>
@@ -49,7 +50,7 @@ export default function Print3DLayout({ children }: { children: React.ReactNode 
             <div className="md:hidden flex items-center gap-2">
               <Link
                 href="/print3d/order"
-                className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
+                className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: '#f97316' }}
               >
                 Order Now
@@ -84,11 +85,14 @@ export default function Print3DLayout({ children }: { children: React.ReactNode 
 }
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isActive = pathname === href || pathname.startsWith(href + '/')
   return (
     <Link
       href={href}
-      className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg transition-colors whitespace-nowrap"
-      style={{ transitionProperty: 'color' }}
+      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+        isActive ? 'text-orange-400 bg-orange-500/10' : 'text-slate-300 hover:text-white hover:bg-white/5'
+      }`}
     >
       {children}
     </Link>
