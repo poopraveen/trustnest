@@ -190,6 +190,13 @@ function parseSTL(buf: ArrayBuffer): THREE.BufferGeometry {
 
 // ─── Photo → heightmap ────────────────────────────────────────────────────────
 
+function sampleBrightness(id: ImageData, cols: number, rows: number, r: number, c: number, invert: boolean): number {
+  const i=(r*cols+c)*4;
+  const alpha=id.data[i+3]/255; // 0=bg, 1=subject (for bg-removed images)
+  const raw=(id.data[i]+id.data[i+1]+id.data[i+2])/3/255;
+  return (invert?1-raw:raw)*alpha;
+}
+
 function imageToHeightmap(img: HTMLImageElement, o: PhotoSettings): THREE.BufferGeometry {
   const cv=document.createElement("canvas");
   const res=Math.round(o.resolution);
@@ -199,7 +206,7 @@ function imageToHeightmap(img: HTMLImageElement, o: PhotoSettings): THREE.Buffer
   const cols=cv.width,rows=cv.height;
   const W=o.realWidth,D=o.keepAspect?W*(rows/cols):o.realDepth,H=o.maxHeight,base=o.baseThickness;
   const h=new Array(rows*cols);
-  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){const i=(r*cols+c)*4;const g=(id.data[i]+id.data[i+1]+id.data[i+2])/3/255;h[r*cols+c]=(o.invert?1-g:g)*H;}
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){h[r*cols+c]=sampleBrightness(id,cols,rows,r,c,o.invert)*H;}
   const p:number[]=[],ix:number[]=[];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) p.push((c/(cols-1))*W-W/2,base+h[r*cols+c],(r/(rows-1))*D-D/2);
   for(let r=0;r<rows-1;r++) for(let c=0;c<cols-1;c++){const a=r*cols+c,b=a+1,cc=(r+1)*cols+c,d=cc+1;ix.push(a,cc,b,b,cc,d);}
@@ -226,7 +233,7 @@ function imageToCylinderHeightmap(img: HTMLImageElement, o: PhotoSettings): THRE
 
   const R=o.cylinderRadius, H=o.cylinderHeight, base=o.baseThickness, relief=o.maxHeight;
   const bright=new Array(rows*cols);
-  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){const i=(r*cols+c)*4;const g=(id.data[i]+id.data[i+1]+id.data[i+2])/3/255;bright[r*cols+c]=(o.invert?1-g:g);}
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){bright[r*cols+c]=sampleBrightness(id,cols,rows,r,c,o.invert);}
 
   const p:number[]=[],ix:number[]=[];
 
@@ -383,6 +390,8 @@ export default function CADDesigner() {
   const [photoProc,      setPhotoProc]       = useState(false);
   const [isPhotoDrag,    setIsPhotoDrag]     = useState(false);
   const [photoSettings,  setPhotoSettings]   = useState<PhotoSettings>({surfaceMode:"flat",realWidth:80,realDepth:60,maxHeight:5,baseThickness:2,resolution:100,invert:false,keepAspect:true,cylinderRadius:30,cylinderHeight:80});
+  const [bgRemoving,     setBgRemoving]      = useState(false);
+  const [bgRemoved,      setBgRemoved]       = useState(false);
   const photoFileRef = useRef<HTMLInputElement>(null);
 
   const [estMat,    setEstMat]    = useState<Material>("PLA");
@@ -638,8 +647,30 @@ export default function CADDesigner() {
   const handlePhotoFile=(file:File)=>{
     const url=URL.createObjectURL(file);
     const img=new Image();
-    img.onload=()=>{setPhotoImg(img);setPhotoPreview(url);setPhotoGeo(null);setPhotoStats(null);};
+    img.onload=()=>{setPhotoImg(img);setPhotoPreview(url);setPhotoGeo(null);setPhotoStats(null);setBgRemoved(false);};
     img.src=url;
+  };
+
+  const extractSubject=async()=>{
+    if(!photoImg||bgRemoving) return;
+    setBgRemoving(true);
+    try{
+      const { removeBackground } = await import("@imgly/background-removal");
+      const res=await fetch(photoImg.src);
+      const blob=await res.blob();
+      const outBlob=await removeBackground(blob);
+      const url=URL.createObjectURL(outBlob);
+      const img=new Image();
+      img.onload=()=>{
+        setPhotoImg(img);
+        setPhotoPreview(url);
+        setPhotoGeo(null);
+        setPhotoStats(null);
+        setBgRemoved(true);
+      };
+      img.src=url;
+    }catch(e){console.error("BG removal failed",e);}
+    finally{setBgRemoving(false);}
   };
 
   const generateFromPhoto=()=>{
@@ -733,6 +764,22 @@ export default function CADDesigner() {
                   <input ref={photoFileRef} type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)handlePhotoFile(f)}}/>
                 </div>
               </div>
+              {photoImg&&(
+                <div style={card} className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-white">AI Subject Extraction</p>
+                    {bgRemoved&&<span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{background:"rgba(34,197,94,0.15)",color:"#22c55e"}}>Subject only</span>}
+                  </div>
+                  <p className="text-xs mb-2" style={{color:"#64748b"}}>Removes background — only the person/subject gets relief.</p>
+                  <button onClick={extractSubject} disabled={bgRemoving}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold disabled:opacity-60 transition-all"
+                    style={{background:bgRemoved?"rgba(34,197,94,0.15)":"rgba(139,92,246,0.15)",color:bgRemoved?"#22c55e":"#a78bfa",border:`1px solid ${bgRemoved?"rgba(34,197,94,0.3)":"rgba(139,92,246,0.3)"}`}}>
+                    {bgRemoving?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Removing background…</>
+                      :bgRemoved?<><Zap className="w-3.5 h-3.5"/>Re-extract Subject</>
+                      :<><Zap className="w-3.5 h-3.5"/>Extract Subject (AI)</>}
+                  </button>
+                </div>
+              )}
               {photoImg&&(
                 <div style={card} className="p-3">
                   <p className="text-xs font-bold text-white mb-2">Surface Mode</p>
