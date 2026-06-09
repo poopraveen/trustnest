@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -148,6 +148,11 @@ export default function Navbar() {
                 <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-green-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                   New
                 </span>
+              </GovNavLink>
+              <GovNavLink href="/print3d" active={isActive("/print3d")}>
+                <Printer className="w-3.5 h-3.5" />
+                Print3D
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-orange-400 text-slate-900 rounded uppercase tracking-wide leading-none">New</span>
               </GovNavLink>
             </div>
 
@@ -304,6 +309,22 @@ export default function Navbar() {
               <Cpu className="w-4 h-4" />
               Majestor
               <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-green-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
+            <Link
+              href="/print3d"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/print3d")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Printer className="w-4 h-4" />
+              Print3D
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-orange-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                 New
               </span>
             </Link>
