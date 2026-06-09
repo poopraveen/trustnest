@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { usePrint3DStore } from '@/lib/print3d/store'
 import { MATERIALS, QUOTE_CALC, CATEGORIES } from '@/lib/print3d/data'
 import type { Material, ModelCategory } from '@/lib/print3d/types'
@@ -60,11 +61,33 @@ const INITIAL: FormState = {
 }
 
 export default function OrderPage() {
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<FormState>(INITIAL)
+  const [fromCAD, setFromCAD] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const { addOrder } = usePrint3DStore()
+
+  // Pre-fill from CAD Designer URL params: ?w=&h=&d=&unit=&title=
+  useEffect(() => {
+    const w = searchParams.get('w')
+    const h = searchParams.get('h')
+    const d = searchParams.get('d')
+    const unit = searchParams.get('unit')
+    const title = searchParams.get('title')
+    if (w || h || d) {
+      setForm(f => ({
+        ...f,
+        ...(title ? { title } : {}),
+        ...(w ? { dimWidth: w } : {}),
+        ...(h ? { dimHeight: h } : {}),
+        ...(d ? { dimLength: d } : {}),
+        ...(unit === 'mm' || unit === 'cm' ? { dimUnit: unit } : {}),
+      }))
+      setFromCAD(true)
+    }
+  }, [searchParams])
 
   const update = (field: keyof FormState, value: FormState[keyof FormState]) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -206,6 +229,12 @@ export default function OrderPage() {
         {step === 1 && (
           <div className="space-y-5">
             <h2 className="text-xl font-bold mb-6">Project Details</h2>
+            {fromCAD && (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+                style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', color: '#fb923c' }}>
+                <span>▲</span> Dimensions pre-filled from CAD Designer — review specs in Step 2
+              </div>
+            )}
             <FormField label="Project Title *">
               <input
                 type="text"

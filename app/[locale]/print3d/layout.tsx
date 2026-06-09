@@ -36,6 +36,7 @@ export default function Print3DLayout({ children }: { children: React.ReactNode 
             <nav className="hidden md:flex items-center gap-1">
               <NavLink href="/print3d">Home</NavLink>
               <NavLink href="/print3d/gallery">Gallery</NavLink>
+              <NavLink href="/print3d/cad">CAD Designer</NavLink>
               <NavLink href="/print3d/track">Track Order</NavLink>
               <Link
                 href="/print3d/order"
@@ -62,6 +63,7 @@ export default function Print3DLayout({ children }: { children: React.ReactNode 
           <div className="md:hidden flex items-center gap-4 pb-3 overflow-x-auto">
             <NavLink href="/print3d">Home</NavLink>
             <NavLink href="/print3d/gallery">Gallery</NavLink>
+            <NavLink href="/print3d/cad">CAD Designer</NavLink>
             <NavLink href="/print3d/track">Track Order</NavLink>
           </div>
         </div>
