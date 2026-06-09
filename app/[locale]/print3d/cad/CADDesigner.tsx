@@ -72,8 +72,10 @@ interface ShapeItem {
 interface ModelStats { triangles: number; width: number; height: number; depth: number }
 
 interface PhotoSettings {
+  surfaceMode: "flat" | "cylinder";
   realWidth: number; realDepth: number; maxHeight: number;
   baseThickness: number; resolution: number; invert: boolean; keepAspect: boolean;
+  cylinderRadius: number; cylinderHeight: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -212,6 +214,75 @@ function imageToHeightmap(img: HTMLImageElement, o: PhotoSettings): THREE.Buffer
   return geo;
 }
 
+// ─── Photo → cylinder wrap ────────────────────────────────────────────────────
+
+function imageToCylinderHeightmap(img: HTMLImageElement, o: PhotoSettings): THREE.BufferGeometry {
+  const cv=document.createElement("canvas");
+  const cols=Math.round(o.resolution);
+  const rows=o.keepAspect?Math.round(cols*(img.naturalHeight/img.naturalWidth)):cols;
+  cv.width=cols; cv.height=rows;
+  const ctx=cv.getContext("2d")!; ctx.drawImage(img,0,0,cols,rows);
+  const id=ctx.getImageData(0,0,cols,rows);
+
+  const R=o.cylinderRadius, H=o.cylinderHeight, base=o.baseThickness, relief=o.maxHeight;
+  const bright=new Array(rows*cols);
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){const i=(r*cols+c)*4;const g=(id.data[i]+id.data[i+1]+id.data[i+2])/3/255;bright[r*cols+c]=(o.invert?1-g:g);}
+
+  const p:number[]=[],ix:number[]=[];
+
+  // outer surface (R + base + relief·brightness), image row 0 = top of cylinder
+  for(let r=0;r<rows;r++){
+    const y=H/2-(r/(rows-1))*H; // top → bottom along Y
+    for(let c=0;c<cols;c++){
+      const theta=(c/cols)*Math.PI*2;
+      const outerR=R+base+bright[r*cols+c]*relief;
+      p.push(outerR*Math.cos(theta),y,outerR*Math.sin(theta));
+    }
+  }
+
+  // inner surface (smooth, radius R)
+  const innerStart=rows*cols;
+  for(let r=0;r<rows;r++){
+    const y=H/2-(r/(rows-1))*H;
+    for(let c=0;c<cols;c++){
+      const theta=(c/cols)*Math.PI*2;
+      p.push(R*Math.cos(theta),y,R*Math.sin(theta));
+    }
+  }
+
+  // outer surface quads (outward facing)
+  for(let r=0;r<rows-1;r++) for(let c=0;c<cols;c++){
+    const nc=(c+1)%cols;
+    const a=r*cols+c,b=r*cols+nc,cc=(r+1)*cols+c,d=(r+1)*cols+nc;
+    ix.push(a,b,cc, b,d,cc);
+  }
+
+  // inner surface quads (inward facing — reversed winding)
+  for(let r=0;r<rows-1;r++) for(let c=0;c<cols;c++){
+    const nc=(c+1)%cols;
+    const a=innerStart+r*cols+c,b=innerStart+r*cols+nc,cc=innerStart+(r+1)*cols+c,d=innerStart+(r+1)*cols+nc;
+    ix.push(cc,b,a, cc,d,b);
+  }
+
+  // top cap (row 0) — connect outer to inner
+  for(let c=0;c<cols;c++){
+    const nc=(c+1)%cols;
+    ix.push(c,nc,innerStart+nc, c,innerStart+nc,innerStart+c);
+  }
+
+  // bottom cap (row rows-1) — connect outer to inner
+  const ob=(rows-1)*cols,ib=innerStart+(rows-1)*cols;
+  for(let c=0;c<cols;c++){
+    const nc=(c+1)%cols;
+    ix.push(ob+nc,ob+c,ib+c, ob+nc,ib+c,ib+nc);
+  }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.BufferAttribute(new Float32Array(p),3));
+  geo.setIndex(ix); geo.computeVertexNormals();
+  return geo;
+}
+
 // ─── STL export ───────────────────────────────────────────────────────────────
 
 function exportSTL(geo: THREE.BufferGeometry, filename: string) {
@@ -311,7 +382,7 @@ export default function CADDesigner() {
   const [photoStats,     setPhotoStats]      = useState<ModelStats|null>(null);
   const [photoProc,      setPhotoProc]       = useState(false);
   const [isPhotoDrag,    setIsPhotoDrag]     = useState(false);
-  const [photoSettings,  setPhotoSettings]   = useState<PhotoSettings>({realWidth:80,realDepth:60,maxHeight:5,baseThickness:2,resolution:100,invert:false,keepAspect:true});
+  const [photoSettings,  setPhotoSettings]   = useState<PhotoSettings>({surfaceMode:"flat",realWidth:80,realDepth:60,maxHeight:5,baseThickness:2,resolution:100,invert:false,keepAspect:true,cylinderRadius:30,cylinderHeight:80});
   const photoFileRef = useRef<HTMLInputElement>(null);
 
   const [estMat,    setEstMat]    = useState<Material>("PLA");
@@ -576,7 +647,9 @@ export default function CADDesigner() {
     setPhotoProc(true);
     setTimeout(()=>{
       try{
-        const geo=imageToHeightmap(photoImg,photoSettings);
+        const geo=photoSettings.surfaceMode==="cylinder"
+          ?imageToCylinderHeightmap(photoImg,photoSettings)
+          :imageToHeightmap(photoImg,photoSettings);
         geo.computeBoundingBox();
         const size=new THREE.Vector3(); geo.boundingBox!.getSize(size);
         const ix=geo.getIndex();
@@ -662,20 +735,43 @@ export default function CADDesigner() {
               </div>
               {photoImg&&(
                 <div style={card} className="p-3">
+                  <p className="text-xs font-bold text-white mb-2">Surface Mode</p>
+                  <div className="flex gap-2 mb-3">
+                    {(["flat","cylinder"] as const).map(mode=>(
+                      <button key={mode} onClick={()=>setPhotoSettings(s=>({...s,surfaceMode:mode}))}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
+                        style={{background:photoSettings.surfaceMode===mode?"#f97316":"rgba(249,115,22,0.1)",color:photoSettings.surfaceMode===mode?"white":"#94a3b8",border:`1px solid ${photoSettings.surfaceMode===mode?"#f97316":"rgba(249,115,22,0.2)"}`}}>
+                        {mode==="flat"?"Flat Plate":"Cylinder Wrap"}
+                      </button>
+                    ))}
+                  </div>
                   <p className="text-xs font-bold text-white mb-3">Relief Settings</p>
-                  <ParamInput label="Width (mm)" value={photoSettings.realWidth} min={10} max={300} onChange={v=>setPhotoSettings(s=>({...s,realWidth:v}))}/>
-                  {!photoSettings.keepAspect&&<ParamInput label="Depth (mm)" value={photoSettings.realDepth} min={10} max={300} onChange={v=>setPhotoSettings(s=>({...s,realDepth:v}))}/>}
+                  {photoSettings.surfaceMode==="flat"?(
+                    <>
+                      <ParamInput label="Width (mm)" value={photoSettings.realWidth} min={10} max={300} onChange={v=>setPhotoSettings(s=>({...s,realWidth:v}))}/>
+                      {!photoSettings.keepAspect&&<ParamInput label="Depth (mm)" value={photoSettings.realDepth} min={10} max={300} onChange={v=>setPhotoSettings(s=>({...s,realDepth:v}))}/>}
+                    </>
+                  ):(
+                    <>
+                      <ParamInput label="Cylinder Radius (mm)" value={photoSettings.cylinderRadius} min={5} max={150} onChange={v=>setPhotoSettings(s=>({...s,cylinderRadius:v}))}/>
+                      <ParamInput label="Cylinder Height (mm)" value={photoSettings.cylinderHeight} min={10} max={300} onChange={v=>setPhotoSettings(s=>({...s,cylinderHeight:v}))}/>
+                    </>
+                  )}
                   <ParamInput label="Relief Height (mm)" value={photoSettings.maxHeight} min={1} max={30} step={0.5} onChange={v=>setPhotoSettings(s=>({...s,maxHeight:v}))}/>
                   <ParamInput label="Base Thickness (mm)" value={photoSettings.baseThickness} min={0.5} max={20} step={0.5} onChange={v=>setPhotoSettings(s=>({...s,baseThickness:v}))}/>
                   <ParamInput label="Resolution" value={photoSettings.resolution} min={30} max={200} onChange={v=>setPhotoSettings(s=>({...s,resolution:Math.round(v)}))}/>
                   <div className="flex gap-4 mt-1 mb-3">
-                    {([["Invert","invert"],["Lock Aspect","keepAspect"]] as [string,keyof PhotoSettings][]).map(([lbl,key])=>(
-                      <label key={key} className="flex items-center gap-1.5 cursor-pointer select-none">
-                        <input type="checkbox" checked={!!photoSettings[key]} onChange={e=>setPhotoSettings(s=>({...s,[key]:e.target.checked}))} className="rounded" style={{accentColor:"#f97316"}}/>
-                        <span className="text-xs" style={{color:"#94a3b8"}}>{lbl}</span>
-                        {key==="invert"&&<FlipHorizontal className="w-3 h-3" style={{color:"#64748b"}}/>}
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked={photoSettings.invert} onChange={e=>setPhotoSettings(s=>({...s,invert:e.target.checked}))} className="rounded" style={{accentColor:"#f97316"}}/>
+                      <span className="text-xs" style={{color:"#94a3b8"}}>Invert</span>
+                      <FlipHorizontal className="w-3 h-3" style={{color:"#64748b"}}/>
+                    </label>
+                    {photoSettings.surfaceMode==="flat"&&(
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" checked={photoSettings.keepAspect} onChange={e=>setPhotoSettings(s=>({...s,keepAspect:e.target.checked}))} className="rounded" style={{accentColor:"#f97316"}}/>
+                        <span className="text-xs" style={{color:"#94a3b8"}}>Lock Aspect</span>
                       </label>
-                    ))}
+                    )}
                   </div>
                   <button onClick={generateFromPhoto} disabled={photoProc}
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold disabled:opacity-60"
