@@ -390,7 +390,6 @@ export default function CADDesigner() {
   const [photoProc,      setPhotoProc]       = useState(false);
   const [isPhotoDrag,    setIsPhotoDrag]     = useState(false);
   const [photoSettings,  setPhotoSettings]   = useState<PhotoSettings>({surfaceMode:"flat",realWidth:80,realDepth:60,maxHeight:5,baseThickness:2,resolution:100,invert:false,keepAspect:true,cylinderRadius:30,cylinderHeight:80});
-  const [bgRemoving,     setBgRemoving]      = useState(false);
   const [bgRemoved,      setBgRemoved]       = useState(false);
   const photoFileRef = useRef<HTMLInputElement>(null);
 
@@ -647,30 +646,11 @@ export default function CADDesigner() {
   const handlePhotoFile=(file:File)=>{
     const url=URL.createObjectURL(file);
     const img=new Image();
-    img.onload=()=>{setPhotoImg(img);setPhotoPreview(url);setPhotoGeo(null);setPhotoStats(null);setBgRemoved(false);};
+    img.onload=()=>{
+      const hasBgRemoved=file.type==="image/png"; // PNG may carry transparency
+      setPhotoImg(img);setPhotoPreview(url);setPhotoGeo(null);setPhotoStats(null);setBgRemoved(hasBgRemoved);
+    };
     img.src=url;
-  };
-
-  const extractSubject=async()=>{
-    if(!photoImg||bgRemoving) return;
-    setBgRemoving(true);
-    try{
-      const { removeBackground } = await import("@imgly/background-removal");
-      const res=await fetch(photoImg.src);
-      const blob=await res.blob();
-      const outBlob=await removeBackground(blob);
-      const url=URL.createObjectURL(outBlob);
-      const img=new Image();
-      img.onload=()=>{
-        setPhotoImg(img);
-        setPhotoPreview(url);
-        setPhotoGeo(null);
-        setPhotoStats(null);
-        setBgRemoved(true);
-      };
-      img.src=url;
-    }catch(e){console.error("BG removal failed",e);}
-    finally{setBgRemoving(false);}
   };
 
   const generateFromPhoto=()=>{
@@ -767,17 +747,20 @@ export default function CADDesigner() {
               {photoImg&&(
                 <div style={card} className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-white">AI Subject Extraction</p>
-                    {bgRemoved&&<span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{background:"rgba(34,197,94,0.15)",color:"#22c55e"}}>Subject only</span>}
+                    <p className="text-xs font-bold text-white">Subject Extraction</p>
+                    {bgRemoved&&<span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{background:"rgba(34,197,94,0.15)",color:"#22c55e"}}>✓ Alpha detected</span>}
                   </div>
-                  <p className="text-xs mb-2" style={{color:"#64748b"}}>Removes background — only the person/subject gets relief.</p>
-                  <button onClick={extractSubject} disabled={bgRemoving}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold disabled:opacity-60 transition-all"
-                    style={{background:bgRemoved?"rgba(34,197,94,0.15)":"rgba(139,92,246,0.15)",color:bgRemoved?"#22c55e":"#a78bfa",border:`1px solid ${bgRemoved?"rgba(34,197,94,0.3)":"rgba(139,92,246,0.3)"}`}}>
-                    {bgRemoving?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Removing background…</>
-                      :bgRemoved?<><Zap className="w-3.5 h-3.5"/>Re-extract Subject</>
-                      :<><Zap className="w-3.5 h-3.5"/>Extract Subject (AI)</>}
-                  </button>
+                  <p className="text-xs leading-relaxed" style={{color:"#64748b"}}>
+                    For person-only relief, remove the background first using a free AI tool, then upload the PNG here — transparent pixels produce zero relief automatically.
+                  </p>
+                  <div className="flex flex-col gap-1 mt-2">
+                    {[["remove.bg","Free · 50/mo"],["PhotoRoom","Free mobile app"],["Canva BG Remover","Free with account"]].map(([name,note])=>(
+                      <div key={name} className="flex justify-between items-center px-2.5 py-1.5 rounded-lg" style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.15)"}}>
+                        <span className="text-xs font-semibold" style={{color:"#a78bfa"}}>{name}</span>
+                        <span className="text-xs" style={{color:"#64748b"}}>{note}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {photoImg&&(

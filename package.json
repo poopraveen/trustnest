@@ -30,7 +30,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
-    "@imgly/background-removal": "^1.7.0",
     "@jscad/modeling": "^2.13.0",
     "@jscad/stl-serializer": "^2.1.23",
     "@next-auth/prisma-adapter": "^1.0.7",
