@@ -54,5 +54,6 @@ _Last compacted: 2026-06-08 17:30_
 Test summary after fix.
 
 ## Recent Changes
+- `/townhall-profile` — modified 2026-06-11 09:46
 - `/print3d` — modified 2026-06-09 08:08
 - `/majestor/checkout` — modified 2026-06-08 17:32
