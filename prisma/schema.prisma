@@ -1316,3 +1316,38 @@ model MeshPresence {
 
   @@index([lastSeen])
 }
+
+// ─── FAMILY TRIP ──────────────────────────────────────────────────────────────
+
+model FamilyTrip {
+  id        String              @id @default(cuid())
+  code      String              @unique
+  name      String              @default("Family Trip")
+  members   String[]
+  currency  String              @default("₹")
+  tgToken   String?
+  tgChatId  String?
+  tgEnabled Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  expenses  FamilyTripExpense[]
+
+  @@index([code])
+}
+
+model FamilyTripExpense {
+  id          String     @id @default(cuid())
+  tripId      String
+  trip        FamilyTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  category    String
+  paidBy      String
+  date        String
+  note        String?
+  location    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([tripId, date])
+}

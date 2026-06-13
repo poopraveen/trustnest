@@ -54,6 +54,8 @@ _Last compacted: 2026-06-08 17:30_
 Test summary after fix.
 
 ## Recent Changes
+- `/family-trip` — modified 2026-06-13 04:35
+- `/family-trip` — modified 2026-06-13 04:28
 - `/family-trip` — modified 2026-06-13 04:05
 - `/family-trip` — modified 2026-06-13 03:58
 - `/townhall-profile` — modified 2026-06-11 09:46
