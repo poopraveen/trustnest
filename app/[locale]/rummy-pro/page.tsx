@@ -704,32 +704,6 @@ export default function RummyProPage() {
                   × Clear Joker
                 </button>
               )}
-              {/* Printed Joker button */}
-              {(() => {
-                const pjCount = hand.filter(isPJ).length;
-                const maxPJ = deckCount(playerCount) * 2; // 2 printed jokers per deck
-                const atMax = pjCount >= maxPJ;
-                return (
-                  <button type="button" onClick={() => {
-                    if (atMax) {
-                      // Remove one printed joker
-                      const last = [...hand].reverse().find(isPJ);
-                      if (last) setHand(h => { const idx = h.findIndex(c => c.id === last.id); return h.filter((_, i) => i !== idx); });
-                    } else if (hand.length < 14) {
-                      setHand(h => [...h, { id: `pj_${pjCount + 1}_${Date.now()}`, rank: "PJ" as Rank, suit: "🃏" as Suit }]);
-                    }
-                  }} style={{
-                    display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8,
-                    border: `1px solid ${pjCount > 0 ? "#a855f7" : BORDER}`,
-                    background: pjCount > 0 ? "rgba(168,85,247,0.15)" : SURFACE,
-                    color: pjCount > 0 ? "#c084fc" : "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                  }}>
-                    🃏 Printed Joker
-                    {pjCount > 0 && <span style={{ background: "#a855f7", color: "#fff", borderRadius: 10, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>{pjCount}/{maxPJ}</span>}
-                    {atMax && <span style={{ fontSize: 11, color: "#f59e0b" }}>(tap to remove)</span>}
-                  </button>
-                );
-              })()}
             </div>
 
             {/* Card Picker Grid */}
@@ -737,6 +711,44 @@ export default function RummyProPage() {
               <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12, margin: "0 0 12px" }}>
                 {pickingJoker ? "Click any rank to set as Wild Joker:" : selectingOpenPile ? "Click a card to set as Open Pile Top:" : `Click to add a copy (up to ${deckCount(playerCount)}× per card). Click again at max to remove. Selected: ${hand.length}/14`}
               </p>
+
+              {/* ── Printed Joker row ── */}
+              {!pickingJoker && !selectingOpenPile && (() => {
+                const pjCount = hand.filter(isPJ).length;
+                const maxPJ = deckCount(playerCount) * 2;
+                const atMax = pjCount >= maxPJ;
+                const handFull = hand.length >= 14 && pjCount === 0;
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "10px 12px", borderRadius: 8, background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#c084fc", flexShrink: 0 }}>🃏 Joker Card</span>
+                    <span style={{ fontSize: 11, color: "#64748b", flex: 1 }}>The printed joker in the deck (0 pts, can sub any card)</span>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <button type="button"
+                        disabled={handFull}
+                        onClick={() => {
+                          if (!atMax && hand.length < 14) {
+                            setHand(h => [...h, { id: `pj_${Date.now()}`, rank: "PJ" as unknown as Rank, suit: "🃏" as unknown as Suit }]);
+                          }
+                        }}
+                        style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(168,85,247,0.5)", background: atMax ? "rgba(255,255,255,0.04)" : "rgba(168,85,247,0.2)", color: atMax ? "#475569" : "#c084fc", cursor: atMax || handFull ? "not-allowed" : "pointer", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        +
+                      </button>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: pjCount > 0 ? "#c084fc" : "#475569", minWidth: 24, textAlign: "center" }}>{pjCount}</span>
+                      <button type="button"
+                        disabled={pjCount === 0}
+                        onClick={() => {
+                          const last = [...hand].reverse().find(isPJ);
+                          if (last) setHand(h => { const idx = h.findIndex(c => c.id === last.id); return h.filter((_, i) => i !== idx); });
+                        }}
+                        style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(239,68,68,0.4)", background: pjCount === 0 ? "rgba(255,255,255,0.04)" : "rgba(239,68,68,0.15)", color: pjCount === 0 ? "#475569" : "#f87171", cursor: pjCount === 0 ? "not-allowed" : "pointer", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        −
+                      </button>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#475569" }}>max {maxPJ}</span>
+                  </div>
+                );
+              })()}
+
               {SUITS.map(suit => (
                 <div key={suit} style={{ display: "flex", gap: 3, marginBottom: 5, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ fontSize: 14, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#94a3b8", width: 20, textAlign: "center", flexShrink: 0 }}>{suit}</span>
