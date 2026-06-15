@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const NAV_KEYS = [
   { href: "/grievances", key: "grievances" as const, icon: MessageSquare },
   { href: "/tenders", key: "tenders" as const, icon: FileSearch },
   { href: "/data-sources", key: "dataSources" as const, icon: Info },
+  { href: "/capability-intelligence", key: "capabilityIntelligence" as const, icon: Brain },
 ];
 
 export default function Navbar() {
