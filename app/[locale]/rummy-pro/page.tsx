@@ -468,6 +468,9 @@ export default function RummyProPage() {
   const [selectingOpponent, setSelectingOpponent] = useState<number | null>(null);
   const [pickingJoker, setPickingJoker] = useState(false);
   const [handSort, setHandSort] = useState<"groups" | "suit" | "value">("groups");
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<{ cards: { rank: string; suit: string }[] } | null>(null);
+  const [scanError, setScanError] = useState("");
 
   // Live Game tab state
   const [lgTurn, setLgTurn] = useState(1);
@@ -580,6 +583,39 @@ export default function RummyProPage() {
   };
 
   const removeCard = (id: string) => setHand(h => h.filter(c => c.id !== id));
+
+  const scanCards = async (file: File) => {
+    setScanning(true);
+    setScanError("");
+    setScanResult(null);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/rummy-pro/scan-cards", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.cards?.length) {
+        setScanResult(data);
+      } else {
+        setScanError(data.error || "No cards detected. Try better lighting.");
+      }
+    } catch {
+      setScanError("Scan failed. Check your connection and try again.");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const applyScanResult = () => {
+    if (!scanResult) return;
+    const VALID_RANKS = [...RANKS, "PJ"] as string[];
+    const newCards: Card[] = scanResult.cards
+      .filter(c => VALID_RANKS.includes(c.rank))
+      .slice(0, 14)
+      .map((c, i) => ({ id: `${c.rank}${c.suit}_scan_${i}`, rank: c.rank as unknown as Rank, suit: c.suit as unknown as Suit }));
+    setHand(newCards);
+    setScanResult(null);
+    setActiveTab("strategy");
+  };
 
   const getAiAnalysis = async () => {
     if (!analysis) return;
@@ -763,8 +799,59 @@ export default function RummyProPage() {
               )}
             </div>
 
+            {/* Scan Result Modal */}
+            {(scanning || scanResult || scanError) && (
+              <div style={{ background: "rgba(15,23,42,0.96)", border: "1px solid rgba(99,102,241,0.4)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
+                {scanning && (
+                  <div style={{ textAlign: "center", padding: "20px 0" }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+                    <p style={{ color: "#a5b4fc", fontWeight: 700, fontSize: 15 }}>Scanning your cards with AI...</p>
+                    <p style={{ color: "#64748b", fontSize: 12 }}>Claude Vision is identifying each card</p>
+                  </div>
+                )}
+                {scanError && (
+                  <div>
+                    <p style={{ color: "#f87171", fontWeight: 700, marginBottom: 8 }}>⚠️ {scanError}</p>
+                    <button type="button" onClick={() => setScanError("")} style={{ padding: "6px 14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#f87171", cursor: "pointer", fontSize: 12 }}>Dismiss</button>
+                  </div>
+                )}
+                {scanResult && (
+                  <div>
+                    <p style={{ color: ACCENT, fontWeight: 700, fontSize: 14, marginBottom: 12 }}>✅ Detected {scanResult.cards.length} cards — confirm before applying:</p>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
+                      {scanResult.cards.map((c, i) => (
+                        <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 38, height: 52, background: c.rank === "PJ" ? "linear-gradient(135deg,#7c3aed,#a855f7)" : "#fff", border: "1.5px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontWeight: 700, color: (c.suit === "♥" || c.suit === "♦") ? "#dc2626" : c.rank === "PJ" ? "#e9d5ff" : "#1e293b", gap: 1 }}>
+                          <span style={{ lineHeight: 1 }}>{c.rank === "PJ" ? "🃏" : c.rank}</span>
+                          <span style={{ lineHeight: 1, fontSize: 13 }}>{c.rank === "PJ" ? "" : c.suit}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Not correct? Re-scan with better lighting. Otherwise click Apply to load these cards.</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button type="button" onClick={applyScanResult} style={{ padding: "9px 20px", background: "rgba(34,197,94,0.2)", border: `1px solid ${BORDER}`, borderRadius: 8, color: ACCENT, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                        ✓ Apply — Go to Strategy
+                      </button>
+                      <button type="button" onClick={() => setScanResult(null)} style={{ padding: "9px 14px", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8, color: "#94a3b8", cursor: "pointer", fontSize: 13 }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+              {/* Camera Scan button */}
+              <label style={{ cursor: "pointer" }}>
+                <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) scanCards(f); e.target.value = ""; }}
+                />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(99,102,241,0.4)", background: "rgba(99,102,241,0.12)", color: "#a5b4fc", fontSize: 13, fontWeight: 600, userSelect: "none" }}>
+                  {scanning ? "⏳ Scanning..." : "📷 Scan Cards"}
+                </span>
+              </label>
+
               <button type="button" onClick={() => { setPickingJoker(v => !v); setSelectingOpenPile(false); setSelectingOpponent(null); }} style={{
                 padding: "8px 14px", borderRadius: 8, border: `1px solid ${pickingJoker ? "#fbbf24" : BORDER}`,
                 background: pickingJoker ? "rgba(251,191,36,0.15)" : SURFACE,
