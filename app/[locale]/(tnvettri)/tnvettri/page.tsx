@@ -4,6 +4,7 @@ import {
   ArrowRight, BarChart3, MapPin, Briefcase, Users,
   MessageSquare, FileSearch, Shield, TrendingUp,
   ChevronRight, ExternalLink, Clock,
+  Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain, Gamepad2,
 } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import KpiTile, { type SLAStatus } from "@/components/KpiTile";
@@ -404,6 +405,50 @@ export default async function TnVettriHomePage() {
               <Clock className="w-3 h-3" />
               <span>{t("slaLine")}</span>
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Platform Apps & Tools ─────────────────────────────────────────────── */}
+      <section className="py-12 bg-slate-50 border-t border-slate-100">
+        <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-slate-800">Platform Apps &amp; Tools</h2>
+            <p className="text-sm text-slate-500 mt-1">All-in-one civic &amp; utility apps built on TrustNest</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { href:"/rummy-pro",        icon: Gamepad2,    label:"AI Rummy Pro",         badge:"New",   badgeColor:"bg-purple-500", desc:"Strategy assistant for Indian Rummy" },
+              { href:"/family-trip",      icon: Plane,       label:"Family Trip",           badge:"New",   badgeColor:"bg-sky-500",    desc:"Shared expense tracker with Telegram" },
+              { href:"/one-spot-bangles3",icon: Gem,         label:"One Spot Bangles",      badge:"New",   badgeColor:"bg-amber-500",  desc:"Jewellery store — Magdi Road, Bengaluru" },
+              { href:"/capability-intelligence", icon: Brain, label:"Capability Intel",     badge:"Beta",  badgeColor:"bg-green-600",  desc:"Workforce skill gap dashboard" },
+              { href:"/majestor",         icon: Cpu,         label:"Majestor",              badge:"",      badgeColor:"",              desc:"Electronics AI workshop" },
+              { href:"/chemverse",        icon: FlaskConical,label:"ChemVerse",             badge:"",      badgeColor:"",              desc:"Interactive chemistry learning" },
+              { href:"/print3d",          icon: Printer,     label:"Print3D",               badge:"",      badgeColor:"",              desc:"3D print quote & CAD designer" },
+              { href:"/wifi-posture",     icon: Wifi,        label:"WiFi Posture",          badge:"",      badgeColor:"",              desc:"Network security audit" },
+              { href:"/mesh-chat",        icon: Radio,       label:"Mesh Chat",             badge:"",      badgeColor:"",              desc:"P2P offline messaging" },
+              { href:"/object-detect",    icon: ScanSearch,  label:"Object Detect",         badge:"",      badgeColor:"",              desc:"Real-time camera detection" },
+            ].map(app => {
+              const Icon = app.icon;
+              return (
+                <Link key={app.href} href={app.href}
+                  className="group relative bg-white rounded-2xl border border-slate-100 p-4 hover:border-green-300 hover:shadow-md transition-all flex flex-col gap-3">
+                  {app.badge && (
+                    <span className={`absolute top-3 right-3 text-[9px] font-black text-white px-1.5 py-0.5 rounded uppercase tracking-wide ${app.badgeColor}`}>
+                      {app.badge}
+                    </span>
+                  )}
+                  <div className="w-10 h-10 rounded-xl bg-green-50 group-hover:bg-green-100 flex items-center justify-center transition-colors">
+                    <Icon className="w-5 h-5 text-green-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800 leading-tight">{app.label}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-tight">{app.desc}</p>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-green-600 group-hover:translate-x-0.5 transition-all mt-auto self-end" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
