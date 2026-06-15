@@ -50,6 +50,12 @@ interface StatsData {
 
 // ─── Pure Logic Functions ──────────────────────────────────────────────────
 
+function deckCount(players: number): number {
+  if (players <= 5) return 2;
+  if (players <= 7) return 3;
+  return 4; // 8–9 players need 4 decks
+}
+
 function rankVal(r: Rank): number {
   return RANKS.indexOf(r) + 1; // A=1, 2=2, ...K=13
 }
@@ -180,23 +186,26 @@ function findSets(hand: Card[], jokerRank: Rank | null): Card[][] {
       if (!seenSuits.has(c.suit)) { uniq.push(c); seenSuits.add(c.suit); }
     }
     if (uniq.length >= 3) {
-      sets.push(uniq.slice(0, 4));
+      sets.push(uniq.slice(0, 3)); // natural 3-card set
+      if (uniq.length >= 4) sets.push(uniq.slice(0, 4)); // natural 4-card set
+      if (uniq.length === 3 && jokers.length >= 1) sets.push([...uniq, jokers[0]]); // 3-real + 1-joker = 4-card set
     } else if (uniq.length === 2 && jokers.length >= 1) {
       sets.push([...uniq, jokers[0]]);
+      if (jokers.length >= 2) sets.push([...uniq, jokers[0], jokers[1]]); // 2-real + 2-joker = 4-card set
     }
   }
 
   return sets;
 }
 
-function calcProbability(needing: string[], knownGone: Card[]): number {
-  const totalCards = 104; // 2 decks
+function calcProbability(needing: string[], knownGone: Card[], decks: number = 2): number {
+  const totalCards = 52 * decks;
   const remaining = Math.max(1, totalCards - knownGone.length);
   let probNotGetting = 1;
   for (const need of needing) {
     const gone = knownGone.filter(c => c.rank === need).length;
-    const available = Math.max(0, 2 - gone);
-    probNotGetting *= (1 - available / remaining);
+    const available = Math.max(0, decks * 4 - gone);
+    probNotGetting *= Math.max(0, 1 - available / remaining);
   }
   return 1 - probNotGetting;
 }
@@ -422,7 +431,7 @@ export default function RummyProPage() {
   const [hand, setHand] = useState<Card[]>([]);
   const [jokerRank, setJokerRank] = useState<Rank | null>(null);
   const [openPileTop, setOpenPileTop] = useState<Card | null>(null);
-  const [opponentDiscards, setOpponentDiscards] = useState<Card[][]>([[], [], [], [], []]);
+  const [opponentDiscards, setOpponentDiscards] = useState<Card[][]>([[], [], [], [], [], [], [], []]);
   const [playerCount, setPlayerCount] = useState(4);
   const [activeTab, setActiveTab] = useState<TabId>("hand");
   const [aiText, setAiText] = useState("");
@@ -567,12 +576,12 @@ export default function RummyProPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: ACCENT, margin: 0 }}>🃏 Rummy Pro AI</h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>Indian Rummy — 13-Card / 2 Decks Strategy Assistant</p>
+            <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>Indian Rummy — 13-Card / {deckCount(playerCount)} Decks ({playerCount} Players) Strategy Assistant</p>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "6px 12px" }}>
               <span style={{ fontSize: 13, color: "#94a3b8" }}>Players:</span>
-              {[2, 3, 4, 5, 6].map(n => (
+              {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                 <button key={n} type="button" onClick={() => setPlayerCount(n)} style={{
                   width: 28, height: 28, borderRadius: 6,
                   background: playerCount === n ? ACCENT : "rgba(255,255,255,0.08)",
@@ -867,7 +876,7 @@ export default function RummyProPage() {
                   {analysis.nearComplete.length > 0 ? (
                     analysis.nearComplete.slice(0, 8).map((nc, i) => {
                       const needing = nc.needing.split(" or ");
-                      const prob = calcProbability(needing, allKnownGone);
+                      const prob = calcProbability(needing, allKnownGone, deckCount(playerCount));
                       return (
                         <ProbBar key={i} label={`${nc.type}: need ${nc.needing}`} prob={prob}
                           color={prob > 0.5 ? ACCENT : prob > 0.25 ? "#f59e0b" : "#ef4444"} />
@@ -884,11 +893,12 @@ export default function RummyProPage() {
                     const neededRanks = Array.from(new Set(
                       analysis.nearComplete.flatMap(nc => nc.needing.split(" or "))
                     ));
-                    const remaining = Math.max(1, 104 - allKnownGone.length);
+                    const decks = deckCount(playerCount);
+                    const remaining = Math.max(1, 52 * decks - allKnownGone.length);
                     const prob = neededRanks.length > 0
                       ? 1 - neededRanks.reduce((p, r) => {
                           const gone = allKnownGone.filter(c => c.rank === r).length;
-                          return p * (1 - Math.max(0, 2 - gone) / remaining);
+                          return p * (1 - Math.max(0, decks * 4 - gone) / remaining);
                         }, 1)
                       : 0;
                     return (
@@ -1106,6 +1116,17 @@ export default function RummyProPage() {
                 ) : (
                   <p style={{ fontSize: 13, color: "#475569", margin: 0 }}>Add cards to your hand for personalized analysis.</p>
                 )}
+              </div>
+
+              <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fb923c", marginBottom: 10 }}>🃏 Sets &amp; Multi-Deck Rules</h3>
+                <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.7, margin: 0 }}>
+                  {trainingMode === "Beginner"
+                    ? "A set is 3–4 cards of the SAME RANK but DIFFERENT SUITS. Example: 7♠ 7♥ 7♦ (3-card set) or 7♠ 7♥ 7♦ 7♣ (4-card set). With a wild joker you can make a 4-card set: 7♠ 7♥ 7♦ + JOKER."
+                    : trainingMode === "Intermediate"
+                    ? `In ${playerCount}-player games, ${deckCount(playerCount)} decks are used. More decks mean more copies of each card (${deckCount(playerCount)}×4 per rank), so completing sets and sequences becomes more likely. A 4-card set uses the same rank in all 4 suits or 3 suits + a wild joker.`
+                    : `With ${deckCount(playerCount)} decks in play, probability of completing a group is higher than 2-deck games. 4-card sets are worth considering mid-game — they lock 4 cards but eliminate deadwood completely. However, in the late game, prefer 3-card groups to keep hand flexibility for regrouping.`}
+                </p>
               </div>
 
               <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16 }}>

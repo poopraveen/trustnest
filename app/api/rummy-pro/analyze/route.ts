@@ -34,6 +34,7 @@ Hand: ${body.hand.map((c: { rank: string; suit: string }) => `${c.rank}${c.suit}
 Wild Joker Rank: ${body.jokerRank ?? "None set"}
 Open Pile Top: ${body.openPileTop ? `${body.openPileTop.rank}${body.openPileTop.suit}` : "Unknown"}
 Players: ${body.playerCount}
+Decks in play: ${body.playerCount <= 5 ? 2 : body.playerCount <= 7 ? 3 : 4} (${body.playerCount <= 5 ? "standard 2-deck" : body.playerCount <= 7 ? "3-deck game" : "4-deck game for 8-9 players"})
 
 Client Analysis:
 - Pure sequences found: ${body.analysis.pureSeqs.length}
@@ -51,7 +52,9 @@ Provide:
 3. Alternative Move
 4. Risk Level explanation
 5. Estimated Turns to Declare
-6. Key strategic considerations
+6. Key strategic considerations (mention deck count impact if relevant — more decks = more duplicates of each card available, affecting probability of drawing needed cards)
+
+Note: Sets can be 3 OR 4 cards (3 unique suits + 1 joker, or all 4 suits for a natural 4-card set). A 4-card set scores the same as a 3-card set — but uses 4 cards, reducing your hand flexibility.
 
 Be concise, specific, and actionable. Use markdown formatting.`;
 
