@@ -717,6 +717,17 @@ export default function RummyProPage() {
                 🏆 DECLARE NOW!
               </span>
             )}
+            {!analysis.canDeclare && (() => {
+              const totalNeeded = analysis.nearComplete.reduce((sum, nc) => sum + nc.needing.split(" or ").length, 0);
+              const ncCardIds = new Set(analysis.nearComplete.flatMap(nc => nc.cards.map(c => c.id)));
+              const isolated = analysis.deadwood.filter(c => !ncCardIds.has(c.id) && !isPJ(c)).length;
+              const minDraws = analysis.nearComplete.length + (isolated > 0 ? Math.ceil(isolated / 2) : 0);
+              return (
+                <span style={{ fontSize: 11, fontWeight: 700, color: minDraws <= 2 ? "#22c55e" : minDraws <= 5 ? "#f59e0b" : "#f87171", padding: "3px 8px", background: "rgba(255,255,255,0.05)", borderRadius: 6, whiteSpace: "nowrap" }}>
+                  🎯 {minDraws} lucky draw{minDraws !== 1 ? "s" : ""} to win
+                </span>
+              );
+            })()}
             {analysis.bestDiscard && (
               <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>
                 Suggest discard: <span style={{ color: "#f59e0b", fontWeight: 700 }}>{cardKey(analysis.bestDiscard)}</span>
@@ -1089,6 +1100,72 @@ export default function RummyProPage() {
                     <p style={{ fontSize: 13, color: "#475569" }}>No single-card completions found. Add more cards to your hand.</p>
                   )}
                 </div>
+
+                {/* Win Path — how many cards needed per group */}
+                {(() => {
+                  const ncCardIds = new Set(analysis.nearComplete.flatMap(nc => nc.cards.map(c => c.id)));
+                  const isolated = analysis.deadwood.filter(c => !ncCardIds.has(c.id) && !isPJ(c));
+                  const minDraws = analysis.nearComplete.length + (isolated.length > 0 ? Math.ceil(isolated.length / 2) : 0);
+                  const totalGroups = analysis.pureSeqs.length + analysis.impureSeqs.length + analysis.sets.length;
+                  const groupsNeeded = Math.ceil(hand.filter(c => !isPJ(c)).length / 3) - totalGroups;
+                  const pct = analysis.canDeclare ? 100 : Math.round((totalGroups / Math.max(1, totalGroups + Math.max(0, groupsNeeded))) * 100);
+
+                  return (
+                    <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.25)", borderRadius: 12, padding: 16, gridColumn: "1 / -1" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#818cf8", margin: 0 }}>🏁 How Many Cards to Win</h3>
+                        {analysis.canDeclare
+                          ? <span style={{ fontSize: 13, fontWeight: 800, color: ACCENT, padding: "4px 12px", background: "rgba(34,197,94,0.15)", borderRadius: 8 }}>🏆 Ready to Declare!</span>
+                          : <span style={{ fontSize: 13, fontWeight: 800, color: "#818cf8" }}>Min {minDraws} lucky draw{minDraws !== 1 ? "s" : ""}</span>
+                        }
+                      </div>
+
+                      {/* Progress bar */}
+                      <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, marginBottom: 8, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, background: "linear-gradient(90deg,#6366f1,#818cf8)", height: "100%", borderRadius: 6, transition: "width 0.5s" }} />
+                      </div>
+                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 14px" }}>{pct}% groups complete ({totalGroups} of ~{totalGroups + Math.max(0, groupsNeeded)} needed)</p>
+
+                      {/* Per-sequence breakdown */}
+                      {analysis.nearComplete.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: "#a5b4fc", margin: "0 0 4px" }}>Near-complete groups — 1 card each:</p>
+                          {analysis.nearComplete.map((nc, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(99,102,241,0.08)", borderRadius: 8, padding: "7px 10px" }}>
+                              <span style={{ fontSize: 18, minWidth: 22 }}>
+                                {nc.type.includes("Pure") ? "♟" : nc.type === "Set" ? "🔲" : "🃏"}
+                              </span>
+                              <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                                {nc.cards.map(c => <CardUI key={c.id} card={c} small />)}
+                              </div>
+                              <span style={{ fontSize: 11, color: "#64748b" }}>+</span>
+                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
+                                {nc.needing.split(" or ").map(needed => (
+                                  <span key={needed} style={{ padding: "3px 8px", background: "rgba(129,140,248,0.2)", border: "1px dashed rgba(129,140,248,0.5)", borderRadius: 6, fontSize: 12, fontWeight: 700, color: "#a5b4fc" }}>
+                                    {needed}
+                                  </span>
+                                ))}
+                              </div>
+                              <span style={{ fontSize: 10, color: ACCENT, fontWeight: 800, flexShrink: 0 }}>1 card</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {isolated.length > 0 && (
+                        <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "8px 12px" }}>
+                          <p style={{ fontSize: 12, color: "#f87171", margin: "0 0 4px", fontWeight: 700 }}>Isolated deadwood ({isolated.length} cards) — need 2+ cards each:</p>
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {isolated.map(c => <CardUI key={c.id} card={c} small />)}
+                          </div>
+                          <p style={{ fontSize: 11, color: "#64748b", margin: "6px 0 0" }}>
+                            Discard these or wait to form new groups with 2 more matching cards
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* AI Analysis */}
                 <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, gridColumn: "1 / -1" }}>
