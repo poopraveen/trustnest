@@ -14,7 +14,7 @@ type Suit = typeof SUITS[number];
 
 interface Card { id: string; rank: Rank; suit: Suit; }
 
-type TabId = "hand" | "strategy" | "probability" | "opponents" | "stats" | "training";
+type TabId = "hand" | "strategy" | "probability" | "opponents" | "stats" | "training" | "livegame";
 type RiskLevel = "Low" | "Medium" | "High";
 type TrainingMode = "Beginner" | "Intermediate" | "Expert";
 
@@ -444,6 +444,16 @@ export default function RummyProPage() {
   const [selectingOpponent, setSelectingOpponent] = useState<number | null>(null);
   const [pickingJoker, setPickingJoker] = useState(false);
 
+  // Live Game tab state
+  const [lgTurn, setLgTurn] = useState(1);
+  const [lgPhase, setLgPhase] = useState<"pick" | "discard">("pick");
+  const [lgAdvice, setLgAdvice] = useState("");
+  const [lgAdviceLoading, setLgAdviceLoading] = useState(false);
+  const [lgDiscardCard, setLgDiscardCard] = useState<Card | null>(null);
+  const [lgLog, setLgLog] = useState<{ turn: number; picked: string; discarded: string }[]>([]);
+  const [lgPickingFromOpen, setLgPickingFromOpen] = useState(false);
+  const [lgPickingFromDeck, setLgPickingFromDeck] = useState(false);
+
   useEffect(() => {
     try {
       const s = localStorage.getItem("rummy_stats");
@@ -568,6 +578,7 @@ export default function RummyProPage() {
 
   const tabDef: { id: TabId; label: string; icon: string }[] = [
     { id: "hand", label: "Hand", icon: "🃏" },
+    { id: "livegame", label: "Live Game", icon: "⚡" },
     { id: "strategy", label: "Strategy", icon: "🧠" },
     { id: "probability", label: "Probability", icon: "📊" },
     { id: "opponents", label: "Opponents", icon: "👥" },
@@ -1167,6 +1178,284 @@ export default function RummyProPage() {
             </div>
           </div>
         )}
+
+        {/* ── LIVE GAME TAB ── */}
+        {activeTab === "livegame" && (() => {
+          const lgAnalysis = hand.length > 0 ? analyzeHand(hand, jokerRank, openPileTop) : null;
+
+          const getLgAdvice = async (phase: "pick" | "discard", drawnCard?: Card) => {
+            setLgAdviceLoading(true);
+            setLgAdvice("");
+            const apiKey = true; // always try, server handles missing key
+            try {
+              const res = await fetch("/api/rummy-pro/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  hand,
+                  jokerRank,
+                  analysis: lgAnalysis,
+                  openPileTop,
+                  playerCount,
+                  liveGameMode: true,
+                  livePhase: phase,
+                  turnNumber: lgTurn,
+                  drawnCard: drawnCard ?? null,
+                }),
+              });
+              if (!res.body) throw new Error("No stream");
+              const reader = res.body.getReader();
+              const decoder = new TextDecoder();
+              let buf = "";
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop() ?? "";
+                for (const line of lines) {
+                  if (line.startsWith("data: ")) {
+                    try {
+                      const d = JSON.parse(line.slice(6));
+                      if (d.text) setLgAdvice(t => t + d.text);
+                    } catch { /* ignore */ }
+                  }
+                }
+              }
+            } catch {
+              setLgAdvice("Could not get AI advice. Based on your hand analysis:\n\n" +
+                (phase === "pick"
+                  ? `• ${lgAnalysis?.bestPickup === "open" && openPileTop ? `Take open pile (${openPileTop.rank}${openPileTop.suit}) — it helps your groups` : "Draw from closed deck — open pile card not useful"}`
+                  : `• Discard: ${lgAnalysis?.bestDiscard ? `${lgAnalysis.bestDiscard.rank}${lgAnalysis.bestDiscard.suit} (${cardPts(lgAnalysis.bestDiscard.rank)} pts, no group)` : "No clear discard — remove highest deadwood"}`
+                )
+              );
+            } finally {
+              setLgAdviceLoading(false);
+            }
+          };
+
+          const handlePickOpen = () => {
+            if (!openPileTop) return;
+            const card = { ...openPileTop, id: `${openPileTop.rank}${openPileTop.suit}_drawn` };
+            setHand(h => [...h, card]);
+            setOpenPileTop(null);
+            setLgPhase("discard");
+            getLgAdvice("discard", card);
+          };
+
+          const handlePickDeck = () => {
+            // Simulate drawing unknown card — user picks from card grid
+            setLgPickingFromDeck(true);
+            setLgAdvice("Click any card in the grid below to represent the card you drew from the closed deck.");
+          };
+
+          const handleDiscardCard = (card: Card) => {
+            setLgDiscardCard(card);
+            setHand(h => h.filter(c => c.id !== card.id));
+            const newOpenPile = card;
+            setOpenPileTop(newOpenPile);
+            setLgLog(log => [{ turn: lgTurn, picked: lgPickingFromOpen ? `Open pile` : "Closed deck", discarded: `${card.rank}${card.suit}` }, ...log]);
+            setLgTurn(t => t + 1);
+            setLgPhase("pick");
+            setLgPickingFromDeck(false);
+            setLgPickingFromOpen(false);
+            getLgAdvice("pick");
+          };
+
+          const handleDeckCardPicked = (rank: Rank, suit: Suit) => {
+            if (!lgPickingFromDeck) return;
+            const card: Card = { id: `${rank}${suit}_drawn_${Date.now()}`, rank, suit };
+            setHand(h => [...h, card]);
+            setLgPickingFromDeck(false);
+            setLgPhase("discard");
+            getLgAdvice("discard", card);
+          };
+
+          return (
+            <div>
+              {hand.length < 13 ? (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "#475569" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8" }}>Set up your hand first</p>
+                  <p style={{ fontSize: 13, color: "#475569", marginTop: 6 }}>Go to the Hand tab, pick 13 cards, set Wild Joker and Open Pile Top, then come back here to play turn-by-turn.</p>
+                  <button type="button" onClick={() => setActiveTab("hand")} style={{
+                    marginTop: 16, padding: "10px 24px", borderRadius: 8, fontWeight: 700, fontSize: 14,
+                    background: "rgba(34,197,94,0.15)", border: `1px solid ${BORDER}`, color: ACCENT, cursor: "pointer",
+                  }}>Go to Hand Tab →</button>
+                </div>
+              ) : (
+                <div>
+                  {/* Turn header */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 22, fontWeight: 800, color: ACCENT }}>Turn {lgTurn}</span>
+                      <span style={{
+                        padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                        background: lgPhase === "pick" ? "rgba(99,102,241,0.2)" : "rgba(239,68,68,0.2)",
+                        color: lgPhase === "pick" ? "#818cf8" : "#f87171",
+                        border: lgPhase === "pick" ? "1px solid rgba(99,102,241,0.4)" : "1px solid rgba(239,68,68,0.4)",
+                      }}>
+                        {lgPhase === "pick" ? "📥 Your turn to PICK" : "📤 Now DISCARD a card"}
+                      </span>
+                    </div>
+                    <button type="button" onClick={() => { setLgTurn(1); setLgPhase("pick"); setLgAdvice(""); setLgLog([]); setLgPickingFromDeck(false); }} style={{
+                      padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", cursor: "pointer",
+                    }}>↺ Reset Game</button>
+                  </div>
+
+                  {/* AI Advice box */}
+                  <div style={{ background: "rgba(34,197,94,0.06)", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <Brain style={{ width: 16, height: 16, color: ACCENT }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT }}>AI Coach</span>
+                      {lgAdviceLoading && <Loader2 style={{ width: 13, height: 13, color: ACCENT, animation: "spin 1s linear infinite" }} />}
+                    </div>
+                    {lgAdvice ? (
+                      <div style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>{lgAdvice}</div>
+                    ) : lgAdviceLoading ? (
+                      <p style={{ fontSize: 13, color: "#475569", margin: 0 }}>Thinking...</p>
+                    ) : (
+                      <div>
+                        <p style={{ fontSize: 13, color: "#475569", margin: "0 0 10px" }}>
+                          {lgPhase === "pick"
+                            ? "Ready for your turn! Choose to take the open pile card or draw from the closed deck."
+                            : "You've drawn a card. Now choose which card to discard."}
+                        </p>
+                        {lgPhase === "pick" && lgAnalysis && (
+                          <div style={{ fontSize: 12, color: "#64748b" }}>
+                            Quick tip: {lgAnalysis.bestPickup === "open" && openPileTop
+                              ? `✅ Open pile (${openPileTop.rank}${openPileTop.suit}) looks useful — take it!`
+                              : "🂠 Draw from closed deck — open pile card doesn't help your groups"}
+                          </div>
+                        )}
+                        <button type="button" onClick={() => getLgAdvice(lgPhase)} style={{
+                          marginTop: 10, padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                          background: "rgba(34,197,94,0.1)", border: `1px solid ${BORDER}`, color: ACCENT, cursor: "pointer",
+                        }}>
+                          <Brain style={{ width: 11, height: 11, display: "inline", marginRight: 4 }} />
+                          Get full AI advice
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PICK phase */}
+                  {lgPhase === "pick" && !lgPickingFromDeck && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+                      <button type="button" onClick={handlePickOpen} disabled={!openPileTop} style={{
+                        padding: "20px 12px", borderRadius: 12, border: openPileTop ? "2px solid #818cf8" : `1px solid ${BORDER}`,
+                        background: openPileTop ? "rgba(99,102,241,0.1)" : "rgba(255,255,255,0.03)",
+                        color: openPileTop ? "#a5b4fc" : "#475569", cursor: openPileTop ? "pointer" : "not-allowed",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all 0.15s",
+                      }}>
+                        <span style={{ fontSize: 32 }}>📤</span>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>Take Open Pile</span>
+                        {openPileTop
+                          ? <span style={{ fontSize: 22, fontWeight: 800, color: (openPileTop.suit === "♥" || openPileTop.suit === "♦") ? "#f87171" : "#e2e8f0" }}>{openPileTop.rank}{openPileTop.suit}</span>
+                          : <span style={{ fontSize: 12, color: "#475569" }}>No card set</span>
+                        }
+                      </button>
+                      <button type="button" onClick={handlePickDeck} style={{
+                        padding: "20px 12px", borderRadius: 12, border: `2px solid rgba(34,197,94,0.4)`,
+                        background: "rgba(34,197,94,0.08)", color: ACCENT,
+                        cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: 32 }}>🂠</span>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>Draw from Deck</span>
+                        <span style={{ fontSize: 12, color: "#64748b" }}>Unknown card</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Draw from deck — mini card picker */}
+                  {lgPickingFromDeck && (
+                    <div style={{ background: SURFACE, border: `2px solid ${ACCENT}`, borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                      <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: "0 0 10px" }}>Which card did you draw? Click it:</p>
+                      {SUITS.map(suit => (
+                        <div key={suit} style={{ display: "flex", gap: 3, marginBottom: 4, flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ fontSize: 13, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#94a3b8", width: 18, flexShrink: 0 }}>{suit}</span>
+                          {RANKS.map(rank => (
+                            <div key={rank} onClick={() => handleDeckCardPicked(rank, suit)} style={{
+                              display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                              width: 30, height: 42, borderRadius: 5, cursor: "pointer", transition: "all 0.1s",
+                              background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)",
+                            }}>
+                              <span style={{ fontSize: 8, fontWeight: 700, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#e2e8f0" }}>{rank}</span>
+                              <span style={{ fontSize: 11, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#e2e8f0" }}>{suit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* DISCARD phase — current hand, click to discard */}
+                  {lgPhase === "discard" && (
+                    <div style={{ background: SURFACE, border: "2px solid rgba(239,68,68,0.4)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#f87171", margin: "0 0 4px" }}>Tap the card you want to DISCARD:</p>
+                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 12px" }}>
+                        {lgAnalysis?.bestDiscard ? `AI suggests discarding ${lgAnalysis.bestDiscard.rank}${lgAnalysis.bestDiscard.suit} (${cardPts(lgAnalysis.bestDiscard.rank)} pts)` : "Choose your discard"}
+                      </p>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {hand.map(card => {
+                          const isSuggested = lgAnalysis?.bestDiscard?.id === card.id;
+                          const isRed = card.suit === "♥" || card.suit === "♦";
+                          return (
+                            <div key={card.id} onClick={() => handleDiscardCard(card)} style={{ position: "relative", cursor: "pointer" }}>
+                              <div style={{
+                                display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+                                width: 44, height: 62, background: "#fff",
+                                border: isSuggested ? "2px solid #f59e0b" : "2px solid rgba(239,68,68,0.4)",
+                                borderRadius: 7, padding: "3px 4px",
+                                boxShadow: isSuggested ? "0 0 12px rgba(245,158,11,0.6)" : "0 2px 6px rgba(239,68,68,0.2)",
+                                transition: "all 0.15s",
+                              }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: isRed ? "#dc2626" : "#1e293b", lineHeight: 1 }}>{card.rank}</span>
+                                <span style={{ fontSize: 18, color: isRed ? "#dc2626" : "#1e293b", lineHeight: 1 }}>{card.suit}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: isRed ? "#dc2626" : "#1e293b", lineHeight: 1, transform: "rotate(180deg)" }}>{card.rank}</span>
+                              </div>
+                              {isSuggested && (
+                                <span style={{ position: "absolute", top: -7, right: -7, fontSize: 8, background: "#f59e0b", color: "#000", borderRadius: 4, padding: "1px 3px", fontWeight: 800 }}>DROP</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current hand summary */}
+                  {lgAnalysis && (
+                    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12, marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>Cards: <strong style={{ color: "#e2e8f0" }}>{hand.length}</strong></span>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>Pure Seq: <strong style={{ color: ACCENT }}>{lgAnalysis.pureSeqs.length}</strong></span>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>Deadwood: <strong style={{ color: lgAnalysis.deadwoodPts > 30 ? "#f87171" : "#f59e0b" }}>{lgAnalysis.deadwoodPts} pts</strong></span>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>Risk: <strong style={{ color: lgAnalysis.riskLevel === "Low" ? ACCENT : lgAnalysis.riskLevel === "Medium" ? "#f59e0b" : "#f87171" }}>{lgAnalysis.riskLevel}</strong></span>
+                      {lgAnalysis.canDeclare && (
+                        <span style={{ padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 800, background: "rgba(34,197,94,0.2)", color: ACCENT, border: `1px solid ${BORDER}` }}>✅ CAN DECLARE!</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Turn log */}
+                  {lgLog.length > 0 && (
+                    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ padding: "8px 14px", borderBottom: `1px solid ${BORDER}`, fontSize: 12, fontWeight: 700, color: "#64748b" }}>Turn History</div>
+                      {lgLog.map((l, i) => (
+                        <div key={i} style={{ display: "flex", gap: 16, padding: "8px 14px", borderTop: i > 0 ? `1px solid rgba(255,255,255,0.05)` : undefined, fontSize: 12 }}>
+                          <span style={{ color: "#475569", width: 52, flexShrink: 0 }}>Turn {l.turn}</span>
+                          <span style={{ color: "#818cf8" }}>📥 {l.picked}</span>
+                          <span style={{ color: "#f87171" }}>📤 Discarded {l.discarded}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
 

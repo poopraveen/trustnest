@@ -28,13 +28,63 @@ export async function POST(req: NextRequest) {
 
   const client = new Anthropic({ apiKey });
 
-  const prompt = `You are Rummy Pro AI, an expert Indian Rummy strategist. Analyze this hand and provide strategic advice.
+  const handStr = body.hand.map((c: { rank: string; suit: string }) => `${c.rank}${c.suit}`).join(", ");
+  const deckInfo = `${body.playerCount <= 5 ? 2 : body.playerCount <= 7 ? 3 : 4} decks`;
 
-Hand: ${body.hand.map((c: { rank: string; suit: string }) => `${c.rank}${c.suit}`).join(", ")}
+  let prompt: string;
+
+  if (body.liveGameMode) {
+    const phase = body.livePhase as "pick" | "discard";
+    const drawnCard = body.drawnCard ? `${body.drawnCard.rank}${body.drawnCard.suit}` : null;
+
+    if (phase === "pick") {
+      prompt = `You are a live Indian Rummy coach helping a player decide what to do RIGHT NOW on Turn ${body.turnNumber}.
+
+Current hand (${body.hand.length} cards): ${handStr}
+Wild Joker: ${body.jokerRank ?? "None"}
+Open Pile Top card: ${body.openPileTop ? `${body.openPileTop.rank}${body.openPileTop.suit}` : "None / unknown"}
+Players: ${body.playerCount} (${deckInfo})
+Pure sequences already formed: ${body.analysis?.pureSeqs?.length ?? 0}
+Deadwood points: ${body.analysis?.deadwoodPts ?? "?"}
+
+DECISION NEEDED: Should the player take the OPEN PILE card or DRAW from the closed deck?
+
+Give your answer in this exact format:
+**PICK: [Open Pile / Closed Deck]**
+Why: [1–2 sentences — name the specific card and which group it helps, or why the open pile card is useless]
+
+**Then discard:** [rank+suit] — [reason in one sentence]
+
+Keep it short, direct, and specific. Name cards by rank+suit (e.g. 7♥, K♠). No markdown headers, no lists.`;
+    } else {
+      prompt = `You are a live Indian Rummy coach. The player just drew ${drawnCard ?? "a card"} on Turn ${body.turnNumber}.
+
+Current hand (${body.hand.length} cards): ${handStr}
+Wild Joker: ${body.jokerRank ?? "None"}
+Players: ${body.playerCount} (${deckInfo})
+Pure sequences formed: ${body.analysis?.pureSeqs?.length ?? 0}
+Sets formed: ${body.analysis?.sets?.length ?? 0}
+Deadwood points: ${body.analysis?.deadwoodPts ?? "?"}
+AI suggested discard: ${body.analysis?.bestDiscard ? `${body.analysis.bestDiscard.rank}${body.analysis.bestDiscard.suit}` : "None"}
+
+DECISION NEEDED: Which card should the player DISCARD?
+
+Give your answer in this exact format:
+**DISCARD: [rank+suit]**
+Why: [1–2 sentences — explain what group this frees up or why it's the safest to drop]
+
+**Next turn watch:** [1 sentence on what card to look out for next turn]
+
+Keep it short, direct, specific. Name cards by rank+suit. No markdown headers beyond what's shown.`;
+    }
+  } else {
+    prompt = `You are Rummy Pro AI, an expert Indian Rummy strategist. Analyze this hand and provide strategic advice.
+
+Hand: ${handStr}
 Wild Joker Rank: ${body.jokerRank ?? "None set"}
 Open Pile Top: ${body.openPileTop ? `${body.openPileTop.rank}${body.openPileTop.suit}` : "Unknown"}
 Players: ${body.playerCount}
-Decks in play: ${body.playerCount <= 5 ? 2 : body.playerCount <= 7 ? 3 : 4} (${body.playerCount <= 5 ? "standard 2-deck" : body.playerCount <= 7 ? "3-deck game" : "4-deck game for 8-9 players"})
+Decks in play: ${deckInfo} (${body.playerCount <= 5 ? "standard 2-deck" : body.playerCount <= 7 ? "3-deck game" : "4-deck game for 8-9 players"})
 
 Client Analysis:
 - Pure sequences found: ${body.analysis.pureSeqs.length}
@@ -52,11 +102,12 @@ Provide:
 3. Alternative Move
 4. Risk Level explanation
 5. Estimated Turns to Declare
-6. Key strategic considerations (mention deck count impact if relevant — more decks = more duplicates of each card available, affecting probability of drawing needed cards)
+6. Key strategic considerations (mention deck count impact if relevant)
 
-Note: Sets can be 3 OR 4 cards (3 unique suits + 1 joker, or all 4 suits for a natural 4-card set). A 4-card set scores the same as a 3-card set — but uses 4 cards, reducing your hand flexibility.
+Note: Sets can be 3 OR 4 cards (3 unique suits + 1 joker, or all 4 suits for a natural 4-card set).
 
 Be concise, specific, and actionable. Use markdown formatting.`;
+  }
 
   try {
     const stream = client.messages.stream({
