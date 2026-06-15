@@ -1052,24 +1052,43 @@ export default function RummyProPage() {
                   </div>
                 </div>
 
-                {/* Near Complete */}
-                {analysis.nearComplete.length > 0 && (
-                  <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, gridColumn: "1 / -1" }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", marginBottom: 12 }}>⚡ One Card Away From...</h3>
-                    {analysis.nearComplete.slice(0, 6).map((nc, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, background: "rgba(245,158,11,0.05)", borderRadius: 8, padding: "8px 12px" }}>
-                        <div style={{ display: "flex", gap: 3 }}>
-                          {nc.cards.map(c => <CardUI key={c.id} card={c} small />)}
-                        </div>
-                        <ArrowRight style={{ width: 14, height: 14, color: "#f59e0b", flexShrink: 0 }} />
-                        <div>
-                          <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Need: {nc.needing}</span>
-                          <span style={{ fontSize: 11, color: "#64748b", marginLeft: 8 }}>({nc.type})</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Waiting Cards — what to wait for */}
+                <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, gridColumn: "1 / -1" }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", marginBottom: 4 }}>🎯 Cards to Wait For</h3>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px" }}>Pick or keep these cards to complete a group</p>
+                  {analysis.nearComplete.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {analysis.nearComplete.slice(0, 8).map((nc, i) => {
+                        const needing = nc.needing.split(" or ");
+                        const prob = calcProbability(needing, allKnownGone, deckCount(playerCount));
+                        const pct = Math.round(prob * 100);
+                        const probColor = pct >= 60 ? "#22c55e" : pct >= 35 ? "#f59e0b" : "#f87171";
+                        return (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(245,158,11,0.06)", borderRadius: 10, padding: "10px 12px", border: "1px solid rgba(245,158,11,0.15)" }}>
+                            <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                              {nc.cards.map(c => <CardUI key={c.id} card={c} small />)}
+                            </div>
+                            <ArrowRight style={{ width: 14, height: 14, color: "#f59e0b", flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24" }}>
+                                  Wait for: {nc.needing}
+                                </span>
+                                <span style={{ fontSize: 11, color: "#64748b" }}>→ {nc.type}</span>
+                              </div>
+                              <div style={{ marginTop: 4, background: "rgba(255,255,255,0.08)", borderRadius: 4, height: 5, overflow: "hidden", width: "100%" }}>
+                                <div style={{ width: `${pct}%`, background: probColor, height: "100%", borderRadius: 4, transition: "width 0.4s" }} />
+                              </div>
+                              <span style={{ fontSize: 10, color: probColor, fontWeight: 700 }}>{pct}% chance to draw it</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, color: "#475569" }}>No single-card completions found. Add more cards to your hand.</p>
+                  )}
+                </div>
 
                 {/* AI Analysis */}
                 <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, gridColumn: "1 / -1" }}>
