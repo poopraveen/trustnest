@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain, Gamepad2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -164,6 +164,11 @@ export default function Navbar() {
                 <Gem className="w-3.5 h-3.5" />
                 Bangles
                 <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-amber-400 text-slate-900 rounded uppercase tracking-wide leading-none">New</span>
+              </GovNavLink>
+              <GovNavLink href="/rummy-pro" active={isActive("/rummy-pro")}>
+                <Gamepad2 className="w-3.5 h-3.5" />
+                🃏 Rummy Pro
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-red-400 text-slate-900 rounded uppercase tracking-wide leading-none">New</span>
               </GovNavLink>
             </div>
 
@@ -368,6 +373,22 @@ export default function Navbar() {
               <Gem className="w-4 h-4" />
               One Spot Bangles
               <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-amber-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
+            <Link
+              href="/rummy-pro"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/rummy-pro")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Gamepad2 className="w-4 h-4" />
+              🃏 Rummy Pro
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-red-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                 New
               </span>
             </Link>
