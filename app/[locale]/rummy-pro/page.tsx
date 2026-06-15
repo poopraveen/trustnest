@@ -474,9 +474,13 @@ export default function RummyProPage() {
 
   const analysis = hand.length > 0 ? analyzeHand(hand, jokerRank, openPileTop) : null;
 
+  const countInHand = (rank: Rank, suit: Suit) =>
+    hand.filter(c => c.rank === rank && c.suit === suit).length;
+
   const toggleCard = (rank: Rank, suit: Suit) => {
-    const id = `${rank}${suit}`;
-    const exists = hand.find(c => c.id === id);
+    const baseId = `${rank}${suit}`;
+    const copies = hand.filter(c => c.rank === rank && c.suit === suit);
+    const maxCopies = deckCount(playerCount);
 
     if (pickingJoker) {
       setJokerRank(rank);
@@ -484,25 +488,27 @@ export default function RummyProPage() {
       return;
     }
     if (selectingOpenPile) {
-      setOpenPileTop(exists ? null : { id, rank, suit });
+      setOpenPileTop(copies.length > 0 ? null : { id: baseId, rank, suit });
       setSelectingOpenPile(false);
       return;
     }
     if (selectingOpponent !== null) {
-      const card: Card = { id: `${id}_opp${selectingOpponent}_${Date.now()}`, rank, suit };
+      const card: Card = { id: `${baseId}_opp${selectingOpponent}_${Date.now()}`, rank, suit };
       setOpponentDiscards(prev => prev.map((arr, i) => i === selectingOpponent ? [...arr, card] : arr));
       setSelectingOpponent(null);
       return;
     }
 
-    if (exists) {
-      setHand(h => h.filter(c => c.id !== id));
+    if (copies.length >= maxCopies || (copies.length > 0 && hand.length >= 14)) {
+      // Remove the most recently added copy
+      const lastCopy = copies[copies.length - 1];
+      setHand(h => { const idx = h.findIndex(c => c.id === lastCopy.id); return h.filter((_, i) => i !== idx); });
     } else if (hand.length < 14) {
-      setHand(h => [...h, { id, rank, suit }]);
+      // Add a new copy with a unique ID
+      const newId = `${baseId}_${copies.length + 1}`;
+      setHand(h => [...h, { id: newId, rank, suit }]);
     }
   };
-
-  const isInHand = (rank: Rank, suit: Suit) => hand.some(c => c.id === `${rank}${suit}`);
 
   const resetHand = () => {
     setHand([]);
@@ -668,30 +674,41 @@ export default function RummyProPage() {
             {/* Card Picker Grid */}
             <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12, margin: "0 0 12px" }}>
-                {pickingJoker ? "Click any rank to set as Wild Joker:" : selectingOpenPile ? "Click a card to set as Open Pile Top:" : `Click cards to add/remove (max 14). Selected: ${hand.length}/14`}
+                {pickingJoker ? "Click any rank to set as Wild Joker:" : selectingOpenPile ? "Click a card to set as Open Pile Top:" : `Click to add a copy (up to ${deckCount(playerCount)}× per card). Click again at max to remove. Selected: ${hand.length}/14`}
               </p>
               {SUITS.map(suit => (
                 <div key={suit} style={{ display: "flex", gap: 3, marginBottom: 5, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ fontSize: 14, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#94a3b8", width: 20, textAlign: "center", flexShrink: 0 }}>{suit}</span>
                   {RANKS.map(rank => {
-                    const inHand = isInHand(rank, suit);
+                    const count = countInHand(rank, suit);
+                    const maxCopies = deckCount(playerCount);
                     const isJR = jokerRank === rank;
-                    const disabled = !pickingJoker && !selectingOpenPile && hand.length >= 14 && !inHand;
+                    const atMax = count >= maxCopies;
+                    const disabled = !pickingJoker && !selectingOpenPile && hand.length >= 14 && count === 0;
                     return (
                       <div
                         key={rank}
                         onClick={() => !disabled && toggleCard(rank, suit)}
                         style={{
+                          position: "relative",
                           display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                           width: 34, height: 48,
-                          background: inHand ? "rgba(34,197,94,0.2)" : isJR ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.04)",
-                          border: inHand ? `1.5px solid ${ACCENT}` : isJR ? "1.5px solid #fbbf24" : "1px solid rgba(255,255,255,0.1)",
+                          background: count > 0 ? `rgba(34,197,94,${0.15 + count * 0.08})` : isJR ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.04)",
+                          border: count > 0 ? `1.5px solid ${atMax ? "#f59e0b" : ACCENT}` : isJR ? "1.5px solid #fbbf24" : "1px solid rgba(255,255,255,0.1)",
                           borderRadius: 6, cursor: disabled ? "not-allowed" : "pointer",
                           opacity: disabled ? 0.25 : 1, transition: "all 0.1s",
                         }}
                       >
                         <span style={{ fontSize: 9, fontWeight: 700, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#e2e8f0", lineHeight: 1 }}>{rank}</span>
                         <span style={{ fontSize: 12, color: (suit === "♥" || suit === "♦") ? "#f87171" : "#e2e8f0", lineHeight: 1 }}>{suit}</span>
+                        {count > 1 && (
+                          <span style={{
+                            position: "absolute", top: -5, right: -5,
+                            fontSize: 8, fontWeight: 800, lineHeight: 1,
+                            background: atMax ? "#f59e0b" : ACCENT,
+                            color: "#000", borderRadius: 4, padding: "1px 3px",
+                          }}>×{count}</span>
+                        )}
                       </div>
                     );
                   })}
