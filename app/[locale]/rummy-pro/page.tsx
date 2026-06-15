@@ -56,11 +56,18 @@ function deckCount(players: number): number {
   return 4; // 8–9 players need 4 decks
 }
 
+// Printed Joker (the actual joker card in the deck) is stored as rank "PJ"
+const isPJ = (c: Card) => (c.rank as string) === "PJ";
+// A card is any joker (wild rank OR printed joker)
+const isAnyJoker = (c: Card, jokerRank: Rank | null) =>
+  isPJ(c) || (jokerRank !== null && c.rank === jokerRank);
+
 function rankVal(r: Rank): number {
   return RANKS.indexOf(r) + 1; // A=1, 2=2, ...K=13
 }
 
 function cardPts(r: Rank): number {
+  if ((r as string) === "PJ") return 0; // printed joker = 0 pts
   if (r === "A") return 1;
   if (r === "J" || r === "Q" || r === "K") return 10;
   return parseInt(r, 10);
@@ -82,7 +89,7 @@ function findPureSequences(hand: Card[], jokerRank: Rank | null): Card[][] {
   const bySuit: Record<string, Card[]> = { "♠": [], "♥": [], "♦": [], "♣": [] };
 
   for (const c of hand) {
-    if (jokerRank && c.rank === jokerRank) continue;
+    if (isAnyJoker(c, jokerRank)) continue;
     bySuit[c.suit].push(c);
   }
 
@@ -122,8 +129,8 @@ function findPureSequences(hand: Card[], jokerRank: Rank | null): Card[][] {
 
 function findImpureSequences(hand: Card[], jokerRank: Rank | null, maxJokers: number): Card[][] {
   const seqs: Card[][] = [];
-  const jokers = hand.filter(c => jokerRank && c.rank === jokerRank);
-  const nonJokers = hand.filter(c => !(jokerRank && c.rank === jokerRank));
+  const jokers = hand.filter(c => isAnyJoker(c, jokerRank));
+  const nonJokers = hand.filter(c => !isAnyJoker(c, jokerRank));
 
   const bySuit: Record<string, Card[]> = { "♠": [], "♥": [], "♦": [], "♣": [] };
   for (const c of nonJokers) bySuit[c.suit].push(c);
@@ -171,8 +178,8 @@ function findImpureSequences(hand: Card[], jokerRank: Rank | null, maxJokers: nu
 
 function findSets(hand: Card[], jokerRank: Rank | null): Card[][] {
   const sets: Card[][] = [];
-  const jokers = hand.filter(c => jokerRank && c.rank === jokerRank);
-  const nonJokers = hand.filter(c => !(jokerRank && c.rank === jokerRank));
+  const jokers = hand.filter(c => isAnyJoker(c, jokerRank));
+  const nonJokers = hand.filter(c => !isAnyJoker(c, jokerRank));
 
   const byRank: Record<string, Card[]> = {};
   for (const r of RANKS) byRank[r] = [];
@@ -211,7 +218,7 @@ function calcProbability(needing: string[], knownGone: Card[], decks: number = 2
 }
 
 function analyzeHand(hand: Card[], jokerRank: Rank | null, openPileTop: Card | null): Analysis {
-  const jokerCount = jokerRank ? hand.filter(c => c.rank === jokerRank).length : 0;
+  const jokerCount = hand.filter(c => isAnyJoker(c, jokerRank)).length;
   const pureSeqs = findPureSequences(hand, jokerRank);
   const impureSeqs = findImpureSequences(hand, jokerRank, jokerCount);
   const sets = findSets(hand, jokerRank);
@@ -236,7 +243,7 @@ function analyzeHand(hand: Card[], jokerRank: Rank | null, openPileTop: Card | n
 
   for (const suit of SUITS) {
     const suitCards = hand
-      .filter(c => c.suit === suit && !(jokerRank && c.rank === jokerRank))
+      .filter(c => c.suit === suit && !isAnyJoker(c, jokerRank))
       .sort((a, b) => rankVal(a.rank) - rankVal(b.rank));
 
     for (let i = 0; i < suitCards.length - 1; i++) {
@@ -258,7 +265,7 @@ function analyzeHand(hand: Card[], jokerRank: Rank | null, openPileTop: Card | n
 
   const byRank: Record<string, Card[]> = {};
   for (const c of hand) {
-    if (jokerRank && c.rank === jokerRank) continue;
+    if (isAnyJoker(c, jokerRank)) continue;
     if (!byRank[c.rank]) byRank[c.rank] = [];
     byRank[c.rank].push(c);
   }
@@ -315,6 +322,23 @@ function CardUI({
   dimmed?: boolean;
 }) {
   const isRed = card.suit === "♥" || card.suit === "♦";
+  const isPrinted = isPJ(card);
+  if (isPrinted) {
+    return (
+      <div onClick={onClick} style={{
+        display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        width: small ? 32 : 48, height: small ? 44 : 68,
+        background: "linear-gradient(135deg,#7c3aed,#a855f7)",
+        border: selected ? "2px solid #22c55e" : highlight ? "2px solid #f59e0b" : "2px solid #c084fc",
+        borderRadius: 6, cursor: onClick ? "pointer" : "default",
+        boxShadow: selected ? "0 0 8px rgba(34,197,94,0.6)" : "0 0 8px rgba(168,85,247,0.5)",
+        opacity: dimmed ? 0.4 : 1, transition: "all 0.15s", userSelect: "none", flexShrink: 0,
+      }}>
+        <span style={{ fontSize: small ? 14 : 22, lineHeight: 1 }}>🃏</span>
+        {!small && <span style={{ fontSize: 8, fontWeight: 800, color: "#e9d5ff", lineHeight: 1 }}>JOKER</span>}
+      </div>
+    );
+  }
   return (
     <div
       onClick={onClick}
@@ -680,6 +704,32 @@ export default function RummyProPage() {
                   × Clear Joker
                 </button>
               )}
+              {/* Printed Joker button */}
+              {(() => {
+                const pjCount = hand.filter(isPJ).length;
+                const maxPJ = deckCount(playerCount) * 2; // 2 printed jokers per deck
+                const atMax = pjCount >= maxPJ;
+                return (
+                  <button type="button" onClick={() => {
+                    if (atMax) {
+                      // Remove one printed joker
+                      const last = [...hand].reverse().find(isPJ);
+                      if (last) setHand(h => { const idx = h.findIndex(c => c.id === last.id); return h.filter((_, i) => i !== idx); });
+                    } else if (hand.length < 14) {
+                      setHand(h => [...h, { id: `pj_${pjCount + 1}_${Date.now()}`, rank: "PJ" as Rank, suit: "🃏" as Suit }]);
+                    }
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8,
+                    border: `1px solid ${pjCount > 0 ? "#a855f7" : BORDER}`,
+                    background: pjCount > 0 ? "rgba(168,85,247,0.15)" : SURFACE,
+                    color: pjCount > 0 ? "#c084fc" : "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                  }}>
+                    🃏 Printed Joker
+                    {pjCount > 0 && <span style={{ background: "#a855f7", color: "#fff", borderRadius: 10, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>{pjCount}/{maxPJ}</span>}
+                    {atMax && <span style={{ fontSize: 11, color: "#f59e0b" }}>(tap to remove)</span>}
+                  </button>
+                );
+              })()}
             </div>
 
             {/* Card Picker Grid */}
