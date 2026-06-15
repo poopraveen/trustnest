@@ -54,6 +54,7 @@ _Last compacted: 2026-06-08 17:30_
 Test summary after fix.
 
 ## Recent Changes
+- `/(tnvettri)/capability-intelligence` — modified 2026-06-15 06:37
 - `/one-spot-bangles3` — modified 2026-06-14 12:57
 - `/family-trip` — modified 2026-06-13 04:35
 - `/family-trip` — modified 2026-06-13 04:28
