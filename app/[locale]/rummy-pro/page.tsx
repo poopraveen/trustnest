@@ -467,6 +467,7 @@ export default function RummyProPage() {
   const [selectingOpenPile, setSelectingOpenPile] = useState(false);
   const [selectingOpponent, setSelectingOpponent] = useState<number | null>(null);
   const [pickingJoker, setPickingJoker] = useState(false);
+  const [handSort, setHandSort] = useState<"groups" | "suit" | "value">("groups");
 
   // Live Game tab state
   const [lgTurn, setLgTurn] = useState(1);
@@ -554,6 +555,32 @@ export default function RummyProPage() {
     setSelectingOpponent(null);
   };
 
+  const quickDeal = () => {
+    const deck = deckCount(playerCount);
+    const pool: Card[] = [];
+    for (let d = 0; d < deck; d++) {
+      for (const s of SUITS) {
+        for (const r of RANKS) {
+          pool.push({ id: `${r}${s}_d${d}`, rank: r, suit: s });
+        }
+      }
+      pool.push({ id: `pj_d${d}_1`, rank: "PJ" as unknown as Rank, suit: "🃏" as unknown as Suit });
+      pool.push({ id: `pj_d${d}_2`, rank: "PJ" as unknown as Rank, suit: "🃏" as unknown as Suit });
+    }
+    // Fisher-Yates shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const randomJoker = RANKS[Math.floor(Math.random() * RANKS.length)];
+    setJokerRank(randomJoker);
+    setHand(pool.slice(0, 13));
+    setOpenPileTop(pool[13]);
+    setAiText("");
+  };
+
+  const removeCard = (id: string) => setHand(h => h.filter(c => c.id !== id));
+
   const getAiAnalysis = async () => {
     if (!analysis) return;
     setAiLoading(true);
@@ -631,6 +658,13 @@ export default function RummyProPage() {
                 }}>{n}</button>
               ))}
             </div>
+            <button type="button" onClick={quickDeal} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+              background: "rgba(34,197,94,0.15)", border: `1px solid ${BORDER}`,
+              borderRadius: 8, color: ACCENT, cursor: "pointer", fontSize: 13, fontWeight: 600,
+            }}>
+              🎲 Quick Deal
+            </button>
             <button type="button" onClick={resetHand} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
               background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)",
@@ -658,6 +692,44 @@ export default function RummyProPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Always-visible status bar ── */}
+      {hand.length > 0 && analysis && (
+        <div style={{ background: "rgba(0,0,0,0.4)", borderBottom: `1px solid ${BORDER}`, padding: "8px 16px", overflowX: "auto" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 12, alignItems: "center", flexWrap: "nowrap", minWidth: "max-content" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: analysis.pureSeqs.length > 0 ? ACCENT : "#f87171", padding: "3px 8px", background: analysis.pureSeqs.length > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", borderRadius: 6, whiteSpace: "nowrap" }}>
+              {analysis.pureSeqs.length > 0 ? `✓ Pure ×${analysis.pureSeqs.length}` : "✗ No Pure Seq!"}
+            </span>
+            <span style={{ fontSize: 11, color: "#60a5fa", padding: "3px 8px", background: "rgba(96,165,250,0.08)", borderRadius: 6, whiteSpace: "nowrap" }}>
+              Impure ×{analysis.impureSeqs.length}
+            </span>
+            <span style={{ fontSize: 11, color: "#f59e0b", padding: "3px 8px", background: "rgba(245,158,11,0.08)", borderRadius: 6, whiteSpace: "nowrap" }}>
+              Sets ×{analysis.sets.length}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: analysis.deadwoodPts === 0 ? ACCENT : analysis.deadwoodPts > 40 ? "#f87171" : "#f59e0b", padding: "3px 8px", background: "rgba(255,255,255,0.05)", borderRadius: 6, whiteSpace: "nowrap" }}>
+              Deadwood: {analysis.deadwoodPts} pts
+            </span>
+            <span style={{ fontSize: 11, color: analysis.riskLevel === "Low" ? ACCENT : analysis.riskLevel === "Medium" ? "#f59e0b" : "#f87171", padding: "3px 8px", background: "rgba(255,255,255,0.05)", borderRadius: 6, whiteSpace: "nowrap" }}>
+              Risk: {analysis.riskLevel}
+            </span>
+            {analysis.canDeclare && (
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#000", padding: "3px 10px", background: ACCENT, borderRadius: 6, whiteSpace: "nowrap", animation: "pulse 1s ease-in-out infinite" }}>
+                🏆 DECLARE NOW!
+              </span>
+            )}
+            {analysis.bestDiscard && (
+              <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>
+                Suggest discard: <span style={{ color: "#f59e0b", fontWeight: 700 }}>{cardKey(analysis.bestDiscard)}</span>
+              </span>
+            )}
+            {jokerRank && (
+              <span style={{ fontSize: 11, color: "#fbbf24", padding: "3px 8px", background: "rgba(251,191,36,0.08)", borderRadius: 6, whiteSpace: "nowrap" }}>
+                Joker: {jokerRank}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px" }}>
@@ -789,59 +861,149 @@ export default function RummyProPage() {
               ))}
             </div>
 
-            {/* Grouped Hand Display */}
+            {/* ── Hand Display ── */}
             {hand.length > 0 && analysis ? (
               <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0", marginBottom: 12 }}>Your Hand — Grouped</h3>
-                {analysis.pureSeqs.length > 0 && (
-                  <GroupBox title="Pure Sequences" color="#22c55e" count={analysis.pureSeqs.length}
-                    collapsed={!!collapsed["pure"]} onToggle={() => setCollapsed(c => ({ ...c, pure: !c.pure }))}>
-                    {analysis.pureSeqs.map((seq, i) => (
-                      <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {seq.map(c => <CardUI key={c.id} card={c} small />)}
-                      </div>
+                {/* Sort toggle + header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0", margin: 0 }}>
+                    Your Hand ({hand.length} cards)
+                  </h3>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {(["groups", "suit", "value"] as const).map(s => (
+                      <button key={s} type="button" onClick={() => setHandSort(s)} style={{
+                        padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none",
+                        background: handSort === s ? ACCENT : "rgba(255,255,255,0.08)",
+                        color: handSort === s ? "#000" : "#94a3b8",
+                      }}>{s === "groups" ? "By Groups" : s === "suit" ? "By Suit" : "By Value"}</button>
                     ))}
-                  </GroupBox>
-                )}
-                {analysis.impureSeqs.length > 0 && (
-                  <GroupBox title="Impure Sequences (with Joker)" color="#60a5fa" count={analysis.impureSeqs.length}
-                    collapsed={!!collapsed["impure"]} onToggle={() => setCollapsed(c => ({ ...c, impure: !c.impure }))}>
-                    {analysis.impureSeqs.map((seq, i) => (
-                      <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {seq.map(c => <CardUI key={c.id} card={c} small />)}
+                  </div>
+                </div>
+
+                {/* Flat view (suit / value sort) */}
+                {handSort !== "groups" && (() => {
+                  const usedIds = new Set<string>();
+                  for (const g of [...analysis.pureSeqs, ...analysis.impureSeqs, ...analysis.sets]) for (const c of g) usedIds.add(c.id);
+                  const sorted = [...hand].sort((a, b) => {
+                    if (handSort === "suit") {
+                      const si = SUITS.indexOf(a.suit as Suit) - SUITS.indexOf(b.suit as Suit);
+                      return si !== 0 ? si : rankVal(a.rank) - rankVal(b.rank);
+                    }
+                    return rankVal(a.rank) - rankVal(b.rank);
+                  });
+                  return (
+                    <div style={{ background: "rgba(0,100,0,0.15)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "16px 12px", marginBottom: 16, overflowX: "auto" }}>
+                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 10px" }}>Tap a card to remove it from your hand</p>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {sorted.map(c => (
+                          <div key={c.id} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                            <CardUI card={c} highlight={c.id === analysis.bestDiscard?.id} onClick={() => removeCard(c.id)} />
+                            <span style={{ fontSize: 9, color: usedIds.has(c.id) ? ACCENT : "#64748b", fontWeight: 700 }}>
+                              {usedIds.has(c.id) ? "✓grp" : `${cardPts(c.rank)}pt`}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </GroupBox>
-                )}
-                {analysis.sets.length > 0 && (
-                  <GroupBox title="Sets" color="#f59e0b" count={analysis.sets.length}
-                    collapsed={!!collapsed["sets"]} onToggle={() => setCollapsed(c => ({ ...c, sets: !c.sets }))}>
-                    {analysis.sets.map((set, i) => (
-                      <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {set.map(c => <CardUI key={c.id} card={c} small />)}
-                      </div>
-                    ))}
-                  </GroupBox>
-                )}
-                {analysis.deadwood.length > 0 && (
-                  <GroupBox title="Deadwood" color="#f87171" count={analysis.deadwood.length}
-                    collapsed={!!collapsed["dead"]} onToggle={() => setCollapsed(c => ({ ...c, dead: !c.dead }))}>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {analysis.deadwood.map(c => (
-                        <div key={c.id} style={{ position: "relative" }}>
-                          <CardUI card={c} small highlight={c.id === analysis.bestDiscard?.id} />
-                          {c.id === analysis.bestDiscard?.id && (
-                            <span style={{ position: "absolute", top: -6, right: -6, fontSize: 8, background: "#f59e0b", color: "#000", borderRadius: 4, padding: "1px 3px", fontWeight: 700 }}>DROP</span>
-                          )}
-                        </div>
-                      ))}
                     </div>
-                    <p style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>Deadwood: {analysis.deadwoodPts} pts</p>
-                  </GroupBox>
+                  );
+                })()}
+
+                {/* Groups view */}
+                {handSort === "groups" && (
+                  <div>
+                    {/* Fan-style hand row */}
+                    <div style={{ background: "rgba(0,100,0,0.15)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "16px 12px", marginBottom: 12, overflowX: "auto" }}>
+                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 10px" }}>Tap a card to remove it • Green glow = in a group • Orange = suggested discard</p>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 4 }}>
+                        {(() => {
+                          const usedIds = new Set<string>();
+                          for (const g of [...analysis.pureSeqs, ...analysis.impureSeqs, ...analysis.sets]) for (const c of g) usedIds.add(c.id);
+                          return hand.map(c => (
+                            <div key={c.id} style={{ position: "relative", flexShrink: 0 }}>
+                              <CardUI
+                                card={c}
+                                selected={usedIds.has(c.id)}
+                                highlight={c.id === analysis.bestDiscard?.id}
+                                onClick={() => removeCard(c.id)}
+                              />
+                              {c.id === analysis.bestDiscard?.id && (
+                                <span style={{ position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)", fontSize: 9, background: "#f59e0b", color: "#000", borderRadius: 4, padding: "1px 4px", fontWeight: 800, whiteSpace: "nowrap" }}>DISCARD</span>
+                              )}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+
+                    {analysis.pureSeqs.length > 0 && (
+                      <GroupBox title="Pure Sequences" color="#22c55e" count={analysis.pureSeqs.length}
+                        collapsed={!!collapsed["pure"]} onToggle={() => setCollapsed(c => ({ ...c, pure: !c.pure }))}>
+                        {analysis.pureSeqs.map((seq, i) => (
+                          <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {seq.map(c => <CardUI key={c.id} card={c} small onClick={() => removeCard(c.id)} />)}
+                          </div>
+                        ))}
+                      </GroupBox>
+                    )}
+                    {analysis.impureSeqs.length > 0 && (
+                      <GroupBox title="Impure Sequences (with Joker)" color="#60a5fa" count={analysis.impureSeqs.length}
+                        collapsed={!!collapsed["impure"]} onToggle={() => setCollapsed(c => ({ ...c, impure: !c.impure }))}>
+                        {analysis.impureSeqs.map((seq, i) => (
+                          <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {seq.map(c => <CardUI key={c.id} card={c} small onClick={() => removeCard(c.id)} />)}
+                          </div>
+                        ))}
+                      </GroupBox>
+                    )}
+                    {analysis.sets.length > 0 && (
+                      <GroupBox title="Sets" color="#f59e0b" count={analysis.sets.length}
+                        collapsed={!!collapsed["sets"]} onToggle={() => setCollapsed(c => ({ ...c, sets: !c.sets }))}>
+                        {analysis.sets.map((set, i) => (
+                          <div key={i} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {set.map(c => <CardUI key={c.id} card={c} small onClick={() => removeCard(c.id)} />)}
+                          </div>
+                        ))}
+                      </GroupBox>
+                    )}
+                    {analysis.deadwood.length > 0 && (
+                      <GroupBox title="Deadwood — tap to remove" color="#f87171" count={analysis.deadwood.length}
+                        collapsed={!!collapsed["dead"]} onToggle={() => setCollapsed(c => ({ ...c, dead: !c.dead }))}>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {analysis.deadwood.map(c => (
+                            <div key={c.id} style={{ position: "relative" }}>
+                              <CardUI card={c} small highlight={c.id === analysis.bestDiscard?.id} onClick={() => removeCard(c.id)} />
+                              {c.id === analysis.bestDiscard?.id && (
+                                <span style={{ position: "absolute", top: -6, right: -6, fontSize: 8, background: "#f59e0b", color: "#000", borderRadius: 4, padding: "1px 3px", fontWeight: 700 }}>DROP</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>Total deadwood: {analysis.deadwoodPts} pts</p>
+                      </GroupBox>
+                    )}
+
+                    {/* Quick insight card */}
+                    {analysis.nearComplete.length > 0 && (
+                      <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 10, padding: "10px 14px", marginTop: 8 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", margin: "0 0 6px" }}>⚡ One card away</p>
+                        {analysis.nearComplete.slice(0, 3).map((nc, i) => (
+                          <p key={i} style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0" }}>
+                            → {nc.type}: need <span style={{ color: "#fbbf24", fontWeight: 700 }}>{nc.needing}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
-              <EmptyState msg="Click cards above to build your hand" icon="🃏" />
+              <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                <p style={{ fontSize: 32, marginBottom: 12 }}>🃏</p>
+                <p style={{ color: "#475569", fontSize: 14, marginBottom: 16 }}>Add cards manually or click <strong style={{ color: ACCENT }}>🎲 Quick Deal</strong> to start instantly</p>
+                <button type="button" onClick={quickDeal} style={{ padding: "12px 28px", background: "rgba(34,197,94,0.15)", border: `1px solid ${BORDER}`, borderRadius: 10, color: ACCENT, fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+                  🎲 Deal Me 13 Cards
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -1523,6 +1685,7 @@ export default function RummyProPage() {
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
       `}</style>
     </div>
   );
