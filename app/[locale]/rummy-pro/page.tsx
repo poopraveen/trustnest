@@ -469,8 +469,8 @@ export default function RummyProPage() {
   const [pickingJoker, setPickingJoker] = useState(false);
   const [handSort, setHandSort] = useState<"groups" | "suit" | "value">("groups");
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ cards: { rank: string; suit: string }[] } | null>(null);
-  const [scanError, setScanError] = useState("");
+  const [scanResult, setScanResult] = useState<{ cards: { rank: string; suit: string }[]; provider?: string } | null>(null);
+  const [scanError, setScanError] = useState<{ msg: string; options?: { env: string; name: string; cost: string }[] } | null>(null);
 
   // Live Game tab state
   const [lgTurn, setLgTurn] = useState(1);
@@ -594,12 +594,12 @@ export default function RummyProPage() {
       const res = await fetch("/api/rummy-pro/scan-cards", { method: "POST", body: fd });
       const data = await res.json();
       if (data.cards?.length) {
-        setScanResult(data);
+        setScanResult({ cards: data.cards, provider: data.provider });
       } else {
-        setScanError(data.error || "No cards detected. Try better lighting.");
+        setScanError({ msg: data.error || "No cards detected. Try better lighting.", options: data.options });
       }
     } catch {
-      setScanError("Scan failed. Check your connection and try again.");
+      setScanError({ msg: "Scan failed. Check your connection and try again." });
     } finally {
       setScanning(false);
     }
@@ -806,18 +806,34 @@ export default function RummyProPage() {
                   <div style={{ textAlign: "center", padding: "20px 0" }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
                     <p style={{ color: "#a5b4fc", fontWeight: 700, fontSize: 15 }}>Scanning your cards with AI...</p>
-                    <p style={{ color: "#64748b", fontSize: 12 }}>Claude Vision is identifying each card</p>
+                    <p style={{ color: "#64748b", fontSize: 12 }}>Trying Claude → Gemini → Llava in order</p>
                   </div>
                 )}
                 {scanError && (
                   <div>
-                    <p style={{ color: "#f87171", fontWeight: 700, marginBottom: 8 }}>⚠️ {scanError}</p>
-                    <button type="button" onClick={() => setScanError("")} style={{ padding: "6px 14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#f87171", cursor: "pointer", fontSize: 12 }}>Dismiss</button>
+                    <p style={{ color: "#f87171", fontWeight: 700, marginBottom: 10 }}>⚠️ {scanError.msg}</p>
+                    {scanError.options && (
+                      <div style={{ marginBottom: 12 }}>
+                        <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>Set one of these environment variables in Vercel to enable card scanning:</p>
+                        {scanError.options.map(o => (
+                          <div key={o.env} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "8px 12px", marginBottom: 6 }}>
+                            <code style={{ color: "#fbbf24", fontSize: 12, fontWeight: 700 }}>{o.env}</code>
+                            <span style={{ color: "#e2e8f0", fontSize: 12 }}> — {o.name}</span>
+                            <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0" }}>{o.cost}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" onClick={() => setScanError(null)} style={{ padding: "6px 14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#f87171", cursor: "pointer", fontSize: 12 }}>Dismiss</button>
                   </div>
                 )}
                 {scanResult && (
                   <div>
-                    <p style={{ color: ACCENT, fontWeight: 700, fontSize: 14, marginBottom: 12 }}>✅ Detected {scanResult.cards.length} cards — confirm before applying:</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                      <p style={{ color: ACCENT, fontWeight: 700, fontSize: 14, margin: 0 }}>✅ Detected {scanResult.cards.length} cards</p>
+                      {scanResult.provider && <span style={{ fontSize: 11, color: "#64748b", padding: "2px 8px", background: "rgba(255,255,255,0.06)", borderRadius: 6 }}>via {scanResult.provider}</span>}
+                      <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>Confirm before applying:</p>
+                    </div>
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
                       {scanResult.cards.map((c, i) => (
                         <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 38, height: 52, background: c.rank === "PJ" ? "linear-gradient(135deg,#7c3aed,#a855f7)" : "#fff", border: "1.5px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontWeight: 700, color: (c.suit === "♥" || c.suit === "♦") ? "#dc2626" : c.rank === "PJ" ? "#e9d5ff" : "#1e293b", gap: 1 }}>
