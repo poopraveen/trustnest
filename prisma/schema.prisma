@@ -1351,3 +1351,38 @@ model FamilyTripExpense {
 
   @@index([tripId, date])
 }
+
+// ─── ONE SPOT BANGLES ──────────────────────────────────────────────────────
+
+model BangleProduct {
+  id            String   @id @default(cuid())
+  name          String
+  description   String   @default("")
+  price         Float
+  originalPrice Float?
+  mediaUrl      String   @default("")
+  mediaType     String   @default("image")
+  category      String   @default("Gold")
+  material      String   @default("")
+  inStock       Boolean  @default(true)
+  featured      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookings      BangleBooking[]
+}
+
+model BangleBooking {
+  id            String   @id @default(cuid())
+  productId     String
+  product       BangleProduct @relation(fields: [productId], references: [id])
+  productName   String
+  price         Float
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  note          String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
