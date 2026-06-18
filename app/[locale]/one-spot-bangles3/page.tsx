@@ -5,7 +5,7 @@ import {
   Phone, MapPin, Instagram, Search, Star, ShoppingBag,
   X, Plus, Edit2, Trash2, Video, Image as ImageIcon,
   Check, Loader2, Heart, Play, Pause, Volume2, VolumeX,
-  Store, Award, Shield, Truck, ShoppingCart, ChevronUp, ChevronDown,
+  ShoppingCart, ChevronUp, ChevronDown,
   MessageCircle, ArrowUpDown, Sparkles, Send,
 } from "lucide-react";
 
@@ -84,12 +84,6 @@ const OWNERS = [
   { name: "Madhu",  emoji: "🌸", role: "Co-owner & Operations" },
 ];
 
-const FEATURES = [
-  { icon: <Award   className="w-5 h-5"/>, title: "Certified Quality",   sub: "BIS hallmarked gold & silver"   },
-  { icon: <Shield  className="w-5 h-5"/>, title: "Genuine Products",    sub: "100% authentic jewellery"       },
-  { icon: <Truck   className="w-5 h-5"/>, title: "Home Delivery",       sub: "Free delivery in Bangalore"     },
-  { icon: <Store   className="w-5 h-5"/>, title: "Visit Our Store",     sub: "Magdi Road, Bangalore City"     },
-];
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "featured",   label: "Featured"           },
@@ -979,7 +973,7 @@ export default function OneSpotBanglesPage() {
             <Search className="w-4 h-4" style={{ position: "absolute", left: 13, top: "50%",
               transform: "translateY(-50%)", color: G.textFaint }}/>
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search bangles, gold, silver, bridal..."
+              placeholder="Search products..."
               style={{ ...inputStyle, paddingLeft: 38, borderRadius: 24, height: 40,
                 background: "rgba(212,175,55,0.05)", fontSize: 13 }}/>
           </div>
@@ -1029,89 +1023,12 @@ export default function OneSpotBanglesPage() {
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
                   borderRadius: 12, background: G.goldGrad, border: "none", color: "#0a0804",
                   fontSize: 12, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
-                <Plus className="w-3.5 h-3.5"/> Add Bangle
+                <Plus className="w-3.5 h-3.5"/> Add Product
               </button>
             )}
           </div>
         </div>
       </header>
-
-      {/* ═══════════════════════════════════ HERO BANNER ═════════════════════ */}
-      <div style={{ position: "relative", overflow: "hidden",
-        background: "linear-gradient(135deg, #0a0804 0%, #1a1004 40%, #0e0c06 100%)",
-        borderBottom: `1px solid ${G.border}` }}>
-        <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320,
-          borderRadius: "50%", pointerEvents: "none",
-          background: "radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%)" }}/>
-        <div style={{ position: "absolute", bottom: -60, left: -60, width: 240, height: 240,
-          borderRadius: "50%", pointerEvents: "none",
-          background: "radial-gradient(circle, rgba(192,120,88,0.06) 0%, transparent 70%)" }}/>
-
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "52px 24px 44px",
-          position: "relative", zIndex: 1, textAlign: "center" }}>
-
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px",
-            borderRadius: 20, background: `rgba(212,175,55,0.12)`, border: `1px solid ${G.border}`,
-            marginBottom: 20 }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: G.gold }}/>
-            <span style={{ fontSize: 12, color: G.gold, fontWeight: 700, letterSpacing: "0.05em" }}>
-              BANGALORE&apos;S FINEST JEWELLERY
-            </span>
-          </div>
-
-          <h1 style={{ fontSize: "clamp(28px, 5vw, 52px)", fontWeight: 900,
-            letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 16 }}>
-            <span style={{ background: `linear-gradient(135deg, ${G.goldLight}, ${G.gold}, ${G.roseLight})`,
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              Elegance in Every Bangle
-            </span>
-          </h1>
-          <p style={{ fontSize: "clamp(14px, 2vw, 17px)", color: G.textSub, maxWidth: 520,
-            margin: "0 auto 28px", lineHeight: 1.65 }}>
-            Handcrafted bangles from our family to yours. Gold, silver, diamond &amp; more
-            &mdash; curated with love from Bangalore.
-          </p>
-
-          <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
-            <button
-              onClick={() => {
-                const el = document.getElementById("products-section");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 26px",
-                borderRadius: 14, background: G.goldGrad, border: "none", color: "#0a0804",
-                fontSize: 14, fontWeight: 800, cursor: "pointer",
-                boxShadow: `0 6px 24px rgba(212,175,55,0.35)` }}>
-              <Sparkles className="w-4 h-4"/> Shop Now
-            </button>
-            <a href="tel:+919876543210"
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 26px",
-                borderRadius: 14, background: "transparent",
-                border: `1.5px solid ${G.border}`, color: G.cream,
-                fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
-              <Phone className="w-4 h-4" style={{ color: G.gold }}/> Call Us
-            </a>
-          </div>
-        </div>
-
-        {/* Feature pills strip */}
-        <div style={{ borderTop: `1px solid ${G.border}`, padding: "18px 24px" }}>
-          <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex",
-            justifyContent: "center", flexWrap: "wrap", gap: 12 }}>
-            {FEATURES.map(f => (
-              <div key={f.title} style={{ display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 18px", borderRadius: 14,
-                background: G.surface, border: `1px solid ${G.border}` }}>
-                <span style={{ color: G.gold }}>{f.icon}</span>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: G.cream }}>{f.title}</p>
-                  <p style={{ fontSize: 10, color: G.textSub }}>{f.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* ═══════════════════════════════════ CATEGORY STRIP ══════════════════ */}
       <div style={{ borderBottom: `1px solid ${G.border}`, background: "#0e0b07",
@@ -1191,7 +1108,7 @@ export default function OneSpotBanglesPage() {
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>💍</div>
-            <p style={{ fontSize: 16, color: G.textSub, fontWeight: 600 }}>No bangles found</p>
+            <p style={{ fontSize: 16, color: G.textSub, fontWeight: 600 }}>No products found</p>
             <p style={{ fontSize: 13, color: G.textFaint, marginTop: 8 }}>
               Try adjusting your search or category filter
             </p>
@@ -1336,7 +1253,7 @@ export default function OneSpotBanglesPage() {
               <div style={{ display: "flex", alignItems: "center",
                 justifyContent: "space-between", marginBottom: 20 }}>
                 <p style={{ fontSize: 16, fontWeight: 800, color: G.cream }}>
-                  {editId ? "Edit Product" : "Add New Bangle"}
+                  {editId ? "Edit Product" : "Add New Product"}
                 </p>
                 <button onClick={() => setShowForm(false)}
                   style={{ width: 32, height: 32, borderRadius: 10, background: G.surface,
@@ -1415,7 +1332,7 @@ export default function OneSpotBanglesPage() {
                   <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }}
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Describe the bangle - material, design, set size..."/>
+                    placeholder="Describe the product — material, design, size..."/>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1490,7 +1407,7 @@ export default function OneSpotBanglesPage() {
                   {saving || uploading
                     ? <Loader2 className="w-4 h-4" style={{ animation: "spin 1s linear infinite" }}/>
                     : <Check className="w-4 h-4"/>}
-                  {uploading ? "Uploading media..." : saving ? "Saving..." : editId ? "Save Changes" : "Add Bangle"}
+                  {uploading ? "Uploading media..." : saving ? "Saving..." : editId ? "Save Changes" : "Add Product"}
                 </button>
 
               </div>
