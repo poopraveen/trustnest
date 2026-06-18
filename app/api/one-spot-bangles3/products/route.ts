@@ -58,8 +58,7 @@ function dbToProduct(r: Record<string, unknown>): BangleProduct {
 
 declare global { var __bangles: BangleProduct[] | undefined; }
 const memStore = (): BangleProduct[] => {
-  // Only seed if this is the first load AND db is unavailable
-  if (!global.__bangles) global.__bangles = [...DEMO];
+  if (!global.__bangles) global.__bangles = [];
   return global.__bangles!;
 };
 
@@ -72,25 +71,6 @@ export async function GET() {
   if (prisma) {
     try {
       const rows = await prisma.bangleProduct.findMany({ orderBy: { createdAt: "desc" } });
-      // Seed demo data only when DB is genuinely empty
-      if (rows.length === 0) {
-        await prisma.bangleProduct.createMany({
-          data: DEMO.map(d => ({
-            name: d.name,
-            description: d.description,
-            price: d.price,
-            originalPrice: d.originalPrice ?? null,
-            mediaUrl: d.mediaUrl,
-            mediaType: d.mediaType,
-            category: d.category,
-            material: d.material,
-            inStock: d.inStock,
-            featured: d.featured,
-          })),
-        });
-        const seeded = await prisma.bangleProduct.findMany({ orderBy: { createdAt: "desc" } });
-        return NextResponse.json({ products: seeded.map(dbToProduct) });
-      }
       return NextResponse.json({ products: rows.map(dbToProduct) });
     } catch (e) {
       console.error("DB GET error:", e);
