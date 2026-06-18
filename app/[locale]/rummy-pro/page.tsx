@@ -586,7 +586,7 @@ export default function RummyProPage() {
 
   const scanCards = async (file: File) => {
     setScanning(true);
-    setScanError("");
+    setScanError(null);
     setScanResult(null);
     try {
       const fd = new FormData();
