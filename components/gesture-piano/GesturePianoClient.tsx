@@ -41,7 +41,7 @@ const HAND_CONNECTIONS: [number, number][] = [
 const LOAD_STEPS = [
   "Initialising TensorFlow.js…",
   "Loading WebGL backend…",
-  "Downloading hand-tracking model (~2 MB)…",
+  "Downloading hand-tracking model (~12 MB)…",
   "Warming up detector…",
 ];
 
@@ -134,7 +134,7 @@ export default function GesturePianoClient() {
       const detector = await Promise.race([
         handPoseDetection.createDetector(
           handPoseDetection.SupportedModels.MediaPipeHands,
-          { runtime: "tfjs", modelType: "lite", maxHands: 2 }
+          { runtime: "tfjs", modelType: "full", maxHands: 2 }
         ),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timed out downloading the hand-tracking model. Check your connection and retry.")), 20000)
@@ -174,10 +174,11 @@ export default function GesturePianoClient() {
     // but was producing NaN keypoints once the reused region degenerated
     // (hand near the frame edge, fast motion) — corrupting every frame
     // after, since the bad region kept getting reused for the next crop.
-    // The model's own presence threshold is a loose 0.5 — in poor lighting
-    // that's enough to false-positive on noise, producing "hands" with no
-    // real hand in frame and garbage coordinates. Require higher confidence.
-    const hands = (await detector.estimateHands(video)).filter(h => h.score > 0.75);
+    // 0.75 turned out to reject real hands too (the model's own scores for
+    // genuine hands aren't always that high) — 0.55 still screens out pure
+    // noise-in-the-dark false positives without being so strict it drops
+    // real detections.
+    const hands = (await detector.estimateHands(video)).filter(h => h.score > 0.55);
 
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -374,7 +375,7 @@ export default function GesturePianoClient() {
                   <div className="h-full bg-emerald-400 rounded-full transition-all duration-500"
                     style={{ width: `${((loadStep + 1) / LOAD_STEPS.length) * 100}%` }} />
                 </div>
-                <p className="text-slate-600 text-xs text-center">~2 MB first load · cached forever after</p>
+                <p className="text-slate-600 text-xs text-center">~12 MB first load · cached forever after</p>
               </>
             )}
             {modelState === "error" && (
