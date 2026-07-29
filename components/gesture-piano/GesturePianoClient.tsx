@@ -10,7 +10,9 @@ import Link from "next/link";
 /* ── Types ──────────────────────────────────────────────────────────────────── */
 interface Keypoint { x: number; y: number; name?: string }
 interface DetectedHand { keypoints: Keypoint[]; handedness: string; score: number }
-interface HandDetector { estimateHands: (video: HTMLVideoElement) => Promise<DetectedHand[]> }
+interface HandDetector {
+  estimateHands: (video: HTMLVideoElement, config?: { staticImageMode?: boolean }) => Promise<DetectedHand[]>;
+}
 type ModelState = "idle" | "loading" | "ready" | "error";
 
 /* ── Piano key layout — C4..D5, mapped left→right across the frame ──────────── */
@@ -127,10 +129,15 @@ export default function GesturePianoClient() {
 
       setLoadStep(2);
       const handPoseDetection = await import("@tensorflow-models/hand-pose-detection");
-      const detector = await handPoseDetection.createDetector(
-        handPoseDetection.SupportedModels.MediaPipeHands,
-        { runtime: "tfjs", modelType: "lite", maxHands: 2 }
-      );
+      const detector = await Promise.race([
+        handPoseDetection.createDetector(
+          handPoseDetection.SupportedModels.MediaPipeHands,
+          { runtime: "tfjs", modelType: "lite", maxHands: 2 }
+        ),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Timed out downloading the hand-tracking model. Check your connection and retry.")), 20000)
+        ),
+      ]);
 
       setLoadStep(3);
       detectorRef.current = detector as unknown as HandDetector;
@@ -159,7 +166,10 @@ export default function GesturePianoClient() {
       rafRef.current = requestAnimationFrame(detect); return;
     }
 
-    const hands = await detector.estimateHands(video);
+    try {
+    // staticImageMode:false lets the model track between frames instead of
+    // re-running full palm detection every frame — much smoother on video.
+    const hands = await detector.estimateHands(video, { staticImageMode: false });
 
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -241,6 +251,12 @@ export default function GesturePianoClient() {
     c.frames++;
     const now = Date.now();
     if (now - c.last >= 1000) { setFps(c.frames); c.frames = 0; c.last = now; }
+    } catch (e) {
+      // A single bad frame (WebGL hiccup, tensor GC, etc.) must never kill
+      // the whole tracking loop — camera would stay live with gestures
+      // silently frozen and no visible error.
+      console.warn("Gesture Piano: frame skipped", e);
+    }
 
     rafRef.current = requestAnimationFrame(detect);
   }, [playNote]);
