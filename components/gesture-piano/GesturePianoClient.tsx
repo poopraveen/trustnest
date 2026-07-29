@@ -45,7 +45,6 @@ const LOAD_STEPS = [
   "Warming up detector…",
 ];
 
-const STRIKE_ZONE_TOP = 0.55; // fraction of frame height where the "keys" start
 
 export default function GesturePianoClient() {
   const videoRef    = useRef<HTMLVideoElement>(null);
@@ -55,7 +54,7 @@ export default function GesturePianoClient() {
   const streamRef   = useRef<MediaStream | null>(null);
   const fpsRef      = useRef({ frames: 0, last: Date.now() });
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const handStateRef = useRef<{ inZone: boolean; column: number | null }[]>([]);
+  const handStateRef = useRef<{ column: number | null }[]>([]);
 
   const [modelState, setModelState] = useState<ModelState>("idle");
   const [loadStep, setLoadStep]     = useState(0);
@@ -86,7 +85,7 @@ export default function GesturePianoClient() {
     const now = ctx.currentTime;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.6, now + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
     gain.connect(ctx.destination);
 
@@ -176,22 +175,17 @@ export default function GesturePianoClient() {
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const zoneY = canvas.height * STRIKE_ZONE_TOP;
     const keyWidth = canvas.width / KEYS.length;
 
-    // Strike zone / key columns
-    ctx.strokeStyle = "rgba(52, 211, 153, 0.5)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, zoneY);
-    ctx.lineTo(canvas.width, zoneY);
-    ctx.stroke();
+    // Key columns span the full frame — no need to reach a specific height,
+    // any hand visible anywhere in view can play.
     for (let i = 1; i < KEYS.length; i++) {
       const x = i * keyWidth;
       ctx.beginPath();
-      ctx.moveTo(x, zoneY);
+      ctx.moveTo(x, 0);
       ctx.lineTo(x, canvas.height);
-      ctx.strokeStyle = "rgba(52, 211, 153, 0.25)";
+      ctx.strokeStyle = "rgba(52, 211, 153, 0.2)";
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
     ctx.font = "bold 12px system-ui";
@@ -201,7 +195,7 @@ export default function GesturePianoClient() {
     });
 
     if (handStateRef.current.length !== hands.length) {
-      handStateRef.current = hands.map(() => ({ inZone: false, column: null }));
+      handStateRef.current = hands.map(() => ({ column: null }));
     }
 
     hands.forEach((hand, hi) => {
@@ -235,14 +229,13 @@ export default function GesturePianoClient() {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      const inZone = tip.y > zoneY;
       const column = Math.min(KEYS.length - 1, Math.max(0, Math.floor(tip.x / keyWidth)));
-      const state = handStateRef.current[hi] ?? { inZone: false, column: null };
+      const state = handStateRef.current[hi] ?? { column: null };
 
-      if (inZone && (!state.inZone || state.column !== column)) {
+      if (state.column !== column) {
         playNote(column);
       }
-      handStateRef.current[hi] = { inZone, column: inZone ? column : null };
+      handStateRef.current[hi] = { column };
     });
 
     setHandCount(hands.length);
@@ -330,6 +323,10 @@ export default function GesturePianoClient() {
           <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
             <Hand className="w-3 h-3 inline -mt-0.5 mr-1" />{handCount}
           </span>
+          <button onClick={() => playNote(5)}
+            className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-300 transition-colors">
+            🔊 Test
+          </button>
           <button onClick={() => setMuted(m => !m)}
             className={`p-2 rounded-lg transition-colors ${muted ? "bg-red-600" : "bg-slate-800 hover:bg-slate-700"}`}>
             {muted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
@@ -445,9 +442,9 @@ export default function GesturePianoClient() {
             <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">How it works</p>
           </div>
           <ul className="text-xs text-slate-400 leading-relaxed space-y-1.5">
-            <li>• Start the camera and hold up to two hands in view.</li>
-            <li>• The green line marks the <span className="text-emerald-300 font-semibold">strike zone</span> — dip your index fingertip below it.</li>
-            <li>• Each column plays a different note, like a floor piano — slide across columns to play a run.</li>
+            <li>• Start the camera and hold up to two hands anywhere in view — no need to reach a specific spot.</li>
+            <li>• The frame is split into 9 <span className="text-emerald-300 font-semibold">columns</span>, one per note — move your index fingertip left/right across them.</li>
+            <li>• A note plays whenever your fingertip crosses into a new column, like a floor piano.</li>
             <li>• Tap the on-screen keys directly if you'd rather not use the camera.</li>
           </ul>
         </div>
