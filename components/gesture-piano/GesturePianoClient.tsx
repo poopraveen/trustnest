@@ -269,6 +269,10 @@ export default function GesturePianoClient() {
         const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         audioCtxRef.current = new Ctor();
       }
+      // Must resume synchronously inside this click handler — Safari/iOS
+      // keep the context permanently suspended if unlocked any later
+      // (e.g. from the rAF detection loop), so notes would never play.
+      audioCtxRef.current.resume().catch(() => {});
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false,
       });
@@ -336,7 +340,7 @@ export default function GesturePianoClient() {
       {/* Camera */}
       <div className="relative bg-black overflow-hidden shrink-0" style={{ height: "52vh" }}>
         <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }} />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" style={{ pointerEvents: "none" }} />
 
         {!cameraOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 gap-4 px-6">
