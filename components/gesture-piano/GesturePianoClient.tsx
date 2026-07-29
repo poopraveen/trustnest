@@ -65,6 +65,8 @@ export default function GesturePianoClient() {
   const [activeKeys, setActiveKeys] = useState<Set<number>>(new Set());
   const [handCount, setHandCount]   = useState(0);
   const [error, setError]           = useState("");
+  const [debugCol, setDebugCol]     = useState<number | null>(null);
+  const [noteCount, setNoteCount]   = useState(0);
 
   const mutedRef = useRef(muted);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
@@ -109,6 +111,7 @@ export default function GesturePianoClient() {
     overtone.stop(now + 0.52);
 
     setActiveKeys(prev => new Set(prev).add(index));
+    setNoteCount(n => n + 1);
     setTimeout(() => {
       setActiveKeys(prev => { const next = new Set(prev); next.delete(index); return next; });
     }, 260);
@@ -236,9 +239,11 @@ export default function GesturePianoClient() {
         playNote(column);
       }
       handStateRef.current[hi] = { column };
+      if (hi === 0) setDebugCol(column);
     });
 
     setHandCount(hands.length);
+    if (hands.length === 0) setDebugCol(null);
 
     const c = fpsRef.current;
     c.frames++;
@@ -322,6 +327,14 @@ export default function GesturePianoClient() {
           )}
           <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
             <Hand className="w-3 h-3 inline -mt-0.5 mr-1" />{handCount}
+          </span>
+          {cameraOn && (
+            <span className="text-xs text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+              col:{debugCol ?? "–"}
+            </span>
+          )}
+          <span className="text-xs text-fuchsia-400 font-mono bg-fuchsia-500/10 px-2 py-0.5 rounded-full border border-fuchsia-500/30">
+            ♪{noteCount}
           </span>
           <button onClick={() => playNote(5)}
             className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-300 transition-colors">
