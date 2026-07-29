@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Shield, Globe, BarChart3, MapPin, Briefcase,
-  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain, Gamepad2,
+  Users, MessageSquare, FileSearch, Settings, Home, ExternalLink, Info, Wifi, Radio, ScanSearch, FlaskConical, Cpu, Printer, Plane, Gem, Brain, Gamepad2, Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -169,6 +169,11 @@ export default function Navbar() {
                 <Gamepad2 className="w-3.5 h-3.5" />
                 🃏 Rummy Pro
                 <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-red-400 text-slate-900 rounded uppercase tracking-wide leading-none">New</span>
+              </GovNavLink>
+              <GovNavLink href="/gesture-piano" active={isActive("/gesture-piano")}>
+                <Music className="w-3.5 h-3.5" />
+                Gesture Piano
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-teal-400 text-slate-900 rounded uppercase tracking-wide leading-none">New</span>
               </GovNavLink>
             </div>
 
@@ -389,6 +394,22 @@ export default function Navbar() {
               <Gamepad2 className="w-4 h-4" />
               🃏 Rummy Pro
               <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-red-400 text-slate-900 rounded uppercase tracking-wide leading-none">
+                New
+              </span>
+            </Link>
+            <Link
+              href="/gesture-piano"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors",
+                isActive("/gesture-piano")
+                  ? "bg-white/20 text-white font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Music className="w-4 h-4" />
+              Gesture Piano
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black bg-teal-400 text-slate-900 rounded uppercase tracking-wide leading-none">
                 New
               </span>
             </Link>
