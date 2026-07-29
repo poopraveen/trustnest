@@ -174,7 +174,10 @@ export default function GesturePianoClient() {
     // but was producing NaN keypoints once the reused region degenerated
     // (hand near the frame edge, fast motion) — corrupting every frame
     // after, since the bad region kept getting reused for the next crop.
-    const hands = await detector.estimateHands(video);
+    // The model's own presence threshold is a loose 0.5 — in poor lighting
+    // that's enough to false-positive on noise, producing "hands" with no
+    // real hand in frame and garbage coordinates. Require higher confidence.
+    const hands = (await detector.estimateHands(video)).filter(h => h.score > 0.75);
 
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
