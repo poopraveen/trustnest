@@ -169,9 +169,12 @@ export default function GesturePianoClient() {
     }
 
     try {
-    // staticImageMode:false lets the model track between frames instead of
-    // re-running full palm detection every frame — much smoother on video.
-    const hands = await detector.estimateHands(video, { staticImageMode: false });
+    // staticImageMode left at its default (true — re-detect every frame).
+    // false enables ROI-based tracking between frames, which is smoother
+    // but was producing NaN keypoints once the reused region degenerated
+    // (hand near the frame edge, fast motion) — corrupting every frame
+    // after, since the bad region kept getting reused for the next crop.
+    const hands = await detector.estimateHands(video);
 
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -224,7 +227,9 @@ export default function GesturePianoClient() {
 
       // Index fingertip = landmark 8 → strike detection
       const tip = hand.keypoints[8];
-      if (!tip) return;
+      // A degenerate tracking region can hand back NaN/Infinity coordinates;
+      // KEYS[NaN] is undefined, so playNote would silently no-op forever.
+      if (!tip || !Number.isFinite(tip.x) || !Number.isFinite(tip.y) || keyWidth <= 0) return;
 
       ctx.beginPath();
       ctx.arc(tip.x, tip.y, 9, 0, Math.PI * 2);
