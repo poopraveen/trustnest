@@ -40,7 +40,7 @@ const HAND_CONNECTIONS: [number, number][] = [
 
 const LOAD_STEPS = [
   "Initialising TensorFlow.js…",
-  "Loading WebGL backend…",
+  "Loading compute backend…",
   "Downloading hand-tracking model (~12 MB)…",
   "Warming up detector…",
 ];
@@ -69,6 +69,7 @@ export default function GesturePianoClient() {
   const [noteCount, setNoteCount]   = useState(0);
   const [rawCount, setRawCount]     = useState(0);
   const [topScore, setTopScore]     = useState<number | null>(null);
+  const [backend, setBackend]       = useState("");
 
   const mutedRef = useRef(muted);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
@@ -127,9 +128,20 @@ export default function GesturePianoClient() {
       const tf = await import("@tensorflow/tfjs-core");
       await import("@tensorflow/tfjs-converter");
       setLoadStep(1);
-      try { await import("@tensorflow/tfjs-backend-webgl"); await tf.setBackend("webgl"); }
-      catch { await tf.setBackend("cpu"); }
+      // WASM first: tfjs-backend-webgl has a history of subtle, silent
+      // correctness bugs on iOS Safari (no error thrown, just wrong numbers)
+      // that can tank every confidence score without ever surfacing as a
+      // visible failure. WASM's math is consistent across browsers.
+      try {
+        const wasmBackend = await import("@tensorflow/tfjs-backend-wasm");
+        wasmBackend.setWasmPaths("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/");
+        await tf.setBackend("wasm");
+      } catch {
+        try { await import("@tensorflow/tfjs-backend-webgl"); await tf.setBackend("webgl"); }
+        catch { await tf.setBackend("cpu"); }
+      }
       await tf.ready();
+      setBackend(tf.getBackend());
 
       setLoadStep(2);
       const handPoseDetection = await import("@tensorflow-models/hand-pose-detection");
@@ -331,7 +343,7 @@ export default function GesturePianoClient() {
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-white">Gesture Piano</h1>
-          <p className="text-xs text-slate-400">Hand-tracking · On-device AI · Web Audio synth</p>
+          <p className="text-xs text-slate-400">Hand-tracking · On-device AI · Web Audio synth · build g9</p>
         </div>
         <div className="flex items-center gap-1.5">
           {cameraOn && (
@@ -411,6 +423,7 @@ export default function GesturePianoClient() {
 
         {cameraOn && (
           <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur px-2 py-1 rounded-lg text-[10px] font-mono text-emerald-300 leading-tight text-right">
+            <div>be:{backend || "–"}</div>
             <div>raw:{rawCount} top:{topScore !== null ? topScore.toFixed(2) : "–"}</div>
             <div>col:{debugCol ?? "–"}</div>
           </div>
