@@ -67,6 +67,8 @@ export default function GesturePianoClient() {
   const [error, setError]           = useState("");
   const [debugCol, setDebugCol]     = useState<number | null>(null);
   const [noteCount, setNoteCount]   = useState(0);
+  const [rawCount, setRawCount]     = useState(0);
+  const [topScore, setTopScore]     = useState<number | null>(null);
 
   const mutedRef = useRef(muted);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
@@ -178,7 +180,10 @@ export default function GesturePianoClient() {
     // genuine hands aren't always that high) — 0.55 still screens out pure
     // noise-in-the-dark false positives without being so strict it drops
     // real detections.
-    const hands = (await detector.estimateHands(video)).filter(h => h.score > 0.55);
+    const rawHands = await detector.estimateHands(video);
+    setRawCount(rawHands.length);
+    setTopScore(rawHands.length > 0 ? Math.max(...rawHands.map(h => h.score)) : null);
+    const hands = rawHands.filter(h => h.score > 0.55);
 
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -337,11 +342,6 @@ export default function GesturePianoClient() {
           <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
             <Hand className="w-3 h-3 inline -mt-0.5 mr-1" />{handCount}
           </span>
-          {cameraOn && (
-            <span className="text-xs text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-              col:{debugCol ?? "–"}
-            </span>
-          )}
           <span className="text-xs text-fuchsia-400 font-mono bg-fuchsia-500/10 px-2 py-0.5 rounded-full border border-fuchsia-500/30">
             ♪{noteCount}
           </span>
@@ -406,6 +406,13 @@ export default function GesturePianoClient() {
         {cameraOn && (
           <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-red-600/90 backdrop-blur px-2 py-1 rounded-lg text-xs text-white font-bold">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" /> LIVE
+          </div>
+        )}
+
+        {cameraOn && (
+          <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur px-2 py-1 rounded-lg text-[10px] font-mono text-emerald-300 leading-tight text-right">
+            <div>raw:{rawCount} top:{topScore !== null ? topScore.toFixed(2) : "–"}</div>
+            <div>col:{debugCol ?? "–"}</div>
           </div>
         )}
 
